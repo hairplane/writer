@@ -1,21 +1,20 @@
-<!-- v0.2: 상단 API 키 수동 입력창 제거, Google AI Studio 재발급 바로가기 링크 추가 및 GitHub Secrets 빌드 자동 주입 마커 탑재 -->
+<!-- v0.3: 타이틀을 '글쓰기 스튜디오'로 변경, 헤더 스타일 강화 및 버튼 분리, 공용/개인 키 선택형 API 관리자 통합 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writer Studio</title>
+    <title>글쓰기 스튜디오</title>
     <style>
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
+            --header-bg: #1e293b;
             --bg-color: #f8fafc;
             --card-bg: #ffffff;
             --border-color: #cbd5e1;
             --text-main: #0f172a;
             --text-sub: #64748b;
-            --accent-green: #10b981;
-            --accent-orange: #ea580c;
         }
 
         * {
@@ -41,55 +40,85 @@
             gap: 16px;
         }
 
-        /* 상단 헤더 & 컨트롤 */
-        header {
+        /* 1. 강화된 헤더 스타일 */
+        header.app-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--card-bg);
-            padding: 14px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            flex-wrap: wrap;
-            gap: 12px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 16px 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+            border-bottom: 3px solid #3b82f6;
         }
 
         .header-title-wrap {
             display: flex;
-            align-items: baseline;
-            gap: 8px;
+            align-items: center;
+            gap: 10px;
         }
 
         .header-title-wrap h1 {
-            font-size: 1.25rem;
-            font-weight: 700;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .header-title-wrap .version-tag {
             font-size: 0.8rem;
-            color: #94a3b8;
-            font-weight: 600;
+            color: #93c5fd;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.2);
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(147, 197, 253, 0.3);
         }
 
-        .global-actions {
-            display: flex;
-            gap: 8px;
+        /* 컴팩트 AI Studio 열쇠 링크 */
+        .btn-key-compact {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fde047;
+            border: 1px solid rgba(253, 224, 71, 0.3);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            flex-wrap: wrap;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        .btn-key-compact:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fde047;
+            transform: scale(1.03);
+        }
+
+        /* 2. 헤더 하단 독립 액션 툴바 */
+        .action-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            background: #ffffff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .btn {
-            padding: 7px 14px;
+            padding: 8px 16px;
             font-size: 0.88rem;
             font-weight: 600;
             border-radius: 6px;
             border: 1px solid transparent;
             cursor: pointer;
             transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .btn-default {
@@ -112,31 +141,143 @@
         }
         .btn-danger:hover { background-color: #fef2f2; }
 
-        .btn-api-link {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            color: #1d4ed8;
+        /* 3. API 키 관리 컴포넌트 (참고 코드 기반, 안내문 제거 버전) */
+        .api-box {
+            background: #fffdf5;
+            border: 1px solid #fde68a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .api-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .api-status-badge {
             font-size: 0.8rem;
-            padding: 6px 10px;
-        }
-        .btn-api-link:hover {
-            background: #dbeafe;
-        }
-
-        .ai-status-pill {
-            font-size: 0.75rem;
             font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 9999px;
-            background: #e2e8f0;
-            color: #475569;
-        }
-        .ai-status-pill.ready {
-            background: #dcfce7;
-            color: #15803d;
+            color: #d97706;
+            background: #fef3c7;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #fde68a;
+            display: inline-block;
         }
 
-        /* 섹션 카드 */
+        .api-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        .api-row input {
+            flex: 1;
+            min-width: 220px;
+            padding: 8px 12px;
+            font-size: 0.88rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+        }
+        .api-row input:focus { border-color: #d97706; }
+
+        .api-btn-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .api-save-btn {
+            background: #f57c00;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .api-save-btn:disabled {
+            background: #cbd5e1;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        .api-wait-btn { background: #e67e22 !important; }
+
+        .api-cancel-btn {
+            background: #64748b;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 110%;
+            background-color: #ffffff;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            z-index: 50;
+            overflow: hidden;
+        }
+
+        .dropdown-content button {
+            color: #334155;
+            padding: 9px 14px;
+            text-align: left;
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.83rem;
+            font-weight: 600;
+            display: block;
+        }
+        .dropdown-content button:hover {
+            background-color: #f8fafc;
+            color: #f57c00;
+        }
+        .dropdown-content.show { display: block; }
+
+        .api-del-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none;
+        }
+        .api-del-btn:hover { background-color: #dc2626; }
+
+        /* 섹션 카드 공통 */
         .section-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -167,7 +308,6 @@
             margin-top: 2px;
         }
 
-        /* 텍스트 입력창 */
         .input-title {
             width: 100%;
             padding: 10px 14px;
@@ -193,7 +333,6 @@
         }
         textarea.editor-textarea:focus { border-color: var(--primary); }
 
-        /* 상태 툴바 (글자 수, 복원 버튼) */
         .status-toolbar {
             display: flex;
             justify-content: space-between;
@@ -231,7 +370,6 @@
             color: #0f172a;
         }
 
-        /* AI 수정 카드 특별 스타일 */
         .ai-card {
             border: 1.5px solid #93c5fd;
             background: #f0f7ff;
@@ -272,11 +410,9 @@
         }
         .btn-ai-trigger:hover { background-color: #4338ca; }
 
-        /* 모바일 반응형 */
         @media (max-width: 640px) {
             body { padding: 10px; }
-            header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .global-actions { width: 100%; justify-content: flex-start; }
+            .action-toolbar { justify-content: space-between; }
             .status-toolbar { flex-direction: column; align-items: flex-start; }
             .restore-group { width: 100%; justify-content: flex-end; }
         }
@@ -285,23 +421,48 @@
 <body>
 
 <div class="container">
-    <!-- 헤더 -->
-    <header>
+    <!-- 1. 헤더 영역 -->
+    <header class="app-header">
         <div class="header-title-wrap">
-            <h1>에세이 라이터 스튜디오</h1>
-            <span class="version-tag">v0.2</span>
-            <span id="aiStatusPill" class="ai-status-pill">AI 준비 중</span>
+            <h1>✍️ 글쓰기 스튜디오</h1>
+            <span class="version-tag">v0.3</span>
         </div>
-        <div class="global-actions">
-            <!-- Google AI Studio 바로가기 링크 버튼 -->
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn btn-api-link" title="구글 AI 스튜디오 키 발급 및 관리 콘솔로 이동">
-                🔑 Google AI Studio 바로가기 ↗
-            </a>
-            <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
-            <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
-            <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
-        </div>
+        <!-- 초소형 Google AI Studio 바로가기 -->
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">
+            🔑
+        </a>
     </header>
+
+    <!-- 2. 헤더 하단 독립 액션 툴바 (저장/계속, 저장/종료, 취소) -->
+    <div class="action-toolbar">
+        <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
+        <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
+        <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
+    </div>
+
+    <!-- 3. Gemini API Key 관리 바 (공용/개인 키 드롭다운, 안내문 제거 버전) -->
+    <div id="apiBox" class="api-box">
+        <div class="api-box-header">
+            <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
+        </div>
+        <div class="api-row">
+            <input type="password" id="apiKeyInput" placeholder="Gemini API Key를 여기에 입력하세요" oninput="checkKeyInputState()">
+            <div class="api-btn-group">
+                <div class="dropdown" id="apiDropdownContainer">
+                    <button type="button" id="apiSaveBtn" class="api-save-btn" onclick="handleSaveButtonClick()">
+                        <span id="apiSaveBtnText">키 설치하기</span>
+                        <span id="dropdownArrow">▼</span>
+                    </button>
+                    <div id="apiDropdownMenu" class="dropdown-content">
+                        <button type="button" onclick="selectKeyChoice('shared')">공용 키 설치하기</button>
+                        <button type="button" onclick="selectKeyChoice('personal')">개인 키 설치하기</button>
+                    </div>
+                </div>
+                <button type="button" id="apiCancelBtn" class="api-cancel-btn" onclick="cancelKeyInput()">취소</button>
+            </div>
+            <button type="button" id="apiDelBtn" class="api-del-btn" onclick="deleteApiKey()">키 삭제하기</button>
+        </div>
+    </div>
 
     <!-- 제목 -->
     <div class="section-card">
@@ -409,11 +570,13 @@
 </div>
 
 <script>
-    // GitHub Actions 자동 빌드 치환용 마커 (A 방식: 배포 시 Secrets.GEMINI_API_KEY 로 치환됨)
-    const INJECTED_GEMINI_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V02";
+    // GitHub Actions 자동 빌드 치환용 마커 (빌드 시 Secrets 값 치환)
+    const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V03";
+    const $ = id => document.getElementById(id);
 
     let isDirty = false;
+    let isPersonalWaitState = false;
 
     const fieldMap = {
         outline: 'essayOutline',
@@ -429,35 +592,136 @@
     window.addEventListener('DOMContentLoaded', () => {
         initFieldStates();
         loadSavedData();
-        checkAiStatus();
+        checkApiKeyStatus();
         updateAllStats();
+
+        window.onclick = (e) => {
+            if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
+                document.querySelectorAll(".dropdown-content.show").forEach(el => el.classList.remove('show'));
+            }
+        };
     });
 
     function markDirty() { isDirty = true; }
 
-    function getEffectiveApiKey() {
-        // 1순위: Actions에서 주입된 키, 2순위: 로컬 백업 키
-        if (INJECTED_GEMINI_KEY && !INJECTED_GEMINI_KEY.startsWith("__")) {
-            return INJECTED_GEMINI_KEY;
-        }
-        return localStorage.getItem("WRITER_GEMINI_API_KEY") || "";
-    }
+    /* ==========================================================================
+       API Key 관리 시스템 (참고 코드 100% 이식)
+       ========================================================================== */
+    function checkApiKeyStatus() {
+        const savedKey = localStorage.getItem("GEMINI_USER_API_KEY");
+        const keyType = localStorage.getItem("GEMINI_KEY_TYPE");
+        const badge = $("apiStatusBadge");
 
-    function checkAiStatus() {
-        const key = getEffectiveApiKey();
-        const pill = document.getElementById('aiStatusPill');
-        if (key) {
-            pill.innerText = "🟢 AI 활성화됨";
-            pill.classList.add('ready');
+        if (savedKey) {
+            isPersonalWaitState = false;
+            $("apiKeyInput").value = savedKey;
+            $("apiDelBtn").style.display = "inline-block";
+            $("apiSaveBtn").classList.remove("api-wait-btn");
+            $("apiCancelBtn").style.display = "none";
+            $("dropdownArrow").style.display = "none";
+            $("apiSaveBtn").disabled = true;
+
+            if (keyType === "personal") {
+                $("apiSaveBtnText").innerText = "개인 키 설치완료";
+                badge.innerText = "🔒 개인 키 사용 중";
+                Object.assign(badge.style, { color: "#16a34a", background: "#dcfce7", borderColor: "#86efac" });
+            } else {
+                $("apiSaveBtnText").innerText = "공용 키 설치완료";
+                badge.innerText = "🟢 공용 키 사용 중";
+                Object.assign(badge.style, { color: "#d97706", background: "#fef3c7", borderColor: "#fde68a" });
+            }
         } else {
-            pill.innerText = "⚠️ AI 키 미연결";
-            pill.classList.remove('ready');
+            $("apiKeyInput").value = "";
+            $("apiDelBtn").style.display = "none";
+            $("apiSaveBtn").disabled = false;
+            $("apiSaveBtn").classList.remove("api-wait-btn");
+            badge.innerText = "⚠️ 키 미설정 상태";
+            Object.assign(badge.style, { color: "#dc2626", background: "#fee2e2", borderColor: "#fca5a5" });
+
+            if (isPersonalWaitState) {
+                $("apiSaveBtnText").innerText = "개인 키 설치대기";
+                $("dropdownArrow").style.display = "none";
+                $("apiSaveBtn").classList.add("api-wait-btn");
+                $("apiCancelBtn").style.display = "inline-block";
+            } else {
+                checkKeyInputState();
+            }
         }
     }
 
+    function checkKeyInputState() {
+        if (localStorage.getItem("GEMINI_USER_API_KEY") || isPersonalWaitState) return;
+        const hasInput = $("apiKeyInput").value.trim().length > 0;
+        $("apiSaveBtnText").innerText = hasInput ? "개인 키 설치하기" : "키 설치하기";
+        $("dropdownArrow").style.display = hasInput ? "none" : "inline";
+        $("apiCancelBtn").style.display = hasInput ? "inline-block" : "none";
+    }
+
+    function handleSaveButtonClick() {
+        if (localStorage.getItem("GEMINI_USER_API_KEY")) return;
+        const keyVal = $("apiKeyInput").value.trim();
+        if (isPersonalWaitState || keyVal.length > 0) {
+            if (keyVal.length === 0) {
+                alert("API Key를 입력한 뒤 눌러주세요.");
+                return $("apiKeyInput").focus();
+            }
+            localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+            localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+        } else {
+            $("apiDropdownMenu").classList.toggle("show");
+        }
+    }
+
+    function selectKeyChoice(type) {
+        $("apiDropdownMenu").classList.remove('show');
+        if (type === 'shared') {
+            if (PUBLIC_SHARED_KEY && !PUBLIC_SHARED_KEY.startsWith("__")) {
+                localStorage.setItem("GEMINI_USER_API_KEY", PUBLIC_SHARED_KEY);
+                localStorage.setItem("GEMINI_KEY_TYPE", "shared");
+                isPersonalWaitState = false;
+                checkApiKeyStatus();
+            } else {
+                alert("공용 키가 설정되어 있지 않습니다. GitHub Secrets 빌드 환경을 확인하거나 개인 키를 입력해주세요.");
+            }
+        } else if (type === 'personal') {
+            const keyVal = $("apiKeyInput").value.trim();
+            if (keyVal.length > 0) {
+                localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+                localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+                isPersonalWaitState = false;
+                checkApiKeyStatus();
+            } else {
+                isPersonalWaitState = true;
+                checkApiKeyStatus();
+                $("apiKeyInput").focus();
+            }
+        }
+    }
+
+    function cancelKeyInput() {
+        isPersonalWaitState = false;
+        $("apiKeyInput").value = "";
+        checkApiKeyStatus();
+    }
+
+    function deleteApiKey() {
+        if (confirm("저장된 API Key를 삭제하시겠습니까?")) {
+            localStorage.removeItem("GEMINI_USER_API_KEY");
+            localStorage.removeItem("GEMINI_KEY_TYPE");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+            $("apiKeyInput").focus();
+        }
+    }
+
+    /* ==========================================================================
+       에디터 필드 & 복원(Undo) 스택
+       ========================================================================== */
     function initFieldStates() {
         for (let key in fieldMap) {
-            const el = document.getElementById(fieldMap[key]);
+            const el = $(fieldMap[key]);
             const val = el ? el.value : '';
             fieldState[key] = {
                 currentSaved: val,
@@ -466,12 +730,11 @@
         }
     }
 
-    // 2. 입력 처리 및 Undo 히스토리 누적
     function handleFieldInput(key) {
         markDirty();
-        const el = document.getElementById(fieldMap[key]);
+        const el = $(fieldMap[key]);
         if (!el) return;
-       
+        
         const val = el.value;
         const stack = fieldState[key].history;
         if (stack[stack.length - 1] !== val) {
@@ -481,9 +744,8 @@
         updateStat(key, val);
     }
 
-    // 복원 기능: 1. 취소 (Undo)
     function undoField(key) {
-        const el = document.getElementById(fieldMap[key]);
+        const el = $(fieldMap[key]);
         if (!el || !fieldState[key]) return;
         const stack = fieldState[key].history;
         if (stack.length > 1) {
@@ -496,9 +758,8 @@
         }
     }
 
-    // 복원 기능: 2. 최근 저장 상태로 (Restore Saved)
     function restoreSaved(key) {
-        const el = document.getElementById(fieldMap[key]);
+        const el = $(fieldMap[key]);
         if (!el || !fieldState[key]) return;
         const targetVal = fieldState[key].currentSaved;
         if (el.value === targetVal) {
@@ -510,7 +771,6 @@
         markDirty();
     }
 
-    // 3. 엔터 입력 시 자동 글머리 기호(●) 생성
     function handleBulletEnter(e, textarea) {
         if (e.key === 'Enter') {
             const start = textarea.selectionStart;
@@ -536,18 +796,17 @@
         }
     }
 
-    // 4. 통계 계산기
     function updateStat(key, text) {
         const len = text.length;
         const readingTime = Math.ceil(len / 400);
 
         if (key === 'completed' || key === 'newDraft' || key === 'aiRefined') {
-            const statEl = document.getElementById(`stat_${key}`);
+            const statEl = $(`stat_${key}`);
             if (statEl) {
                 statEl.innerText = `글자 수: ${len.toLocaleString()}자 | 예상 소요 시간: 약 ${readingTime}분`;
             }
         } else {
-            const statEl = document.getElementById(`stat_${key}`);
+            const statEl = $(`stat_${key}`);
             if (statEl) {
                 statEl.innerText = `${len.toLocaleString()}자`;
             }
@@ -556,31 +815,28 @@
 
     function updateAllStats() {
         for (let key in fieldMap) {
-            const el = document.getElementById(fieldMap[key]);
+            const el = $(fieldMap[key]);
             if (el) updateStat(key, el.value);
         }
     }
 
-    // 5. 단락 이어 붙이기
     function appendDraftToCompleted() {
-        const aiText = document.getElementById('aiRefinedText').value.trim();
-        const fallbackText = document.getElementById('newDraftText').value.trim();
+        const aiText = $('aiRefinedText').value.trim();
+        const fallbackText = $('newDraftText').value.trim();
         const textToAppend = aiText || fallbackText;
 
         if (!textToAppend) {
             return alert('이어 붙일 내용이 없습니다. 신규 글이나 AI 수정 글을 먼저 작성해주세요.');
         }
 
-        const completedEl = document.getElementById('completedText');
+        const completedEl = $('completedText');
         const currentCompleted = completedEl.value.trim();
 
         completedEl.value = currentCompleted ? currentCompleted + "\n\n" + textToAppend : textToAppend;
         handleFieldInput('completed');
 
-        // 신규 및 AI 영역 정리
-        document.getElementById('newDraftText').value = '';
-        document.getElementById('draftIntent').value = '';
-        document.getElementById('aiRefinedText').value = '';
+        $('newDraftText').value = '';
+        $('draftIntent').value = '';$('aiRefinedText').value = '';
         handleFieldInput('newDraft');
         handleFieldInput('intent');
         handleFieldInput('aiRefined');
@@ -588,23 +844,22 @@
         alert('신규 단락이 작성 완료된 본문에 성공적으로 이어 붙여졌습니다.');
     }
 
-    // 6. 데이터 저장 및 취소
     function saveWork(mode) {
         const payload = {
-            title: document.getElementById('essayTitle').value,
-            outline: document.getElementById('essayOutline').value,
-            completed: document.getElementById('completedText').value,
-            newDraft: document.getElementById('newDraftText').value,
-            intent: document.getElementById('draftIntent').value,
-            aiRefined: document.getElementById('aiRefinedText').value,
-            snippets: document.getElementById('savedSnippets').value,
+            title: $('essayTitle').value,
+            outline: $('essayOutline').value,
+            completed: $('completedText').value,
+            newDraft: $('newDraftText').value,
+            intent: $('draftIntent').value,
+            aiRefined: $('aiRefinedText').value,
+            snippets: $('savedSnippets').value,
             updatedAt: new Date().toISOString()
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
         for (let key in fieldMap) {
-            const el = document.getElementById(fieldMap[key]);
+            const el = $(fieldMap[key]);
             if (el && fieldState[key]) {
                 fieldState[key].currentSaved = el.value;
             }
@@ -625,13 +880,13 @@
         if (!raw) return;
         try {
             const data = JSON.parse(raw);
-            if (data.title) document.getElementById('essayTitle').value = data.title;
-            if (data.outline) document.getElementById('essayOutline').value = data.outline;
-            if (data.completed) document.getElementById('completedText').value = data.completed;
-            if (data.newDraft) document.getElementById('newDraftText').value = data.newDraft;
-            if (data.intent) document.getElementById('draftIntent').value = data.intent;
-            if (data.aiRefined) document.getElementById('aiRefinedText').value = data.aiRefined;
-            if (data.snippets) document.getElementById('savedSnippets').value = data.snippets;
+            if (data.title) $('essayTitle').value = data.title;
+            if (data.outline) $('essayOutline').value = data.outline;
+            if (data.completed) $('completedText').value = data.completed;
+            if (data.newDraft) $('newDraftText').value = data.newDraft;
+            if (data.intent) $('draftIntent').value = data.intent;
+            if (data.aiRefined) $('aiRefinedText').value = data.aiRefined;
+            if (data.snippets) $('savedSnippets').value = data.snippets;
             initFieldStates();
         } catch(e) {
             console.error("데이터 로드 실패", e);
@@ -649,16 +904,18 @@
         }
     }
 
-    // 7. Gemini API AI 수정 요청
+    /* ==========================================================================
+       Gemini API AI 수정 호출 파이프라인
+       ========================================================================== */
     async function requestAiRefine() {
-        const apiKey = getEffectiveApiKey();
+        const apiKey = localStorage.getItem("GEMINI_USER_API_KEY");
         if (!apiKey) {
-            return alert('Gemini API Key가 설정되지 않았습니다.\n상단의 [Google AI Studio 바로가기]에서 키를 확인하거나 GitHub Secrets에 등록해주세요.');
+            return alert('Gemini API Key가 설정되지 않았습니다.\n상단 키 관리 바에서 키를 설치해주세요.');
         }
 
-        const completed = document.getElementById('completedText').value.trim();
-        const newDraft = document.getElementById('newDraftText').value.trim();
-        const intent = document.getElementById('draftIntent').value.trim();
+        const completed = $('completedText').value.trim();
+        const newDraft = $('newDraftText').value.trim();
+        const intent = $('draftIntent').value.trim();
 
         if (!newDraft) {
             return alert('AI에게 검토를 요청할 [신규로 작성한 글]을 먼저 작성해주세요.');
@@ -683,7 +940,7 @@ ${intent || "(별도 의도 기재 없음)"}
 - 채택 판단 및 흐름 코멘트(1~2줄)를 상단에 간략히 적은 뒤,
 - 이어서 [수정 완성 단락]을 명확히 제시해 주세요.`;
 
-        const aiRefinedEl = document.getElementById('aiRefinedText');
+        const aiRefinedEl = $('aiRefinedText');
         aiRefinedEl.value = "AI가 글의 맥락과 의도를 분석하여 퇴고 중입니다. 잠시만 기다려주세요...";
 
         try {
@@ -700,12 +957,12 @@ ${intent || "(별도 의도 기재 없음)"}
                 aiRefinedEl.value = data.candidates[0].content.parts[0].text;
                 handleFieldInput('aiRefined');
             } else {
-                aiRefinedEl.value = "수정안 생성에 실패했습니다. 응답 내용을 확인해주세요.";
+                aiRefinedEl.value = "수정안 생성에 실패했습니다. API 키 상태나 할당량을 확인해주세요.";
                 console.error(data);
             }
         } catch (err) {
             console.error(err);
-            aiRefinedEl.value = "통신 중 오류가 발생했습니다. API Key를 확인하거나 네트워크를 확인해주세요.";
+            aiRefinedEl.value = "통신 중 오류가 발생했습니다. 네트워크나 API Key를 확인해주세요.";
         }
     }
 </script>
