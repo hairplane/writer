@@ -1,4 +1,4 @@
-<!-- v0.4: 테두리 박스 및 설명문 전면 제거, 헤더 슬림화 및 닫기 버튼 추가, API 키 접기/펼치기 및 열쇠 이동, 복원 버튼 아이콘화, 명칭 간소화 -->
+<!-- v0.5: 헤더를 macOS 윈도우 타이틀바 스타일(신호등 3색 버튼, 중앙 정렬 타이틀바)로 전면 개편하여 본문 영역과 시각적 분리 완성 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -39,62 +39,76 @@
             gap: 14px;
         }
 
-        /* 1. 슬림하고 밝은 헤더 */
-        header.app-header {
+        /* 1. macOS 윈도우 스타일 헤더 */
+        header.mac-window-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            background: #ffffff;
-            color: var(--text-main);
-            padding: 10px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            justify-content: space-between;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid #cbd5e1;
+            border-bottom: 1.5px solid #94a3b8;
+            padding: 8px 14px;
+            border-radius: 10px 10px 8px 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+            user-select: none;
         }
 
+        /* 신호등 3색 점 */
+        .window-controls {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            width: 70px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            border: 0.5px solid rgba(0, 0, 0, 0.12);
+        }
+        .dot:hover { opacity: 0.8; transform: scale(1.1); }
+        .dot-red { background-color: #ff5f56; }
+        .dot-yellow { background-color: #ffbd2e; }
+        .dot-green { background-color: #27c93f; }
+
+        /* 타이틀 바 중앙 정렬 */
         .header-title-wrap {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
+            flex: 1;
         }
 
         .header-title-wrap h1 {
-            font-size: 1.15rem;
+            font-size: 0.96rem;
             font-weight: 700;
-            letter-spacing: -0.02em;
-            color: #1e293b;
+            color: #334155;
+            letter-spacing: -0.01em;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .header-title-wrap .version-tag {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: #2563eb;
             font-weight: 700;
-            background: #eff6ff;
+            background: #ffffff;
             padding: 1px 6px;
             border-radius: 4px;
             border: 1px solid #bfdbfe;
         }
 
-        .btn-close-app {
-            background: none;
-            border: none;
-            color: #64748b;
-            font-size: 1.25rem;
-            line-height: 1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-close-app:hover {
-            background: #fee2e2;
-            color: #dc2626;
+        .header-dummy-right {
+            width: 70px; /* 좌측 신호등과 대칭을 맞추기 위한 여백 */
         }
 
-        /* 2. 헤더 하단 컴팩트 액션 툴바 (외곽 테두리 없음) */
+        /* 2. 헤더 하단 컴팩트 액션 툴바 */
         .action-toolbar-clean {
             display: flex;
             justify-content: flex-end;
@@ -376,7 +390,6 @@
             box-shadow: 0 0 0 1px var(--primary);
         }
 
-        /* 글의 구성 전용 미니멀 글머리 */
         #essayOutline {
             font-size: 0.9rem;
             letter-spacing: -0.01em;
@@ -423,7 +436,7 @@
             border-color: var(--border-color);
         }
 
-        /* 6. AI 수정 글 전용 버튼 스타일 */
+        /* 6. AI 수정 글 전용 버튼 */
         .btn-ai-req {
             background: #4f46e5;
             color: #ffffff;
@@ -454,29 +467,41 @@
             body { padding: 10px 12px 30px; }
             .action-toolbar-clean { justify-content: flex-start; }
             .section-header-line { flex-wrap: wrap; gap: 6px; }
+            .window-controls { width: 50px; }
+            .header-dummy-right { width: 50px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 1. 헤더: 슬림 & 라이트 배경, X 창닫기 버튼 -->
-    <header class="app-header">
+    <!-- 1. macOS 윈도우 스타일 헤더 -->
+    <header class="mac-window-header">
+        <!-- 좌측 신호등 3색 버튼 (빨강: 창닫기, 노랑: API키창 접기/펼치기, 초록: 팁) -->
+        <div class="window-controls">
+            <span class="dot dot-red" onclick="cancelAndClose()" title="창 닫기"></span>
+            <span class="dot dot-yellow" onclick="toggleApiBox()" title="API 설정창 접기/펼치기"></span>
+            <span class="dot dot-green" onclick="alert('글쓰기 스튜디오가 활성화되어 있습니다.')" title="상태 정상"></span>
+        </div>
+
+        <!-- 중앙 타이틀바 -->
         <div class="header-title-wrap">
             <h1>✍️ 글쓰기 스튜디오</h1>
-            <span class="version-tag">v0.4</span>
+            <span class="version-tag">v0.5</span>
         </div>
-        <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
+
+        <!-- 우측 여백 밸런스용 빈 블록 -->
+        <div class="header-dummy-right"></div>
     </header>
 
-    <!-- 2. 헤더 하단 독립 액션 버튼 (테두리 상자 없음) -->
+    <!-- 2. 헤더 하단 독립 액션 버튼 -->
     <div class="action-toolbar-clean">
         <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
         <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
         <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
     </div>
 
-    <!-- 3. API 키 관리 (테두리 유지 + 접기/펼치기 토글 + 열쇠 아이콘 이동) -->
+    <!-- 3. API 키 관리 (테두리 유지 + 접기/펼치기 토글 + 열쇠 아이콘) -->
     <div id="apiBox" class="api-box">
         <div class="api-box-header">
             <div class="api-header-left">
@@ -512,7 +537,7 @@
         <input type="text" id="essayTitle" oninput="markDirty()">
     </div>
 
-    <!-- 5. 글의 구성 (글자 수 카운터 제거, 작은 글머리) -->
+    <!-- 5. 글의 구성 (작은 글머리) -->
     <div class="editor-section">
         <div class="section-header-line">
             <span class="section-title">글의 구성</span>
@@ -569,7 +594,7 @@
         </div>
     </div>
 
-    <!-- 9. AI 수정 글 (제목 옆 AI 요청 버튼, 맨 우측 본문에 추가 버튼) -->
+    <!-- 9. AI 수정 글 -->
     <div class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
@@ -606,7 +631,7 @@
 
 <script>
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V04";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V05";
     const $ = id => document.getElementById(id);
 
     let isDirty = false;
