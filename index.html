@@ -1,0 +1,713 @@
+<!-- v0.2: 상단 API 키 수동 입력창 제거, Google AI Studio 재발급 바로가기 링크 추가 및 GitHub Secrets 빌드 자동 주입 마커 탑재 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writer Studio</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --accent-green: #10b981;
+            --accent-orange: #ea580c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            word-break: keep-all;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* 상단 헤더 & 컨트롤 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 14px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-title-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .header-title-wrap h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .header-title-wrap .version-tag {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .global-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 7px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-default {
+            background: #ffffff;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+        .btn-default:hover { background-color: #f1f5f9; }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-danger {
+            background: #fff;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .btn-danger:hover { background-color: #fef2f2; }
+
+        .btn-api-link {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+        .btn-api-link:hover {
+            background: #dbeafe;
+        }
+
+        .ai-status-pill {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .ai-status-pill.ready {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        /* 섹션 카드 */
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .card-label {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        /* 텍스트 입력창 */
+        .input-title {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            outline: none;
+        }
+        .input-title:focus { border-color: var(--primary); }
+
+        textarea.editor-textarea {
+            width: 100%;
+            min-height: 95px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+        }
+        textarea.editor-textarea:focus { border-color: var(--primary); }
+
+        /* 상태 툴바 (글자 수, 복원 버튼) */
+        .status-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .stat-info {
+            display: flex;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .restore-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-restore {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: #475569;
+            font-size: 0.74rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-restore:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* AI 수정 카드 특별 스타일 */
+        .ai-card {
+            border: 1.5px solid #93c5fd;
+            background: #f0f7ff;
+        }
+
+        .ai-action-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding-top: 10px;
+            border-top: 1px dashed #bfdbfe;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn-append {
+            background: #0284c7;
+            color: #ffffff;
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-append:hover { background-color: #0369a1; }
+
+        .btn-ai-trigger {
+            background: #4f46e5;
+            color: #ffffff;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-ai-trigger:hover { background-color: #4338ca; }
+
+        /* 모바일 반응형 */
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .global-actions { width: 100%; justify-content: flex-start; }
+            .status-toolbar { flex-direction: column; align-items: flex-start; }
+            .restore-group { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 헤더 -->
+    <header>
+        <div class="header-title-wrap">
+            <h1>에세이 라이터 스튜디오</h1>
+            <span class="version-tag">v0.2</span>
+            <span id="aiStatusPill" class="ai-status-pill">AI 준비 중</span>
+        </div>
+        <div class="global-actions">
+            <!-- Google AI Studio 바로가기 링크 버튼 -->
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn btn-api-link" title="구글 AI 스튜디오 키 발급 및 관리 콘솔로 이동">
+                🔑 Google AI Studio 바로가기 ↗
+            </a>
+            <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
+            <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
+            <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
+        </div>
+    </header>
+
+    <!-- 제목 -->
+    <div class="section-card">
+        <label class="card-label" for="essayTitle">제목:</label>
+        <input type="text" id="essayTitle" class="input-title" placeholder="글의 제목을 입력하세요" oninput="markDirty()">
+    </div>
+
+    <!-- 글의 구성 (윤곽 스케치 - 자동 불릿) -->
+    <div class="section-card">
+        <div class="card-header">
+            <div>
+                <div class="card-label">글의 구성</div>
+                <div class="card-desc">(내가 쓰고자 하는 글의 윤곽을 스케치. 엔터를 치면 다음 줄에 자동으로 글머리가 생김)</div>
+            </div>
+        </div>
+        <textarea id="essayOutline" class="editor-textarea" style="min-height: 90px;" placeholder="● 글의 뼈대를 메모하세요" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info"><span id="stat_outline">0자</span></div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('outline')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('outline')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [1단계] 이제까지 작성 완료된 글 -->
+    <div class="section-card">
+        <div class="card-label">이제까지 작성 완료된 글이 들어가는 칸</div>
+        <textarea id="completedText" class="editor-textarea" style="min-height: 140px;" placeholder="확정된 본문이 이곳에 누적됩니다..." oninput="handleFieldInput('completed')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info" id="stat_completed">글자 수: 0자 | 예상 소요 시간: 0분</div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('completed')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('completed')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [2단계] 신규로 작성한 글 -->
+    <div class="section-card">
+        <div class="card-label">신규로 작성한 글이 들어가는 칸</div>
+        <textarea id="newDraftText" class="editor-textarea" style="min-height: 110px;" placeholder="새롭게 이어 쓸 글토막 초안을 작성하세요..." oninput="handleFieldInput('newDraft')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info" id="stat_newDraft">글자 수: 0자 | 예상 소요 시간: 0분</div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('newDraft')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('newDraft')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [3단계] 신규 작성한 글의 의도 -->
+    <div class="section-card">
+        <div class="card-label">신규 작성한 글의 의도</div>
+        <textarea id="draftIntent" class="editor-textarea" style="min-height: 60px;" placeholder="이 단락에서 전달하고자 하는 핵심 뉘앙스나 의도를 기록하세요..." oninput="handleFieldInput('intent')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info"><span id="stat_intent">0자</span></div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('intent')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('intent')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [4단계] AI가 수정한 글 (퇴고 및 흐름 검토) -->
+    <div class="section-card ai-card">
+        <div class="card-header">
+            <div>
+                <div class="card-label">신규 작성한 글을 AI가 수정한 글</div>
+                <div class="card-desc">(수정 가이드: 신규 작성한 글의 의도도 고려하여 이제까지 작성한 글에 신규 작성한 글의 흐름이 괜찮은지를 판단하여 이 글을 사용할 지 안할 지를 먼저 결정. 사용하기로 했다면, 글의 흐름에 맞춰 글을 수정함)</div>
+            </div>
+            <button type="button" class="btn-ai-trigger" onclick="requestAiRefine()">✨ AI 수정 요청</button>
+        </div>
+        <textarea id="aiRefinedText" class="editor-textarea" style="min-height: 120px;" placeholder="AI 수정 요청을 누르면 검토 및 다듬어진 결과가 여기에 표시됩니다..." oninput="handleFieldInput('aiRefined')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info" id="stat_aiRefined">글자 수: 0자 | 예상 소요 시간: 0분</div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('aiRefined')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('aiRefined')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+        <div class="ai-action-footer">
+            <span style="font-size: 0.8rem; color: #1d4ed8;">💡 만족스러우면 본문에 바로 연결하세요.</span>
+            <button type="button" class="btn-append" onclick="appendDraftToCompleted()">‘이제까지 작성 완료된 글에 이어 붙이기’</button>
+        </div>
+    </div>
+
+    <!-- [5단계] 저장 글들 (자동 글머리 사용) -->
+    <div class="section-card">
+        <div class="card-header">
+            <div>
+                <div class="card-label">저장 글들</div>
+                <div class="card-desc">나중에 사용할 가능성이 있는 글토막들을 저장해두는 칸 (자동 글머리 사용)</div>
+            </div>
+        </div>
+        <textarea id="savedSnippets" class="editor-textarea" style="min-height: 90px;" placeholder="● 보관할 아이디어 조각들을 적어두세요" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
+        <div class="status-toolbar">
+            <div class="stat-info"><span id="stat_snippets">0자</span></div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore" onclick="undoField('snippets')">1. 취소</button>
+                <button type="button" class="btn-restore" onclick="restoreSaved('snippets')">2. 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // GitHub Actions 자동 빌드 치환용 마커 (A 방식: 배포 시 Secrets.GEMINI_API_KEY 로 치환됨)
+    const INJECTED_GEMINI_KEY = "__GEMINI_API_KEY__";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V02";
+
+    let isDirty = false;
+
+    const fieldMap = {
+        outline: 'essayOutline',
+        completed: 'completedText',
+        newDraft: 'newDraftText',
+        intent: 'draftIntent',
+        aiRefined: 'aiRefinedText',
+        snippets: 'savedSnippets'
+    };
+
+    let fieldState = {};
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initFieldStates();
+        loadSavedData();
+        checkAiStatus();
+        updateAllStats();
+    });
+
+    function markDirty() { isDirty = true; }
+
+    function getEffectiveApiKey() {
+        // 1순위: Actions에서 주입된 키, 2순위: 로컬 백업 키
+        if (INJECTED_GEMINI_KEY && !INJECTED_GEMINI_KEY.startsWith("__")) {
+            return INJECTED_GEMINI_KEY;
+        }
+        return localStorage.getItem("WRITER_GEMINI_API_KEY") || "";
+    }
+
+    function checkAiStatus() {
+        const key = getEffectiveApiKey();
+        const pill = document.getElementById('aiStatusPill');
+        if (key) {
+            pill.innerText = "🟢 AI 활성화됨";
+            pill.classList.add('ready');
+        } else {
+            pill.innerText = "⚠️ AI 키 미연결";
+            pill.classList.remove('ready');
+        }
+    }
+
+    function initFieldStates() {
+        for (let key in fieldMap) {
+            const el = document.getElementById(fieldMap[key]);
+            const val = el ? el.value : '';
+            fieldState[key] = {
+                currentSaved: val,
+                history: [val]
+            };
+        }
+    }
+
+    // 2. 입력 처리 및 Undo 히스토리 누적
+    function handleFieldInput(key) {
+        markDirty();
+        const el = document.getElementById(fieldMap[key]);
+        if (!el) return;
+       
+        const val = el.value;
+        const stack = fieldState[key].history;
+        if (stack[stack.length - 1] !== val) {
+            stack.push(val);
+            if (stack.length > 50) stack.shift();
+        }
+        updateStat(key, val);
+    }
+
+    // 복원 기능: 1. 취소 (Undo)
+    function undoField(key) {
+        const el = document.getElementById(fieldMap[key]);
+        if (!el || !fieldState[key]) return;
+        const stack = fieldState[key].history;
+        if (stack.length > 1) {
+            stack.pop();
+            el.value = stack[stack.length - 1];
+            updateStat(key, el.value);
+            markDirty();
+        } else {
+            alert('되돌릴 이전 입력 내용이 없습니다.');
+        }
+    }
+
+    // 복원 기능: 2. 최근 저장 상태로 (Restore Saved)
+    function restoreSaved(key) {
+        const el = document.getElementById(fieldMap[key]);
+        if (!el || !fieldState[key]) return;
+        const targetVal = fieldState[key].currentSaved;
+        if (el.value === targetVal) {
+            return alert('이미 최근 저장된 상태와 동일합니다.');
+        }
+        fieldState[key].history.push(targetVal);
+        el.value = targetVal;
+        updateStat(key, targetVal);
+        markDirty();
+    }
+
+    // 3. 엔터 입력 시 자동 글머리 기호(●) 생성
+    function handleBulletEnter(e, textarea) {
+        if (e.key === 'Enter') {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+            const currentLine = value.substring(lineStart, start);
+
+            if (currentLine.trim().startsWith('●')) {
+                e.preventDefault();
+                if (currentLine.trim() === '●') {
+                    const before = value.substring(0, lineStart);
+                    const after = value.substring(end);
+                    textarea.value = before + after;
+                    textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    return;
+                }
+                const bullet = '\n● ';
+                textarea.value = value.substring(0, start) + bullet + value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + bullet.length;
+                textarea.dispatchEvent(new Event('input'));
+            }
+        }
+    }
+
+    // 4. 통계 계산기
+    function updateStat(key, text) {
+        const len = text.length;
+        const readingTime = Math.ceil(len / 400);
+
+        if (key === 'completed' || key === 'newDraft' || key === 'aiRefined') {
+            const statEl = document.getElementById(`stat_${key}`);
+            if (statEl) {
+                statEl.innerText = `글자 수: ${len.toLocaleString()}자 | 예상 소요 시간: 약 ${readingTime}분`;
+            }
+        } else {
+            const statEl = document.getElementById(`stat_${key}`);
+            if (statEl) {
+                statEl.innerText = `${len.toLocaleString()}자`;
+            }
+        }
+    }
+
+    function updateAllStats() {
+        for (let key in fieldMap) {
+            const el = document.getElementById(fieldMap[key]);
+            if (el) updateStat(key, el.value);
+        }
+    }
+
+    // 5. 단락 이어 붙이기
+    function appendDraftToCompleted() {
+        const aiText = document.getElementById('aiRefinedText').value.trim();
+        const fallbackText = document.getElementById('newDraftText').value.trim();
+        const textToAppend = aiText || fallbackText;
+
+        if (!textToAppend) {
+            return alert('이어 붙일 내용이 없습니다. 신규 글이나 AI 수정 글을 먼저 작성해주세요.');
+        }
+
+        const completedEl = document.getElementById('completedText');
+        const currentCompleted = completedEl.value.trim();
+
+        completedEl.value = currentCompleted ? currentCompleted + "\n\n" + textToAppend : textToAppend;
+        handleFieldInput('completed');
+
+        // 신규 및 AI 영역 정리
+        document.getElementById('newDraftText').value = '';
+        document.getElementById('draftIntent').value = '';
+        document.getElementById('aiRefinedText').value = '';
+        handleFieldInput('newDraft');
+        handleFieldInput('intent');
+        handleFieldInput('aiRefined');
+
+        alert('신규 단락이 작성 완료된 본문에 성공적으로 이어 붙여졌습니다.');
+    }
+
+    // 6. 데이터 저장 및 취소
+    function saveWork(mode) {
+        const payload = {
+            title: document.getElementById('essayTitle').value,
+            outline: document.getElementById('essayOutline').value,
+            completed: document.getElementById('completedText').value,
+            newDraft: document.getElementById('newDraftText').value,
+            intent: document.getElementById('draftIntent').value,
+            aiRefined: document.getElementById('aiRefinedText').value,
+            snippets: document.getElementById('savedSnippets').value,
+            updatedAt: new Date().toISOString()
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+        for (let key in fieldMap) {
+            const el = document.getElementById(fieldMap[key]);
+            if (el && fieldState[key]) {
+                fieldState[key].currentSaved = el.value;
+            }
+        }
+        isDirty = false;
+
+        if (mode === 'stay') {
+            alert('현재 상태가 안전하게 저장되었습니다.');
+        } else if (mode === 'exit') {
+            if (confirm('저장되었습니다. 창을 닫거나 작업을 종료하시겠습니까?')) {
+                window.close();
+            }
+        }
+    }
+
+    function loadSavedData() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            if (data.title) document.getElementById('essayTitle').value = data.title;
+            if (data.outline) document.getElementById('essayOutline').value = data.outline;
+            if (data.completed) document.getElementById('completedText').value = data.completed;
+            if (data.newDraft) document.getElementById('newDraftText').value = data.newDraft;
+            if (data.intent) document.getElementById('draftIntent').value = data.intent;
+            if (data.aiRefined) document.getElementById('aiRefinedText').value = data.aiRefined;
+            if (data.snippets) document.getElementById('savedSnippets').value = data.snippets;
+            initFieldStates();
+        } catch(e) {
+            console.error("데이터 로드 실패", e);
+        }
+    }
+
+    function cancelWork() {
+        if (isDirty) {
+            if (confirm('작성 중인 내용이 저장되지 않았습니다. 취소하고 마지막 저장 상태로 되돌리시겠습니까?')) {
+                loadSavedData();
+                isDirty = false;
+            }
+        } else {
+            alert('변경된 내용이 없습니다.');
+        }
+    }
+
+    // 7. Gemini API AI 수정 요청
+    async function requestAiRefine() {
+        const apiKey = getEffectiveApiKey();
+        if (!apiKey) {
+            return alert('Gemini API Key가 설정되지 않았습니다.\n상단의 [Google AI Studio 바로가기]에서 키를 확인하거나 GitHub Secrets에 등록해주세요.');
+        }
+
+        const completed = document.getElementById('completedText').value.trim();
+        const newDraft = document.getElementById('newDraftText').value.trim();
+        const intent = document.getElementById('draftIntent').value.trim();
+
+        if (!newDraft) {
+            return alert('AI에게 검토를 요청할 [신규로 작성한 글]을 먼저 작성해주세요.');
+        }
+
+        const prompt = `당신은 유려한 감성과 논리적인 구조를 겸비한 브런치 전문 에세이 편집자이자 라이팅 코치입니다.
+다음 세 가지 정보를 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.
+
+[이제까지 작성 완료된 글]:
+${completed || "(아직 작성된 앞선 글이 없는 첫 단락입니다)"}
+
+[신규 작성한 글의 초안]:
+${newDraft}
+
+[신규 작성한 글의 의도]:
+${intent || "(별도 의도 기재 없음)"}
+
+[지침 및 수정 가이드]:
+1. 신규 작성한 글의 의도를 고려하여, 이제까지 작성 완료된 글의 흐름에 이 신규 글이 자연스럽게 어울리는지 채택 여부 및 흐름 적합성을 먼저 판단하세요.
+2. 만약 흐름이 어색하거나 중복된다면 어떻게 매끄럽게 연결할지 판단하고, 브런치 에세이 특유의 편안하고 깊이 있는 문체로 퇴고된 완성 단락을 작성해 주세요.
+3. 출력 형식:
+- 채택 판단 및 흐름 코멘트(1~2줄)를 상단에 간략히 적은 뒤,
+- 이어서 [수정 완성 단락]을 명확히 제시해 주세요.`;
+
+        const aiRefinedEl = document.getElementById('aiRefinedText');
+        aiRefinedEl.value = "AI가 글의 맥락과 의도를 분석하여 퇴고 중입니다. 잠시만 기다려주세요...";
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                aiRefinedEl.value = data.candidates[0].content.parts[0].text;
+                handleFieldInput('aiRefined');
+            } else {
+                aiRefinedEl.value = "수정안 생성에 실패했습니다. 응답 내용을 확인해주세요.";
+                console.error(data);
+            }
+        } catch (err) {
+            console.error(err);
+            aiRefinedEl.value = "통신 중 오류가 발생했습니다. API Key를 확인하거나 네트워크를 확인해주세요.";
+        }
+    }
+</script>
+</body>
+</html>
