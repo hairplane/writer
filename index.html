@@ -1,4 +1,4 @@
-<!-- v0.5: 헤더를 macOS 윈도우 타이틀바 스타일(신호등 3색 버튼, 중앙 정렬 타이틀바)로 전면 개편하여 본문 영역과 시각적 분리 완성 -->
+<!-- v0.6: 헤더 직각화, 2번째 줄 7종 신호등 토글 바(접힘 시 '/' 표시), 신규 '요청 내용 (to AI)' 영역 추가 및 프롬프트 연동 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -39,59 +39,41 @@
             gap: 14px;
         }
 
-        /* 1. macOS 윈도우 스타일 헤더 */
+        /* 1. 직각 모서리 2단 헤더 */
         header.mac-window-header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            flex-direction: column;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
             border: 1px solid #cbd5e1;
-            border-bottom: 1.5px solid #94a3b8;
-            padding: 8px 14px;
-            border-radius: 10px 10px 8px 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+            border-bottom: 2px solid #94a3b8;
+            border-radius: 0px; /* 스퀘어 모서리 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
             user-select: none;
         }
 
-        /* 신호등 3색 점 */
-        .window-controls {
+        /* 헤더 1번째 줄 */
+        .header-top-row {
             display: flex;
             align-items: center;
-            gap: 7px;
-            width: 70px;
+            justify-content: space-between;
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
-            border: 0.5px solid rgba(0, 0, 0, 0.12);
-        }
-        .dot:hover { opacity: 0.8; transform: scale(1.1); }
-        .dot-red { background-color: #ff5f56; }
-        .dot-yellow { background-color: #ffbd2e; }
-        .dot-green { background-color: #27c93f; }
-
-        /* 타이틀 바 중앙 정렬 */
         .header-title-wrap {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            flex: 1;
         }
 
         .header-title-wrap h1 {
-            font-size: 0.96rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            color: #334155;
+            color: #1e293b;
             letter-spacing: -0.01em;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
         .header-title-wrap .version-tag {
@@ -100,15 +82,94 @@
             font-weight: 700;
             background: #ffffff;
             padding: 1px 6px;
-            border-radius: 4px;
+            border-radius: 3px;
             border: 1px solid #bfdbfe;
         }
 
-        .header-dummy-right {
-            width: 70px; /* 좌측 신호등과 대칭을 맞추기 위한 여백 */
+        .btn-close-app {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1.15rem;
+            line-height: 1;
+            padding: 2px 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-close-app:hover {
+            color: #dc2626;
         }
 
-        /* 2. 헤더 하단 컴팩트 액션 툴바 */
+        /* 헤더 2번째 줄: 신호등 토글 바 */
+        .header-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 14px;
+            background: #fafafa;
+            flex-wrap: wrap;
+        }
+
+        .toggle-guide-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-right: 4px;
+        }
+
+        .traffic-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 신호등 원형 버튼 공통 */
+        .traffic-btn {
+            position: relative;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 0.5px solid rgba(0, 0, 0, 0.15);
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .traffic-btn:hover {
+            transform: scale(1.15);
+            opacity: 0.9;
+        }
+
+        /* 신호등 색상별 정의 */
+        .tb-api { background-color: #f59e0b; }
+        .tb-outline { background-color: #10b981; }
+        .tb-completed { background-color: #3b82f6; }
+        .tb-newDraft { background-color: #8b5cf6; }
+        .tb-intent { background-color: #6366f1; }
+        .tb-promptReq { background-color: #ec4899; }
+        .tb-aiRefined { background-color: #06b6d4; }
+        .tb-snippets { background-color: #64748b; }
+
+        /* 닫혀 있을 때 슬래시(/) 표시 및 톤다운 */
+        .traffic-btn.is-closed {
+            filter: grayscale(0.5) brightness(0.85);
+            opacity: 0.7;
+        }
+        .traffic-btn.is-closed::after {
+            content: '/';
+            position: absolute;
+            font-size: 13px;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            transform: translateY(-0.5px);
+        }
+
+        /* 2. 헤더 하단 독립 액션 툴바 */
         .action-toolbar-clean {
             display: flex;
             justify-content: flex-end;
@@ -121,7 +182,7 @@
             padding: 6px 14px;
             font-size: 0.85rem;
             font-weight: 600;
-            border-radius: 5px;
+            border-radius: 4px;
             border: 1px solid transparent;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -147,12 +208,12 @@
         }
         .btn-danger:hover { background-color: #fef2f2; }
 
-        /* 3. API 키 관리 박스 (테두리 유지 + 토글 접기/펼치기) */
+        /* 3. API 키 관리 박스 */
         .api-box {
             background: #fffdf5;
             border: 1px solid #fde68a;
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -200,18 +261,6 @@
             transform: scale(1.05);
         }
 
-        .btn-api-toggle {
-            background: none;
-            border: none;
-            color: #92400e;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-        .btn-api-toggle:hover { background: #fef3c7; }
-
         .api-row {
             display: flex;
             align-items: center;
@@ -226,7 +275,7 @@
             padding: 7px 10px;
             font-size: 0.85rem;
             border: 1px solid #cbd5e1;
-            border-radius: 5px;
+            border-radius: 4px;
             outline: none;
             background: #fff;
         }
@@ -245,7 +294,7 @@
             color: white;
             border: none;
             padding: 7px 12px;
-            border-radius: 5px;
+            border-radius: 4px;
             font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
@@ -266,7 +315,7 @@
             color: white;
             border: none;
             padding: 7px 10px;
-            border-radius: 5px;
+            border-radius: 4px;
             font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
@@ -282,7 +331,7 @@
             min-width: 150px;
             box-shadow: 0px 6px 14px rgba(0,0,0,0.12);
             border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            border-radius: 4px;
             z-index: 50;
             overflow: hidden;
         }
@@ -310,7 +359,7 @@
             color: white;
             border: none;
             padding: 7px 10px;
-            border-radius: 5px;
+            border-radius: 4px;
             font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
@@ -325,7 +374,7 @@
             gap: 10px;
             background: #ffffff;
             padding: 10px 14px;
-            border-radius: 6px;
+            border-radius: 4px;
             border: 1px solid var(--border-color);
         }
 
@@ -351,6 +400,7 @@
             flex-direction: column;
             gap: 4px;
             margin-top: 2px;
+            transition: all 0.2s ease;
         }
 
         .section-header-line {
@@ -378,7 +428,7 @@
             font-size: 0.94rem;
             line-height: 1.6;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 4px;
             background: #ffffff;
             outline: none;
             resize: vertical;
@@ -407,9 +457,7 @@
             gap: 6px;
         }
 
-        .stat-info {
-            font-weight: 500;
-        }
+        .stat-info { font-weight: 500; }
 
         .restore-group {
             display: flex;
@@ -467,52 +515,57 @@
             body { padding: 10px 12px 30px; }
             .action-toolbar-clean { justify-content: flex-start; }
             .section-header-line { flex-wrap: wrap; gap: 6px; }
-            .window-controls { width: 50px; }
-            .header-dummy-right { width: 50px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 1. macOS 윈도우 스타일 헤더 -->
+    <!-- 1. 스퀘어 모서리 2단 헤더 -->
     <header class="mac-window-header">
-        <!-- 좌측 신호등 3색 버튼 (빨강: 창닫기, 노랑: API키창 접기/펼치기, 초록: 팁) -->
-        <div class="window-controls">
-            <span class="dot dot-red" onclick="cancelAndClose()" title="창 닫기"></span>
-            <span class="dot dot-yellow" onclick="toggleApiBox()" title="API 설정창 접기/펼치기"></span>
-            <span class="dot dot-green" onclick="alert('글쓰기 스튜디오가 활성화되어 있습니다.')" title="상태 정상"></span>
+        <!-- 1번째 줄: 타이틀 및 창닫기 -->
+        <div class="header-top-row">
+            <div class="header-title-wrap">
+                <h1>✍️ 글쓰기 스튜디오</h1>
+                <span class="version-tag">v0.6</span>
+            </div>
+            <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
 
-        <!-- 중앙 타이틀바 -->
-        <div class="header-title-wrap">
-            <h1>✍️ 글쓰기 스튜디오</h1>
-            <span class="version-tag">v0.5</span>
+        <!-- 2번째 줄: 8개 항목 신호등 토글 바 -->
+        <div class="header-toggle-row">
+            <span class="toggle-guide-label">열고 닫기:</span>
+            <div class="traffic-group">
+                <span id="dot_api" class="traffic-btn tb-api" onclick="toggleSection('api')" title="API 설정 열고 닫기"></span>
+                <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성 열고 닫기"></span>
+                <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글 열고 닫기"></span>
+                <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글 열고 닫기"></span>
+                <span id="dot_intent" class="traffic-btn tb-intent" onclick="toggleSection('intent')" title="글의 의도 열고 닫기"></span>
+                <span id="dot_promptReq" class="traffic-btn tb-promptReq" onclick="toggleSection('promptReq')" title="요청 내용 (to AI) 열고 닫기"></span>
+                <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" onclick="toggleSection('aiRefined')" title="AI 수정 글 열고 닫기"></span>
+                <span id="dot_snippets" class="traffic-btn tb-snippets" onclick="toggleSection('snippets')" title="보관 글 열고 닫기"></span>
+            </div>
         </div>
-
-        <!-- 우측 여백 밸런스용 빈 블록 -->
-        <div class="header-dummy-right"></div>
     </header>
 
-    <!-- 2. 헤더 하단 독립 액션 버튼 -->
+    <!-- 2. 헤더 하단 액션 버튼 -->
     <div class="action-toolbar-clean">
         <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
         <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
         <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
     </div>
 
-    <!-- 3. API 키 관리 (테두리 유지 + 접기/펼치기 토글 + 열쇠 아이콘) -->
-    <div id="apiBox" class="api-box">
+    <!-- 3. API 키 관리 (신호등 1번 연동) -->
+    <div id="sec_api" class="api-box">
         <div class="api-box-header">
             <div class="api-header-left">
-                <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
+                <span id="apiStatusBadge" class="api-status-badge">⚠️️ 키 미설정 상태</span>
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">
                     🔑
                 </a>
             </div>
-            <button type="button" id="btnApiToggle" class="btn-api-toggle" onclick="toggleApiBox()">접기 ▲</button>
         </div>
-        <div id="apiBoxBody" class="api-row">
+        <div class="api-row">
             <input type="password" id="apiKeyInput" oninput="checkKeyInputState()">
             <div class="api-btn-group">
                 <div class="dropdown" id="apiDropdownContainer">
@@ -531,14 +584,14 @@
         </div>
     </div>
 
-    <!-- 4. 제목 한 줄 배치 -->
+    <!-- 4. 제목 한 줄 배치 (항상 고정) -->
     <div class="title-row">
         <label for="essayTitle">제목:</label>
         <input type="text" id="essayTitle" oninput="markDirty()">
     </div>
 
-    <!-- 5. 글의 구성 (작은 글머리) -->
-    <div class="editor-section">
+    <!-- 5. 글의 구성 (신호등 2번 연동) -->
+    <div id="sec_outline" class="editor-section">
         <div class="section-header-line">
             <span class="section-title">글의 구성</span>
             <div class="restore-group">
@@ -549,8 +602,8 @@
         <textarea id="essayOutline" class="flat-textarea" style="min-height: 80px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
     </div>
 
-    <!-- 6. 완성 글 -->
-    <div class="editor-section">
+    <!-- 6. 완성 글 (신호등 3번 연동) -->
+    <div id="sec_completed" class="editor-section">
         <div class="section-header-line">
             <span class="section-title">완성 글</span>
         </div>
@@ -564,8 +617,8 @@
         </div>
     </div>
 
-    <!-- 7. 신규 글 -->
-    <div class="editor-section">
+    <!-- 7. 신규 글 (신호등 4번 연동) -->
+    <div id="sec_newDraft" class="editor-section">
         <div class="section-header-line">
             <span class="section-title">신규 글</span>
         </div>
@@ -579,8 +632,8 @@
         </div>
     </div>
 
-    <!-- 8. 글의 의도 -->
-    <div class="editor-section">
+    <!-- 8. 글의 의도 (신호등 5번 연동) -->
+    <div id="sec_intent" class="editor-section">
         <div class="section-header-line">
             <span class="section-title">글의 의도</span>
         </div>
@@ -594,8 +647,23 @@
         </div>
     </div>
 
-    <!-- 9. AI 수정 글 -->
-    <div class="editor-section">
+    <!-- 9. 요청 내용 (to AI) [신규 추가] (신호등 6번 연동) -->
+    <div id="sec_promptReq" class="editor-section">
+        <div class="section-header-line">
+            <span class="section-title">요청 내용 (to AI)</span>
+        </div>
+        <textarea id="promptReqText" class="flat-textarea" style="min-height: 60px;" oninput="handleFieldInput('promptReq')"></textarea>
+        <div class="status-toolbar-flat">
+            <span class="stat-info" id="stat_promptReq">0자</span>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('promptReq')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('promptReq')">⟲ 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. AI 수정 글 (신호등 7번 연동) -->
+    <div id="sec_aiRefined" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
                 <span class="section-title">AI 수정 글</span>
@@ -613,8 +681,8 @@
         </div>
     </div>
 
-    <!-- 10. 보관 글 -->
-    <div class="editor-section">
+    <!-- 11. 보관 글 (신호등 8번 연동) -->
+    <div id="sec_snippets" class="editor-section">
         <div class="section-header-line">
             <span class="section-title">보관 글</span>
         </div>
@@ -631,7 +699,7 @@
 
 <script>
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V05";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V06";
     const $ = id => document.getElementById(id);
 
     let isDirty = false;
@@ -642,6 +710,7 @@
         completed: 'completedText',
         newDraft: 'newDraftText',
         intent: 'draftIntent',
+        promptReq: 'promptReqText',
         aiRefined: 'aiRefinedText',
         snippets: 'savedSnippets'
     };
@@ -664,16 +733,26 @@
     function markDirty() { isDirty = true; }
 
     /* ==========================================================================
-       API Key 관리 시스템 및 토글
+       신호등 원클릭 열고 닫기(접기/펼치기) 제어 엔진
        ========================================================================== */
-    function toggleApiBox() {
-        const body = $('apiBoxBody');
-        const btn = $('btnApiToggle');
-        const isHidden = body.style.display === 'none';
-        body.style.display = isHidden ? 'flex' : 'none';
-        btn.innerText = isHidden ? '접기 ▲' : '펼치기 ▼';
+    function toggleSection(key) {
+        const sec = $(`sec_${key}`);
+        const dot = $(`dot_${key}`);
+        if (!sec || !dot) return;
+
+        const isClosed = sec.style.display === 'none';
+        if (isClosed) {
+            sec.style.display = (key === 'api') ? 'flex' : 'flex';
+            dot.classList.remove('is-closed');
+        } else {
+            sec.style.display = 'none';
+            dot.classList.add('is-closed');
+        }
     }
 
+    /* ==========================================================================
+       API Key 관리 시스템
+       ========================================================================== */
     function checkApiKeyStatus() {
         const savedKey = localStorage.getItem("GEMINI_USER_API_KEY");
         const keyType = localStorage.getItem("GEMINI_KEY_TYPE");
@@ -872,7 +951,7 @@
             if (statEl) {
                 statEl.innerText = `${len.toLocaleString()}자 (약 ${readingTime}분)`;
             }
-        } else if (key === 'intent' || key === 'snippets') {
+        } else if (key === 'intent' || key === 'promptReq' || key === 'snippets') {
             const statEl = $(`stat_${key}`);
             if (statEl) {
                 statEl.innerText = `${len.toLocaleString()}자`;
@@ -902,10 +981,11 @@
         completedEl.value = currentCompleted ? currentCompleted + "\n\n" + textToAppend : textToAppend;
         handleFieldInput('completed');
 
-        $('newDraftText').value = '';
-        $('draftIntent').value = '';$('aiRefinedText').value = '';
+        $('newDraftText').value = '';$('draftIntent').value = '';
+        $('promptReqText').value = '';$('aiRefinedText').value = '';
         handleFieldInput('newDraft');
         handleFieldInput('intent');
+        handleFieldInput('promptReq');
         handleFieldInput('aiRefined');
     }
 
@@ -916,6 +996,7 @@
             completed: $('completedText').value,
             newDraft: $('newDraftText').value,
             intent: $('draftIntent').value,
+            promptReq: $('promptReqText').value,
             aiRefined: $('aiRefinedText').value,
             snippets: $('savedSnippets').value,
             updatedAt: new Date().toISOString()
@@ -950,6 +1031,7 @@
             if (data.completed) $('completedText').value = data.completed;
             if (data.newDraft) $('newDraftText').value = data.newDraft;
             if (data.intent) $('draftIntent').value = data.intent;
+            if (data.promptReq) $('promptReqText').value = data.promptReq;
             if (data.aiRefined) $('aiRefinedText').value = data.aiRefined;
             if (data.snippets) $('savedSnippets').value = data.snippets;
             initFieldStates();
@@ -980,7 +1062,7 @@
     }
 
     /* ==========================================================================
-       Gemini API AI 수정 파이프라인
+       Gemini API AI 수정 파이프라인 (요청 내용 반영)
        ========================================================================== */
     async function requestAiRefine() {
         const apiKey = localStorage.getItem("GEMINI_USER_API_KEY");
@@ -991,13 +1073,14 @@
         const completed = $('completedText').value.trim();
         const newDraft = $('newDraftText').value.trim();
         const intent = $('draftIntent').value.trim();
+        const promptReq = $('promptReqText').value.trim();
 
         if (!newDraft) {
             return alert('신규 글을 먼저 작성해주세요.');
         }
 
         const prompt = `당신은 유려한 감성과 논리적인 구조를 겸비한 브런치 전문 에세이 편집자이자 라이팅 코치입니다.
-다음 세 가지 정보를 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.
+다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.
 
 [이제까지 작성 완료된 글]:
 ${completed || "(첫 단락입니다)"}
@@ -1008,9 +1091,12 @@ ${newDraft}
 [글의 의도]:
 ${intent || "(별도 의도 없음)"}
 
+[AI에게 바라는 구체적 요청 사항]:
+${promptReq || "(기본 자연스러운 흐름 퇴고 요망)"}
+
 [수정 가이드]:
-1. 신규 글의 의도를 고려하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.
-2. 사용하기로 했다면, 글의 흐름에 맞춰 브런치 에세이 특유의 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.
+1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.
+2. 사용하기로 했다면, 요청 사항에 맞춰 브런치 에세이 특유의 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.
 3. 출력 형식:
 - 채택 판단 코멘트(1줄)
 - [수정 완성 단락]`;
