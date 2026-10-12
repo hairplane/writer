@@ -1,10 +1,10 @@
-<!-- v0.2: 작성 글 목록을 카드형 박스에서 글머리표(•)가 붙은 일반 텍스트 리스트 형태로 간소화 -->
+<!-- v0.3: 새로고침/새글작성 버튼 제거, 줄간격 축소 및 점선 리더라인 적용(1:1 매칭 강화), 로컬 캐시 우선 로딩(체감속도 0초) 구현 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>작성 글 목록 테스트 - v0.2</title>
+    <title>작성 글 목록 테스트 - v0.3</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -26,7 +26,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            line-height: 1.6;
+            line-height: 1.5;
             word-break: keep-all;
             padding: 20px;
         }
@@ -36,7 +36,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }
 
         .test-header {
@@ -73,10 +73,10 @@
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
@@ -84,14 +84,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
 
         .post-list-title {
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 700;
             color: #1e293b;
             display: flex;
@@ -102,12 +100,12 @@
         .post-list-controls {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .select-status {
-            padding: 4px 8px;
-            font-size: 0.82rem;
+            padding: 3px 6px;
+            font-size: 0.8rem;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             outline: none;
@@ -116,60 +114,46 @@
             font-weight: 600;
         }
 
-        .btn-small {
-            padding: 4px 8px;
-            font-size: 0.78rem;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background: #ffffff;
-            cursor: pointer;
-            font-weight: 600;
-            color: #334155;
-            transition: all 0.15s ease;
-        }
-        .btn-small:hover { background: #f1f5f9; }
-
-        /* 일반 텍스트 리스트 컨테이너 */
+        /* 컴팩트 텍스트 리스트 컨테이너 */
         .post-list-rows {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            max-height: 260px;
+            gap: 1px;
+            max-height: 280px;
             overflow-y: auto;
-            padding: 4px 0;
+            padding: 2px 0;
         }
 
-        /* 일반 텍스트 행 스타일 */
+        /* 행 스타일: 좌우 점선 리더 라인 연결 */
         .post-row-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 4px 6px;
+            padding: 3px 6px;
             border-radius: 3px;
-            transition: background 0.15s ease;
+            gap: 8px;
+            transition: background 0.12s ease;
         }
         .post-row-item:hover {
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
         }
         .post-row-item.active {
             background-color: #eff6ff;
         }
 
         .post-row-title-area {
-            flex: 1;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             cursor: pointer;
-            overflow: hidden;
-            font-size: 0.92rem;
+            white-space: nowrap;
+            font-size: 0.88rem;
             color: #334155;
+            flex-shrink: 0;
         }
 
-        /* 글머리표 기호 */
         .bullet-point {
-            color: #64748b;
-            font-size: 0.85rem;
+            color: #94a3b8;
+            font-size: 0.8rem;
             user-select: none;
         }
         .post-row-item.active .bullet-point {
@@ -178,9 +162,7 @@
         }
 
         .post-row-title {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: 500;
         }
         .post-row-title:hover {
             text-decoration: underline;
@@ -190,16 +172,25 @@
             font-weight: 700;
         }
 
-        /* 우측 끝 상황 토글 텍스트 버튼 */
+        /* 제목과 버튼 사이를 잇는 은은한 점선 라인 */
+        .post-row-leader {
+            flex: 1;
+            border-bottom: 1px dotted #cbd5e1;
+            height: 1px;
+            margin: 0 4px;
+        }
+
+        /* 컴팩트 상황 토글 버튼 */
         .btn-status-toggle {
-            padding: 2px 7px;
-            font-size: 0.75rem;
+            flex-shrink: 0;
+            padding: 1px 6px;
+            font-size: 0.72rem;
             font-weight: 600;
             border-radius: 3px;
             border: 1px solid transparent;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.15s ease;
+            transition: all 0.12s ease;
         }
         .btn-status-toggle.status-writing {
             background: #e0f2fe;
@@ -223,30 +214,24 @@
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 12px 14px;
-            font-size: 0.85rem;
+            padding: 10px 14px;
+            font-size: 0.82rem;
         }
         .test-console-title {
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             color: #475569;
         }
         .test-log-box {
             background: #0f172a;
             color: #38bdf8;
-            padding: 10px;
+            padding: 8px 10px;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 0.8rem;
-            max-height: 120px;
+            font-size: 0.76rem;
+            max-height: 110px;
             overflow-y: auto;
             white-space: pre-wrap;
-        }
-
-        @media (max-width: 640px) {
-            body { padding: 10px; }
-            .post-list-header { flex-direction: column; align-items: flex-start; }
-            .post-list-controls { width: 100%; justify-content: flex-end; }
         }
     </style>
 </head>
@@ -254,7 +239,7 @@
 
 <div class="test-wrapper">
     <div class="test-header">
-        <h1>📑 작성 글 목록 모듈 테스트 <span class="version-badge">v0.2</span></h1>
+        <h1>📑 작성 글 목록 모듈 테스트 <span class="version-badge">v0.3</span></h1>
         <span style="font-size: 0.8rem; color: #64748b;">독립 디버깅 환경</span>
     </div>
 
@@ -263,20 +248,18 @@
         <div class="post-list-header">
             <div class="post-list-title">
                 <span>📑 작성 글 목록</span>
-                <button type="button" class="btn-small" onclick="fetchSheetPosts()" title="구글 시트 목록 새로고침">↻ 새로고침</button>
             </div>
             <div class="post-list-controls">
-                <label for="statusFilter" style="font-size: 0.8rem; font-weight: 600; color: #475569;">상황:</label>
+                <label for="statusFilter" style="font-size: 0.78rem; font-weight: 600; color: #475569;">상황:</label>
                 <select id="statusFilter" class="select-status" onchange="renderPostList()">
                     <option value="전체" selected>전체</option>
                     <option value="작성">작성</option>
                     <option value="예정">예정</option>
                 </select>
-                <button type="button" class="btn-small" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;" onclick="createNewPost()">+ 새 글 작성</button>
             </div>
         </div>
         <div id="postItemsGrid" class="post-list-rows">
-            <span style="font-size: 0.82rem; color: #64748b; padding: 4px;">구글 시트에서 목록을 불러오는 중입니다...</span>
+            <span style="font-size: 0.8rem; color: #64748b; padding: 4px;">목록을 불러오는 중입니다...</span>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
@@ -300,15 +283,30 @@
     let currentPostId = null;
     let currentPostStatus = "작성";
     let postListCache = [];
+    const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 
     window.addEventListener('DOMContentLoaded', () => {
+        // 1. 캐시 데이터가 있으면 지연시간 없이 0초 만에 즉각 렌더링
+        loadCachedPosts();
+        // 2. 백그라운드에서 최신 데이터 비동기 갱신
         fetchSheetPosts();
     });
 
+    function loadCachedPosts() {
+        const cached = localStorage.getItem(POSTS_CACHE_KEY);
+        if (cached) {
+            try {
+                postListCache = JSON.parse(cached);
+                renderPostList();
+                log(`[캐시 로드] 이전 목록 즉시 표시 (총 ${postListCache.length}개)`);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
+
     function fetchSheetPosts() {
-        const grid = $('postItemsGrid');
-        grid.innerHTML = '<span style="font-size:0.82rem; color:#64748b; padding:4px;">구글 시트에서 목록을 불러오는 중...</span>';
-        log("구글 시트 목록 불러오기 요청 (JSONP)");
+        log("구글 시트 백그라운드 동기화 시작 (JSONP)");
 
         const oldScript = document.getElementById('gas_jsonp_script');
         if (oldScript) oldScript.remove();
@@ -316,11 +314,11 @@
         window.handleGasResponse = function(response) {
             if (response && response.status === "success" && response.data) {
                 postListCache = response.data;
-                log(`목록 수신 완료: 총 ${postListCache.length}개`);
+                localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
                 renderPostList();
+                log(`[동기화 완료] 최신 목록 갱신됨 (총 ${postListCache.length}개)`);
             } else {
-                grid.innerHTML = '<span style="font-size:0.82rem; color:#dc2626; padding:4px;">목록을 가져오지 못했습니다.</span>';
-                log("목록 수신 실패");
+                log("목록 동기화 실패: 응답 이상");
             }
         };
 
@@ -328,8 +326,7 @@
         script.id = 'gas_jsonp_script';
         script.src = `${GAS_ENDPOINT}?callback=handleGasResponse&_t=${new Date().getTime()}`;
         script.onerror = function() {
-            grid.innerHTML = '<span style="font-size:0.82rem; color:#dc2626; padding:4px;">시트 연동 대기 중</span>';
-            log("GAS 통신 오류 발생");
+            log("GAS 통신 오류 (시트 연결 확인 필요)");
         };
         document.body.appendChild(script);
     }
@@ -346,7 +343,7 @@
         });
 
         if (filtered.length === 0) {
-            grid.innerHTML = '<span style="font-size:0.82rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
+            grid.innerHTML = '<span style="font-size:0.8rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
             return;
         }
 
@@ -358,13 +355,17 @@
             const row = document.createElement('div');
             row.className = `post-row-item ${currentPostId === postId ? 'active' : ''}`;
 
-            // 글머리표 + 일반 텍스트 제목
+            // 글머리표 + 글 제목
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
             titleArea.innerHTML = `<span class="bullet-point">•</span><span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
 
-            // 우측 끝 상황 변경 버튼
+            // 좌우를 연결하는 점선 라인 (1:1 매칭 식별용)
+            const leader = document.createElement('div');
+            leader.className = 'post-row-leader';
+
+            // 우측 끝 상황 토글 버튼
             const statusBtn = document.createElement('button');
             statusBtn.type = 'button';
             statusBtn.className = `btn-status-toggle ${postStatus === '작성' ? 'status-writing' : 'status-plan'}`;
@@ -376,6 +377,7 @@
             };
 
             row.appendChild(titleArea);
+            row.appendChild(leader);
             row.appendChild(statusBtn);
             grid.appendChild(row);
         });
@@ -392,6 +394,8 @@
             currentPostStatus = nextStatus;
         }
 
+        // 캐시 즉시 업데이트
+        localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
         log(`[상태 변경] "${post.제목 || post.title}" (${current} -> ${nextStatus})`);
         renderPostList();
 
@@ -418,7 +422,7 @@
                 log(`시트 동기화 완료: "${post.제목 || post.title}"`);
             });
         } catch (e) {
-            log(`상태 저장 통신 에러: ${e}`);
+            log(`상태 저장 에러: ${e}`);
         }
     }
 
@@ -427,13 +431,6 @@
         currentPostStatus = (post.상황 || post.status || '작성').trim();
         renderPostList();
         log(`[글 선택] ID: ${currentPostId} | 제목: "${post.제목 || post.title}"`);
-    }
-
-    function createNewPost() {
-        currentPostId = "ID_" + new Date().getTime();
-        currentPostStatus = "작성";
-        renderPostList();
-        log(`[새 글 생성] 임시 ID: ${currentPostId}`);
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 </script>
