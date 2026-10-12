@@ -1,4 +1,4 @@
-<!-- v0.12: 작성 글 목록 하단 잘림 해결, 방안 C [−]/[+] 토글 및 숨김 상태 미니 배지/점선 피드백 적용 -->
+<!-- v0.13: v0.12 전체 기능 최적화, 코드 리팩토링 및 로직 간소화 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -77,7 +77,7 @@
 
         .header-title-wrap .version-tag {
             font-size: 0.7rem;
-            color: #2563eb;
+            color: var(--primary);
             font-weight: 700;
             background: #ffffff;
             padding: 1px 5px;
@@ -93,7 +93,7 @@
             line-height: 1;
             padding: 2px 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: color 0.2s;
         }
         .btn-close-app:hover { color: #dc2626; }
 
@@ -230,24 +230,11 @@
             transition: all 0.2s ease;
         }
 
-        .btn-default {
-            background: #ffffff;
-            border-color: var(--border-color);
-            color: var(--text-main);
-        }
+        .btn-default { background: #ffffff; border-color: var(--border-color); color: var(--text-main); }
         .btn-default:hover { background-color: #f1f5f9; }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #ffffff;
-        }
+        .btn-primary { background: var(--primary); color: #ffffff; }
         .btn-primary:hover { background-color: var(--primary-hover); }
-
-        .btn-danger {
-            background: #ffffff;
-            border-color: #fca5a5;
-            color: #dc2626;
-        }
+        .btn-danger { background: #ffffff; border-color: #fca5a5; color: #dc2626; }
         .btn-danger:hover { background-color: #fef2f2; }
 
         .btn-copy {
@@ -344,26 +331,12 @@
             overflow: hidden;
         }
 
-        .bullet-point {
-            color: #94a3b8;
-            font-size: 0.75rem;
-            user-select: none;
-        }
-        .post-row-item.active .bullet-point {
-            color: var(--primary);
-            font-weight: 900;
-        }
+        .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
+        .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
-        .post-row-title {
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .post-row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
         .post-row-title:hover { text-decoration: underline; }
-        .post-row-item.active .post-row-title {
-            color: var(--primary);
-            font-weight: 700;
-        }
+        .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
         .btn-status-toggle {
             flex-shrink: 0;
@@ -377,17 +350,9 @@
             transition: all 0.1s ease;
             margin-left: 6px;
         }
-        .btn-status-toggle.status-writing {
-            background: #e0f2fe;
-            color: #0369a1;
-            border-color: #bae6fd;
-        }
+        .btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
         .btn-status-toggle.status-writing:hover { background: #bae6fd; }
-        .btn-status-toggle.status-plan {
-            background: #fef3c7;
-            color: #b45309;
-            border-color: #fde68a;
-        }
+        .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; border-color: #fde68a; }
         .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
@@ -547,12 +512,7 @@
             align-items: center;
             gap: 3px;
         }
-        .api-save-btn:disabled {
-            background: #cbd5e1;
-            color: #64748b;
-            cursor: not-allowed;
-        }
-
+        .api-save-btn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
         .api-wait-btn { background: #e67e22 !important; }
 
         .api-cancel-btn {
@@ -690,10 +650,7 @@
             align-items: center;
             gap: 2px;
         }
-        .btn-restore-icon:hover {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
+        .btn-restore-icon:hover { background-color: #f1f5f9; color: #0f172a; }
 
         .btn-ai-req {
             background: #4f46e5;
@@ -735,7 +692,7 @@
         <div class="header-top-row">
             <div class="header-title-wrap">
                 <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v0.12</span>
+                <span class="version-tag">v0.13</span>
             </div>
             <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
@@ -1016,7 +973,7 @@
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V12";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V13";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
@@ -1153,13 +1110,11 @@
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        // 1. 메타데이터 매핑
         $('essayTitleInput').value = post.제목 || post.title || '';
         $('postStartDate').value = post.작성시작일 || post.startDate || '';
         $('postEndDate').value = post.작성완료일 || post.endDate || '';
         $('postSummary').value = post.요약 || post.summary || '';
 
-        // 2. 집필 내용 매핑
         $('essayOutline').value = post.글의구성 || post.outline || '';
         $('completedText').value = post.완성글 || post.completed || '';
         $('newDraftText').value = post.신규글 || post.newDraft || '';
@@ -1237,8 +1192,9 @@
         if (!bodyEl) return;
 
         const isClosed = bodyEl.style.display === 'none';
+        
         if (isClosed) {
-            bodyEl.style.display = (key === 'meta' || key === 'postList') ? (key === 'meta' ? 'block' : 'flex') : 'flex';
+            bodyEl.style.display = (key === 'meta') ? 'block' : 'flex';
             if (dot) dot.classList.remove('is-closed');
             if (arrow) {
                 arrow.innerText = '[−]';
@@ -1564,12 +1520,8 @@
         if (!raw) return;
         try {
             const data = JSON.parse(raw);
-            if (data.ID || data.id) {
-                currentPostId = data.ID || data.id;
-            }
-            if (data.status) {
-                currentPostStatus = data.status;
-            }
+            if (data.ID || data.id) currentPostId = data.ID || data.id;
+            if (data.status) currentPostStatus = data.status;
             if (data.title) $('essayTitleInput').value = data.title;
             if (data.startDate) $('postStartDate').value = data.startDate;
             if (data.endDate) $('postEndDate').value = data.endDate;
