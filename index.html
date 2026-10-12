@@ -829,26 +829,36 @@
 
     function markDirty() { isDirty = true; }
 
-    /* ==========================================================================
-       구글 시트(GAS) 연동 및 작성 글 목록 관리
-       ========================================================================== */
-    async function fetchSheetPosts() {
-        const grid = $('postItemsGrid');
-        grid.innerHTML = '<span style="font-size:0.82rem; color:#64748b; padding:4px;">구글 시트에서 목록을 불러오는 중...</span>';
-        try {
-            const res = await fetch(GAS_ENDPOINT);
-            const json = await res.json();
-            if (json.status === "success" && json.data) {
-                postListCache = json.data;
-                renderPostList();
-            } else {
-                grid.innerHTML = '<span style="font-size:0.82rem; color:#dc2626; padding:4px;">목록을 가져오지 못했습니다.</span>';
-            }
-        } catch (e) {
-            console.error("GAS Fetch Error:", e);
-            grid.innerHTML = '<span style="font-size:0.82rem; color:#64748b; padding:4px;">시트 연동 대기 중 (네트워크 또는 배포 확인)</span>';
+/* ==========================================================================
+   구글 시트(GAS) 연동 및 작성 글 목록 관리 (JSONP 방식)
+   ========================================================================== */
+function fetchSheetPosts() {
+    const grid = $('postItemsGrid');
+    grid.innerHTML = '<span style="font-size:0.82rem; color:#64748b; padding:4px;">구글 시트에서 목록을 불러오는 중...</span>';
+
+    // 이전 임시 스크립트 태그 정리
+    const oldScript = document.getElementById('gas_jsonp_script');
+    if (oldScript) oldScript.remove();
+
+    // 전역 콜백 등록
+    window.handleGasResponse = function(response) {
+        if (response && response.status === "success" && response.data) {
+            postListCache = response.data;
+            renderPostList();
+        } else {
+            grid.innerHTML = '<span style="font-size:0.82rem; color:#dc2626; padding:4px;">목록을 가져오지 못했습니다.</span>';
         }
-    }
+    };
+
+    // JSONP 스크립트 동적 로드 (CORS 완전 우회)
+    const script = document.createElement('script');
+    script.id = 'gas_jsonp_script';
+    script.src = `${GAS_ENDPOINT}?callback=handleGasResponse&_t=${new Date().getTime()}`;
+    script.onerror = function() {
+        grid.innerHTML = '<span style="font-size:0.82rem; color:#dc2626; padding:4px;">시트 연동 대기 중 (새 버전 배포 확인 필요)</span>';
+    };
+    document.body.appendChild(script);
+}
 
     function renderPostList() {
         const grid = $('postItemsGrid');
