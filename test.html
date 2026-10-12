@@ -1,10 +1,10 @@
-<!-- v0.3: 제목 입력창 [ID] 제거, 외곽 불필요 테두리 제거, 헤더 앞 열림/숨김(▼/▶) 토글 버튼 적용 -->
+<!-- v1.0: '작성 글 목록' 및 '글의 구성' 독립 검증용 경량 테스트 모듈 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 및 메타정보 테스트 - v0.3</title>
+    <title>글 목록 & 글의 구성 테스트 - v1.0</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -16,7 +16,11 @@
             --text-sub: #64748b;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
@@ -32,7 +36,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .test-header {
@@ -64,22 +68,70 @@
             border: 1px solid #bfdbfe;
         }
 
-        /* 공통 헤더 열림/숨김 토글 버튼 */
+        /* 공통 헤더 [−] / [+] 토글 버튼 및 숨김 뱃지 */
         .btn-section-toggle {
-            background: none;
-            border: none;
-            color: #475569;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: #334155;
             font-size: 0.72rem;
+            font-weight: 700;
+            font-family: monospace;
             cursor: pointer;
-            padding: 0 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
-            transition: transform 0.15s ease;
+            transition: all 0.15s ease;
         }
         .btn-section-toggle:hover {
+            border-color: var(--primary);
             color: var(--primary);
+        }
+        .btn-section-toggle.is-closed {
+            background: #fef3c7;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .badge-collapsed {
+            display: none;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #b45309;
+            background: #fef3c7;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid #fde68a;
+            margin-left: 4px;
+        }
+        .badge-collapsed.show {
+            display: inline-block;
+        }
+
+        .header-collapsed-line {
+            border-bottom: 1px dashed #cbd5e1 !important;
+        }
+
+        .btn-copy {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            color: #475569;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            transition: all 0.15s ease;
+        }
+        .btn-copy:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--border-color);
         }
 
         /* === [MODULE-STYLE: post-list] === */
@@ -103,7 +155,7 @@
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .select-status {
@@ -125,6 +177,7 @@
             border: 1px solid var(--border-color);
             border-radius: 3px;
             background: #ffffff;
+            padding-bottom: 2px;
         }
 
         .post-row-item {
@@ -154,26 +207,12 @@
             overflow: hidden;
         }
 
-        .bullet-point {
-            color: #94a3b8;
-            font-size: 0.75rem;
-            user-select: none;
-        }
-        .post-row-item.active .bullet-point {
-            color: var(--primary);
-            font-weight: 900;
-        }
+        .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
+        .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
-        .post-row-title {
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .post-row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
         .post-row-title:hover { text-decoration: underline; }
-        .post-row-item.active .post-row-title {
-            color: var(--primary);
-            font-weight: 700;
-        }
+        .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
         .btn-status-toggle {
             flex-shrink: 0;
@@ -187,85 +226,86 @@
             transition: all 0.1s ease;
             margin-left: 6px;
         }
-        .btn-status-toggle.status-writing {
-            background: #e0f2fe;
-            color: #0369a1;
-            border-color: #bae6fd;
-        }
+        .btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
         .btn-status-toggle.status-writing:hover { background: #bae6fd; }
-        .btn-status-toggle.status-plan {
-            background: #fef3c7;
-            color: #b45309;
-            border-color: #fde68a;
-        }
+        .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; border-color: #fde68a; }
         .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
-        /* === [MODULE-STYLE: meta-table] === */
-        .meta-table-box {
+        /* === [MODULE-STYLE: outline] === */
+        .editor-section {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
 
-        .meta-table-header {
+        .section-header-line {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 3px;
+            padding-bottom: 2px;
             border-bottom: 1px solid var(--border-light);
         }
 
-        .meta-table-title {
-            font-size: 0.86rem;
-            font-weight: 700;
-            color: #1e293b;
+        .section-header-left {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
-        .meta-grid-table {
+        .section-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .editor-content-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        textarea.flat-textarea {
             width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            background: #ffffff;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            line-height: 1.5;
             border: 1px solid var(--border-color);
-            border-radius: 3px;
-        }
-
-        .meta-grid-table th {
-            width: 80px;
-            background: #f8fafc;
-            color: #475569;
-            font-weight: 600;
-            padding: 4px 6px;
-            text-align: center;
-            border: 1px solid var(--border-light);
-            white-space: nowrap;
-        }
-
-        .meta-grid-table td {
-            padding: 3px 6px;
-            border: 1px solid var(--border-light);
+            border-radius: 4px;
             background: #ffffff;
-        }
-
-        .meta-grid-table input,
-        .meta-grid-table textarea {
-            width: 100%;
-            border: none;
             outline: none;
-            font-size: 0.82rem;
+            resize: vertical;
             font-family: inherit;
-            background: transparent;
-            color: #0f172a;
         }
-        .meta-grid-table input:focus,
-        .meta-grid-table textarea:focus { background: #f0f7ff; }
-        /* === [MODULE-STYLE-END: meta-table] === */
+        textarea.flat-textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
 
-        /* 디버깅 로그 콘솔 */
+        #essayOutline { font-size: 0.85rem; letter-spacing: -0.01em; }
+
+        .restore-group {
+            display: flex;
+            gap: 3px;
+            margin-left: auto;
+        }
+
+        .btn-restore-icon {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .btn-restore-icon:hover { background-color: #f1f5f9; color: #0f172a; }
+        /* === [MODULE-STYLE-END: outline] === */
+
         .test-log {
             background: #0f172a;
             color: #38bdf8;
@@ -283,16 +323,17 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>글 목록 & 작성 글 정보 테스트 <span class="version-badge">v0.3</span></h1>
-        <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 테스트</span>
+        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.0</span></h1>
+        <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 검증</span>
     </div>
 
     <!-- === [MODULE-HTML: post-list] === -->
     <div id="sec_postList" class="post-list-box">
-        <div class="post-list-header">
+        <div id="hdr_postList" class="post-list-header">
             <div class="post-list-title">
-                <button type="button" id="btn_toggle_postList" class="btn-section-toggle" onclick="toggleLocalSection('postItemsGrid', 'btn_toggle_postList')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">[−]</button>
                 <span>작성 글 목록</span>
+                <span id="badge_postList" class="badge-collapsed">숨김</span>
             </div>
             <div>
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
@@ -303,48 +344,31 @@
                 </select>
             </div>
         </div>
-        <div id="postItemsGrid" class="post-list-rows">
-            <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중...</span>
+        <div id="body_postList" class="post-list-rows">
+            <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중입니다...</span>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
 
-    <!-- === [MODULE-HTML: meta-table] === -->
-    <div id="sec_meta" class="meta-table-box">
-        <div class="meta-table-header">
-            <span class="meta-table-title">
-                <button type="button" id="btn_toggle_meta" class="btn-section-toggle" onclick="toggleLocalSection('metaTableContent', 'btn_toggle_meta')" title="열림/숨김">▼</button>
-                <span>작성 글 정보</span>
-            </span>
+    <!-- === [MODULE-HTML: outline] === -->
+    <div id="sec_outline" class="editor-section">
+        <div id="hdr_outline" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">[−]</button>
+                <span class="section-title">글의 구성</span>
+                <span id="badge_outline" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
+            </div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoOutline()">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSavedOutline()">⟲ 최근 저장 상태로</button>
+            </div>
         </div>
-        <div id="metaTableContent">
-            <table class="meta-grid-table">
-                <tr>
-                    <th>제목[ID]</th>
-                    <td colspan="3">
-                        <input type="text" id="essayTitleInput" placeholder="제목 입력" style="font-weight:700;">
-                    </td>
-                </tr>
-                <tr>
-                    <th>시작일</th>
-                    <td>
-                        <input type="text" id="postStartDate" placeholder="YYYY-MM-DD">
-                    </td>
-                    <th>완료일</th>
-                    <td>
-                        <input type="text" id="postEndDate" placeholder="YYYY-MM-DD">
-                    </td>
-                </tr>
-                <tr>
-                    <th>요약</th>
-                    <td colspan="3">
-                        <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)"></textarea>
-                    </td>
-                </tr>
-            </table>
+        <div id="body_outline" class="editor-content-wrap">
+            <textarea id="essayOutline" class="flat-textarea" style="min-height: 80px;" placeholder="글의 구성을 입력하세요 (● 기호 자동 줄바꿈 지원)" onkeydown="handleBulletEnter(event, this)" oninput="handleOutlineInput()"></textarea>
         </div>
     </div>
-    <!-- === [MODULE-HTML-END: meta-table] === -->
+    <!-- === [MODULE-HTML-END: outline] === -->
 
     <div id="testLog" class="test-log">상태: 준비 완료</div>
 </div>
@@ -359,19 +383,49 @@
         el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
     }
 
-    // 헤더 앞 열림/숨김(▼/▶) 토글 함수
-    function toggleLocalSection(targetId, btnId) {
-        const target = $(targetId);
-        const btn = $(btnId);
-        if (!target || !btn) return;
+    // [−] / [+] 토글 로직
+    function toggleSection(key) {
+        const bodyEl = $(`body_${key}`);
+        const arrow = $(`arrow_${key}`);
+        const badge = $(`badge_${key}`);
+        const hdr = $(`hdr_${key}`);
+        if (!bodyEl) return;
 
-        if (target.style.display === 'none') {
-            target.style.display = target.tagName === 'TABLE' ? 'table' : 'flex';
-            btn.innerText = '▼';
+        const isClosed = bodyEl.style.display === 'none';
+        if (isClosed) {
+            bodyEl.style.display = 'flex';
+            if (arrow) {
+                arrow.innerText = '[−]';
+                arrow.classList.remove('is-closed');
+            }
+            if (badge) badge.classList.remove('show');
+            if (hdr) hdr.classList.remove('header-collapsed-line');
         } else {
-            target.style.display = 'none';
-            btn.innerText = '▶';
+            bodyEl.style.display = 'none';
+            if (arrow) {
+                arrow.innerText = '[+]';
+                arrow.classList.add('is-closed');
+            }
+            if (badge) badge.classList.add('show');
+            if (hdr) hdr.classList.add('header-collapsed-line');
         }
+    }
+
+    // 클립보드 복사
+    function copyContent(elementId, btn) {
+        const el = $(elementId);
+        if (!el || !el.value.trim()) {
+            return alert('복사할 내용이 없습니다.');
+        }
+        navigator.clipboard.writeText(el.value).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '✓ 복사됨';
+            btn.style.color = '#16a34a';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = '';
+            }, 1500);
+        });
     }
 
     // === [MODULE-SCRIPT: post-list] ===
@@ -417,7 +471,7 @@
     }
 
     function renderPostList() {
-        const grid = $('postItemsGrid');
+        const grid = $('body_postList');
         const filter = $('statusFilter').value;
         grid.innerHTML = '';
 
@@ -474,7 +528,7 @@
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
         renderPostList();
-        log(`상태 토글: ${post.제목 || post.title} (${current} -> ${nextStatus})`);
+        log(`상태 토글: "${post.제목 || post.title}" (${current} -> ${nextStatus})`);
 
         fetch(GAS_ENDPOINT, {
             method: "POST",
@@ -484,7 +538,8 @@
                 ID: post.ID || post.id,
                 id: post.ID || post.id,
                 status: nextStatus,
-                title: post.제목 || post.title || ''
+                title: post.제목 || post.title || '',
+                outline: post.글의구성 || post.outline || ''
             })
         });
     }
@@ -493,17 +548,71 @@
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        const title = post.제목 || post.title || '';
-        // [ID] 표시 없이 순수 제목만 표기
-        $('essayTitleInput').value = title;
-        $('postStartDate').value = post.작성시작일 || post.startDate || '';
-        $('postEndDate').value = post.작성완료일 || post.endDate || '';
-        $('postSummary').value = post.요약 || post.summary || '';
+        // 선택된 글의 구성을 글의 구성 창에 매핑
+        const outlineText = post.글의구성 || post.outline || '';
+        $('essayOutline').value = outlineText;
+        outlineSaved = outlineText;
+        outlineHistory = [outlineText];
 
         renderPostList();
-        log(`선택됨: "${title}" (ID: ${currentPostId})`);
+        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 로드됨`);
     }
     // === [MODULE-SCRIPT-END: post-list] ===
+
+    // === [MODULE-SCRIPT: outline] ===
+    let outlineSaved = '';
+    let outlineHistory = [''];
+
+    function handleOutlineInput() {
+        const val = $('essayOutline').value;
+        if (outlineHistory[outlineHistory.length - 1] !== val) {
+            outlineHistory.push(val);
+            if (outlineHistory.length > 50) outlineHistory.shift();
+        }
+    }
+
+    function undoOutline() {
+        if (outlineHistory.length > 1) {
+            outlineHistory.pop();
+            $('essayOutline').value = outlineHistory[outlineHistory.length - 1];
+        } else {
+            alert('되돌릴 이전 입력 내용이 없습니다.');
+        }
+    }
+
+    function restoreSavedOutline() {
+        if ($('essayOutline').value === outlineSaved) {
+            return alert('이미 최근 저장된 상태와 동일합니다.');
+        }
+        outlineHistory.push(outlineSaved);
+        $('essayOutline').value = outlineSaved;
+    }
+
+    function handleBulletEnter(e, textarea) {
+        if (e.key === 'Enter') {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+            const currentLine = value.substring(lineStart, start);
+
+            if (currentLine.trim().startsWith('●')) {
+                e.preventDefault();
+                if (currentLine.trim() === '●') {
+                    const before = value.substring(0, lineStart);
+                    const after = value.substring(end);
+                    textarea.value = before + after;
+                    textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    return;
+                }
+                const bullet = '\n● ';
+                textarea.value = value.substring(0, start) + bullet + value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + bullet.length;
+                handleOutlineInput();
+            }
+        }
+    }
+    // === [MODULE-SCRIPT-END: outline] ===
 </script>
 </body>
 </html>
