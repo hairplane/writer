@@ -1,4 +1,4 @@
-<!-- v0.10: 모바일 컴팩트 최적화, 글 메타정보 표 신설(제목/ID/상황/시작일/완료일/요약), API키 창 위치 이동, 전 영역 복사 버튼 추가 -->
+<!-- v0.11: test.html v0.3 이식(테두리 제거, 제목[ID] 순수제목화), 신호등/헤더 토글 시 타이틀 라인 유지형 본문 접기/펼치기 적용 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -165,6 +165,24 @@
             transform: translateY(-0.5px);
         }
 
+        /* 공통 헤더 열림/숨김 토글 화살표 버튼 */
+        .btn-section-toggle {
+            background: none;
+            border: none;
+            color: #475569;
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: color 0.15s ease;
+        }
+        .btn-section-toggle:hover {
+            color: var(--primary);
+        }
+
         /* 액션 툴바 */
         .action-toolbar-clean {
             display: flex;
@@ -204,7 +222,6 @@
         }
         .btn-danger:hover { background-color: #fef2f2; }
 
-        /* 공통 헤더 복사 버튼 */
         .btn-copy {
             background: #ffffff;
             border: 1px solid var(--border-light);
@@ -227,34 +244,23 @@
 
         /* === [MODULE-STYLE: post-list] === */
         .post-list-box {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 8px 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
         .post-list-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 3px;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 4px;
         }
 
         .post-list-title {
             font-size: 0.86rem;
             font-weight: 700;
             color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .post-list-controls {
             display: flex;
             align-items: center;
             gap: 4px;
@@ -278,9 +284,9 @@
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 3px;
+            background: #ffffff;
         }
 
-        /* 라디오 버튼 높이급 슬림 행 */
         .post-row-item {
             display: flex;
             justify-content: space-between;
@@ -291,21 +297,10 @@
             border-bottom: 1px solid #e2e8f0;
             transition: background-color 0.1s ease;
         }
-        .post-row-item:last-child {
-            border-bottom: none;
-        }
-
-        .post-row-item:nth-child(even) {
-            background-color: #eef2f6;
-        }
-
-        .post-row-item:hover {
-            background-color: #e2e8f0 !important;
-        }
-
-        .post-row-item.active {
-            background-color: #dbeafe !important;
-        }
+        .post-row-item:last-child { border-bottom: none; }
+        .post-row-item:nth-child(even) { background-color: #eef2f6; }
+        .post-row-item:hover { background-color: #e2e8f0 !important; }
+        .post-row-item.active { background-color: #dbeafe !important; }
 
         .post-row-title-area {
             display: flex;
@@ -334,9 +329,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .post-row-title:hover {
-            text-decoration: underline;
-        }
+        .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title {
             color: var(--primary);
             font-weight: 700;
@@ -359,55 +352,55 @@
             color: #0369a1;
             border-color: #bae6fd;
         }
-        .btn-status-toggle.status-writing:hover {
-            background: #bae6fd;
-        }
+        .btn-status-toggle.status-writing:hover { background: #bae6fd; }
         .btn-status-toggle.status-plan {
             background: #fef3c7;
             color: #b45309;
             border-color: #fde68a;
         }
-        .btn-status-toggle.status-plan:hover {
-            background: #fde68a;
-        }
+        .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
-        /* [신규] 글 메타정보 표 카드 */
+        /* === [MODULE-STYLE: meta-table] === */
         .meta-table-box {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .meta-table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border-light);
         }
 
         .meta-table-title {
             font-size: 0.86rem;
             font-weight: 700;
             color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .meta-grid-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
         }
 
         .meta-grid-table th {
-            width: 70px;
+            width: 80px;
             background: #f8fafc;
             color: #475569;
             font-weight: 600;
             padding: 4px 6px;
-            text-align: left;
+            text-align: center;
             border: 1px solid var(--border-light);
             white-space: nowrap;
         }
@@ -419,7 +412,6 @@
         }
 
         .meta-grid-table input,
-        .meta-grid-table select,
         .meta-grid-table textarea {
             width: 100%;
             border: none;
@@ -430,31 +422,37 @@
             color: #0f172a;
         }
         .meta-grid-table input:focus,
-        .meta-grid-table textarea:focus {
-            background: #f0f7ff;
-        }
+        .meta-grid-table textarea:focus { background: #f0f7ff; }
+        /* === [MODULE-STYLE-END: meta-table] === */
 
-        /* 4. API 키 관리 박스 (글의 의도와 요청내용 사이로 이동) */
+        /* API 키 관리 박스 */
         .api-box {
-            background: #fffdf5;
-            border: 1px solid #fde68a;
-            padding: 8px 10px;
-            border-radius: 4px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .api-box-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border-light);
         }
 
         .api-header-left {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+        }
+
+        .api-section-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .api-status-badge {
@@ -475,6 +473,13 @@
             padding: 1px 5px;
             font-size: 0.78rem;
             text-decoration: none;
+        }
+
+        .api-content-wrap {
+            background: #fffdf5;
+            border: 1px solid #fde68a;
+            padding: 6px 8px;
+            border-radius: 4px;
         }
 
         .api-row {
@@ -582,19 +587,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1px 2px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid var(--border-light);
         }
 
         .section-header-left {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .section-title {
             font-size: 0.86rem;
             font-weight: 700;
             color: #334155;
+        }
+
+        .editor-content-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
         }
 
         textarea.flat-textarea {
@@ -680,7 +692,7 @@
         @media (max-width: 640px) {
             body { padding: 6px 8px 24px; }
             .container { gap: 8px; }
-            .meta-grid-table th { width: 60px; font-size: 0.75rem; }
+            .meta-grid-table th { width: 70px; font-size: 0.75rem; }
             .meta-grid-table td { font-size: 0.78rem; }
         }
     </style>
@@ -693,7 +705,7 @@
         <div class="header-top-row">
             <div class="header-title-wrap">
                 <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v0.10</span>
+                <span class="version-tag">v0.11</span>
             </div>
             <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
@@ -702,7 +714,7 @@
             <span class="toggle-guide-label">열고 닫기:</span>
             <div class="traffic-group">
                 <span id="dot_postList" class="traffic-btn tb-postList" onclick="toggleSection('postList')" title="작성 글 목록"></span>
-                <span id="dot_meta" class="traffic-btn tb-meta" onclick="toggleSection('meta')" title="글 메타정보"></span>
+                <span id="dot_meta" class="traffic-btn tb-meta" onclick="toggleSection('meta')" title="작성 글 정보"></span>
                 <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성"></span>
                 <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글"></span>
                 <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글"></span>
@@ -726,9 +738,10 @@
     <div id="sec_postList" class="post-list-box">
         <div class="post-list-header">
             <div class="post-list-title">
-                <span>📑 작성 글 목록</span>
+                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">▼</button>
+                <span>작성 글 목록</span>
             </div>
-            <div class="post-list-controls">
+            <div>
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
                 <select id="statusFilter" class="select-status" onchange="renderPostList()">
                     <option value="전체" selected>전체</option>
@@ -737,61 +750,54 @@
                 </select>
             </div>
         </div>
-        <div id="postItemsGrid" class="post-list-rows">
-            <span style="font-size: 0.78rem; color: #64748b; padding: 3px 6px;">목록을 불러오는 중입니다...</span>
+        <div id="body_postList" class="post-list-rows">
+            <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중입니다...</span>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
 
-    <!-- [신규] 3. 글 메타정보 표 카드 (제목 결합) -->
+    <!-- === [MODULE-HTML: meta-table] === -->
     <div id="sec_meta" class="meta-table-box">
         <div class="meta-table-header">
-            <span class="meta-table-title">📋 글 메타정보</span>
-            <button type="button" class="btn-copy" onclick="copyMetaInfo(this)">📋 복사</button>
+            <span class="meta-table-title">
+                <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">▼</button>
+                <span>작성 글 정보</span>
+            </span>
         </div>
-        <table class="meta-grid-table">
-            <tr>
-                <th>제목</th>
-                <td colspan="3">
-                    <input type="text" id="essayTitle" placeholder="글 제목 입력" oninput="markDirty()" style="font-weight:700;">
-                </td>
-            </tr>
-            <tr>
-                <th>글 ID</th>
-                <td>
-                    <input type="text" id="postIdDisplay" placeholder="(자동 생성)" readonly style="color:#64748b;">
-                </td>
-                <th>상황</th>
-                <td>
-                    <select id="metaStatusSelect" onchange="syncMetaStatus(); markDirty();">
-                        <option value="작성">작성</option>
-                        <option value="예정">예정</option>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th>시작일</th>
-                <td>
-                    <input type="text" id="postStartDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
-                </td>
-                <th>완료일</th>
-                <td>
-                    <input type="text" id="postEndDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
-                </td>
-            </tr>
-            <tr>
-                <th>요약</th>
-                <td colspan="3">
-                    <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)" oninput="markDirty()"></textarea>
-                </td>
-            </tr>
-        </table>
+        <div id="body_meta">
+            <table class="meta-grid-table">
+                <tr>
+                    <th>제목[ID]</th>
+                    <td colspan="3">
+                        <input type="text" id="essayTitleInput" placeholder="제목 입력" oninput="markDirty()" style="font-weight:700;">
+                    </td>
+                </tr>
+                <tr>
+                    <th>시작일</th>
+                    <td>
+                        <input type="text" id="postStartDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                    </td>
+                    <th>완료일</th>
+                    <td>
+                        <input type="text" id="postEndDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                    </td>
+                </tr>
+                <tr>
+                    <th>요약</th>
+                    <td colspan="3">
+                        <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)" oninput="markDirty()"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
+    <!-- === [MODULE-HTML-END: meta-table] === -->
 
     <!-- 4. 글의 구성 -->
     <div id="sec_outline" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">▼</button>
                 <span class="section-title">글의 구성</span>
                 <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
             </div>
@@ -800,23 +806,28 @@
                 <button type="button" class="btn-restore-icon" onclick="restoreSaved('outline')">⟲ 최근 저장 상태로</button>
             </div>
         </div>
-        <textarea id="essayOutline" class="flat-textarea" style="min-height: 65px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
+        <div id="body_outline" class="editor-content-wrap">
+            <textarea id="essayOutline" class="flat-textarea" style="min-height: 65px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
+        </div>
     </div>
 
     <!-- 5. 완성 글 -->
     <div id="sec_completed" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_completed" class="btn-section-toggle" onclick="toggleSection('completed')" title="열림/숨김">▼</button>
                 <span class="section-title">완성 글</span>
                 <button type="button" class="btn-copy" onclick="copyContent('completedText', this)">📋 복사</button>
             </div>
         </div>
-        <textarea id="completedText" class="flat-textarea" style="min-height: 110px;" oninput="handleFieldInput('completed')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_completed">0자 (약 0분)</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('completed')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('completed')">⟲ 최근 저장 상태로</button>
+        <div id="body_completed" class="editor-content-wrap">
+            <textarea id="completedText" class="flat-textarea" style="min-height: 110px;" oninput="handleFieldInput('completed')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_completed">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('completed')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('completed')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
@@ -825,16 +836,19 @@
     <div id="sec_newDraft" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_newDraft" class="btn-section-toggle" onclick="toggleSection('newDraft')" title="열림/숨김">▼</button>
                 <span class="section-title">신규 글</span>
                 <button type="button" class="btn-copy" onclick="copyContent('newDraftText', this)">📋 복사</button>
             </div>
         </div>
-        <textarea id="newDraftText" class="flat-textarea" style="min-height: 80px;" oninput="handleFieldInput('newDraft')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_newDraft">0자 (약 0분)</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('newDraft')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('newDraft')">⟲ 최근 저장 상태로</button>
+        <div id="body_newDraft" class="editor-content-wrap">
+            <textarea id="newDraftText" class="flat-textarea" style="min-height: 80px;" oninput="handleFieldInput('newDraft')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_newDraft">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('newDraft')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('newDraft')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
@@ -843,46 +857,53 @@
     <div id="sec_intent" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_intent" class="btn-section-toggle" onclick="toggleSection('intent')" title="열림/숨김">▼</button>
                 <span class="section-title">글의 의도</span>
                 <button type="button" class="btn-copy" onclick="copyContent('draftIntent', this)">📋 복사</button>
             </div>
         </div>
-        <textarea id="draftIntent" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('intent')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_intent">0자</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('intent')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('intent')">⟲ 최근 저장 상태로</button>
+        <div id="body_intent" class="editor-content-wrap">
+            <textarea id="draftIntent" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('intent')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_intent">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('intent')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('intent')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- [위치 이동] 8. API 키 관리 (글의 의도와 요청내용 사이) -->
+    <!-- 8. API 키 관리 (글의 의도와 요청내용 사이) -->
     <div id="sec_api" class="api-box">
         <div class="api-box-header">
             <div class="api-header-left">
+                <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">▼</button>
+                <span class="api-section-title">API 설정</span>
                 <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">
                     🔑
                 </a>
             </div>
         </div>
-        <div class="api-row">
-            <input type="password" id="apiKeyInput" oninput="checkKeyInputState()">
-            <div class="api-btn-group">
-                <div class="dropdown" id="apiDropdownContainer">
-                    <button type="button" id="apiSaveBtn" class="api-save-btn" onclick="handleSaveButtonClick()">
-                        <span id="apiSaveBtnText">키 설치하기</span>
-                        <span id="dropdownArrow">▼</span>
-                    </button>
-                    <div id="apiDropdownMenu" class="dropdown-content">
-                        <button type="button" onclick="selectKeyChoice('shared')">공용 키 설치하기</button>
-                        <button type="button" onclick="selectKeyChoice('personal')">개인 키 설치하기</button>
+        <div id="body_api" class="api-content-wrap">
+            <div class="api-row">
+                <input type="password" id="apiKeyInput" oninput="checkKeyInputState()">
+                <div class="api-btn-group">
+                    <div class="dropdown" id="apiDropdownContainer">
+                        <button type="button" id="apiSaveBtn" class="api-save-btn" onclick="handleSaveButtonClick()">
+                            <span id="apiSaveBtnText">키 설치하기</span>
+                            <span id="dropdownArrow">▼</span>
+                        </button>
+                        <div id="apiDropdownMenu" class="dropdown-content">
+                            <button type="button" onclick="selectKeyChoice('shared')">공용 키 설치하기</button>
+                            <button type="button" onclick="selectKeyChoice('personal')">개인 키 설치하기</button>
+                        </div>
                     </div>
+                    <button type="button" id="apiCancelBtn" class="api-cancel-btn" onclick="cancelKeyInput()">취소</button>
                 </div>
-                <button type="button" id="apiCancelBtn" class="api-cancel-btn" onclick="cancelKeyInput()">취소</button>
+                <button type="button" id="apiDelBtn" class="api-del-btn" onclick="deleteApiKey()">키 삭제하기</button>
             </div>
-            <button type="button" id="apiDelBtn" class="api-del-btn" onclick="deleteApiKey()">키 삭제하기</button>
         </div>
     </div>
 
@@ -890,16 +911,19 @@
     <div id="sec_promptReq" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_promptReq" class="btn-section-toggle" onclick="toggleSection('promptReq')" title="열림/숨김">▼</button>
                 <span class="section-title">요청 내용 (to AI)</span>
                 <button type="button" class="btn-copy" onclick="copyContent('promptReqText', this)">📋 복사</button>
             </div>
         </div>
-        <textarea id="promptReqText" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('promptReq')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_promptReq">0자</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('promptReq')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('promptReq')">⟲ 최근 저장 상태로</button>
+        <div id="body_promptReq" class="editor-content-wrap">
+            <textarea id="promptReqText" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('promptReq')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_promptReq">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('promptReq')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('promptReq')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
@@ -908,18 +932,21 @@
     <div id="sec_aiRefined" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_aiRefined" class="btn-section-toggle" onclick="toggleSection('aiRefined')" title="열림/숨김">▼</button>
                 <span class="section-title">AI 수정 글</span>
                 <button type="button" class="btn-copy" onclick="copyContent('aiRefinedText', this)">📋 복사</button>
                 <button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>
             </div>
             <button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>
         </div>
-        <textarea id="aiRefinedText" class="flat-textarea" style="min-height: 90px; background-color: #f8fafc;" oninput="handleFieldInput('aiRefined')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_aiRefined">0자 (약 0분)</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('aiRefined')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('aiRefined')">⟲ 최근 저장 상태로</button>
+        <div id="body_aiRefined" class="editor-content-wrap">
+            <textarea id="aiRefinedText" class="flat-textarea" style="min-height: 90px; background-color: #f8fafc;" oninput="handleFieldInput('aiRefined')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_aiRefined">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('aiRefined')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('aiRefined')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
@@ -928,16 +955,19 @@
     <div id="sec_snippets" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
+                <button type="button" id="arrow_snippets" class="btn-section-toggle" onclick="toggleSection('snippets')" title="열림/숨김">▼</button>
                 <span class="section-title">보관 글</span>
                 <button type="button" class="btn-copy" onclick="copyContent('savedSnippets', this)">📋 복사</button>
             </div>
         </div>
-        <textarea id="savedSnippets" class="flat-textarea" style="min-height: 60px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_snippets">0자</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('snippets')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('snippets')">⟲ 최근 저장 상태로</button>
+        <div id="body_snippets" class="editor-content-wrap">
+            <textarea id="savedSnippets" class="flat-textarea" style="min-height: 60px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_snippets">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('snippets')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('snippets')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
@@ -946,7 +976,7 @@
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V11";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
@@ -989,7 +1019,7 @@
     }
 
     function renderPostList() {
-        const grid = $('postItemsGrid');
+        const grid = $('body_postList');
         const filter = $('statusFilter').value;
         grid.innerHTML = '';
 
@@ -1042,7 +1072,6 @@
 
         if (currentPostId === (post.ID || post.id)) {
             currentPostStatus = nextStatus;
-            $('metaStatusSelect').value = nextStatus;
         }
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -1085,9 +1114,7 @@
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
         // 1. 메타데이터 매핑
-        $('essayTitle').value = post.제목 || post.title || '';
-        $('postIdDisplay').value = currentPostId;
-        $('metaStatusSelect').value = currentPostStatus;
+        $('essayTitleInput').value = post.제목 || post.title || '';
         $('postStartDate').value = post.작성시작일 || post.startDate || '';
         $('postEndDate').value = post.작성완료일 || post.endDate || '';
         $('postSummary').value = post.요약 || post.summary || '';
@@ -1104,16 +1131,6 @@
         updateAllStats();
         renderPostList();
         isDirty = false;
-    }
-
-    function syncMetaStatus() {
-        currentPostStatus = $('metaStatusSelect').value;
-        const matched = postListCache.find(p => (p.ID || p.id) === currentPostId);
-        if (matched) {
-            matched.상황 = currentPostStatus;
-            matched.status = currentPostStatus;
-            renderPostList();
-        }
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 
@@ -1168,41 +1185,24 @@
         });
     }
 
-    function copyMetaInfo(btn) {
-        const title = $('essayTitle').value.trim();
-        const id = $('postIdDisplay').value.trim();
-        const status = $('metaStatusSelect').value;
-        const start = $('postStartDate').value.trim();
-        const end = $('postEndDate').value.trim();
-        const summary = $('postSummary').value.trim();
-
-        const text = `[글 메타정보]\n제목: ${title}\nID: ${id}\n상황: ${status}\n시작일: ${start}\n완료일: ${end}\n요약: ${summary}`;
-        navigator.clipboard.writeText(text).then(() => {
-            const originalText = btn.innerText;
-            btn.innerText = '✓ 복사됨';
-            btn.style.color = '#16a34a';
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.color = '';
-            }, 1500);
-        });
-    }
-
     /* ==========================================================================
-       신호등 원클릭 열고 닫기(접기/펼치기)
+       헤더 보존형 열림/숨김(본문 접기/펼치기) 토글 시스템
        ========================================================================== */
     function toggleSection(key) {
-        const sec = $(`sec_${key}`);
+        const bodyEl = $(`body_${key}`);
         const dot = $(`dot_${key}`);
-        if (!sec || !dot) return;
+        const arrow = $(`arrow_${key}`);
+        if (!bodyEl) return;
 
-        const isClosed = sec.style.display === 'none';
+        const isClosed = bodyEl.style.display === 'none';
         if (isClosed) {
-            sec.style.display = 'flex';
-            dot.classList.remove('is-closed');
+            bodyEl.style.display = (key === 'meta' || key === 'postList') ? (key === 'meta' ? 'block' : 'flex') : 'flex';
+            if (dot) dot.classList.remove('is-closed');
+            if (arrow) arrow.innerText = '▼';
         } else {
-            sec.style.display = 'none';
-            dot.classList.add('is-closed');
+            bodyEl.style.display = 'none';
+            if (dot) dot.classList.add('is-closed');
+            if (arrow) arrow.innerText = '▶';
         }
     }
 
@@ -1449,20 +1449,19 @@
        저장 (로컬 스토리지 + 구글 시트 양방향 동기화)
        ========================================================================== */
     async function saveWork(mode) {
-        const titleVal = $('essayTitle').value.trim();
+        const titleVal = $('essayTitleInput').value.trim();
         if (!titleVal) {
             return alert('제목을 입력해주세요.');
         }
 
         if (!currentPostId) {
             currentPostId = "ID_" + new Date().getTime();
-            $('postIdDisplay').value = currentPostId;
         }
 
         const payload = {
             ID: currentPostId,
             id: currentPostId,
-            status: currentPostStatus || $('metaStatusSelect').value || "작성",
+            status: currentPostStatus || "작성",
             title: titleVal,
             startDate: $('postStartDate').value.trim(),
             endDate: $('postEndDate').value.trim(),
@@ -1515,13 +1514,11 @@
             const data = JSON.parse(raw);
             if (data.ID || data.id) {
                 currentPostId = data.ID || data.id;
-                $('postIdDisplay').value = currentPostId;
             }
             if (data.status) {
                 currentPostStatus = data.status;
-                $('metaStatusSelect').value = data.status;
             }
-            if (data.title) $('essayTitle').value = data.title;
+            if (data.title) $('essayTitleInput').value = data.title;
             if (data.startDate) $('postStartDate').value = data.startDate;
             if (data.endDate) $('postEndDate').value = data.endDate;
             if (data.summary) $('postSummary').value = data.summary;
