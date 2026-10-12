@@ -1,10 +1,10 @@
-<!-- v0.2: '작성 글 정보'로 명칭 변경, 제목[ID] 통합, 복사 버튼 및 상황 필드 삭제, 셀 타이틀 중앙 정렬 -->
+<!-- v0.3: 제목 입력창 [ID] 제거, 외곽 불필요 테두리 제거, 헤더 앞 열림/숨김(▼/▶) 토글 버튼 적용 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 및 메타정보 테스트 - v0.2</title>
+    <title>글 목록 및 메타정보 테스트 - v0.3</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -32,7 +32,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .test-header {
@@ -64,24 +64,37 @@
             border: 1px solid #bfdbfe;
         }
 
+        /* 공통 헤더 열림/숨김 토글 버튼 */
+        .btn-section-toggle {
+            background: none;
+            border: none;
+            color: #475569;
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: transform 0.15s ease;
+        }
+        .btn-section-toggle:hover {
+            color: var(--primary);
+        }
+
         /* === [MODULE-STYLE: post-list] === */
         .post-list-box {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 8px 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
         .post-list-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 3px;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 4px;
         }
 
         .post-list-title {
@@ -90,7 +103,7 @@
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
 
         .select-status {
@@ -111,6 +124,7 @@
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 3px;
+            background: #ffffff;
         }
 
         .post-row-item {
@@ -189,31 +203,35 @@
 
         /* === [MODULE-STYLE: meta-table] === */
         .meta-table-box {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .meta-table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border-light);
         }
 
         .meta-table-title {
             font-size: 0.86rem;
             font-weight: 700;
             color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .meta-grid-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
         }
 
         .meta-grid-table th {
@@ -222,7 +240,7 @@
             color: #475569;
             font-weight: 600;
             padding: 4px 6px;
-            text-align: center; /* 셀 내 타이틀 가운데 정렬 */
+            text-align: center;
             border: 1px solid var(--border-light);
             white-space: nowrap;
         }
@@ -265,7 +283,7 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>📑 글 목록 & 작성 글 정보 디버깅 모듈 <span class="version-badge">v0.2</span></h1>
+        <h1>글 목록 & 작성 글 정보 테스트 <span class="version-badge">v0.3</span></h1>
         <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 테스트</span>
     </div>
 
@@ -273,7 +291,8 @@
     <div id="sec_postList" class="post-list-box">
         <div class="post-list-header">
             <div class="post-list-title">
-                <span>📑 작성 글 목록</span>
+                <button type="button" id="btn_toggle_postList" class="btn-section-toggle" onclick="toggleLocalSection('postItemsGrid', 'btn_toggle_postList')" title="열림/숨김">▼</button>
+                <span>작성 글 목록</span>
             </div>
             <div>
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
@@ -293,32 +312,37 @@
     <!-- === [MODULE-HTML: meta-table] === -->
     <div id="sec_meta" class="meta-table-box">
         <div class="meta-table-header">
-            <span class="meta-table-title">📋 작성 글 정보</span>
+            <span class="meta-table-title">
+                <button type="button" id="btn_toggle_meta" class="btn-section-toggle" onclick="toggleLocalSection('metaTableContent', 'btn_toggle_meta')" title="열림/숨김">▼</button>
+                <span>작성 글 정보</span>
+            </span>
         </div>
-        <table class="meta-grid-table">
-            <tr>
-                <th>제목[ID]</th>
-                <td colspan="3">
-                    <input type="text" id="essayTitleWithId" placeholder="제목 [ID]" style="font-weight:700;">
-                </td>
-            </tr>
-            <tr>
-                <th>시작일</th>
-                <td>
-                    <input type="text" id="postStartDate" placeholder="YYYY-MM-DD">
-                </td>
-                <th>완료일</th>
-                <td>
-                    <input type="text" id="postEndDate" placeholder="YYYY-MM-DD">
-                </td>
-            </tr>
-            <tr>
-                <th>요약</th>
-                <td colspan="3">
-                    <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)"></textarea>
-                </td>
-            </tr>
-        </table>
+        <div id="metaTableContent">
+            <table class="meta-grid-table">
+                <tr>
+                    <th>제목[ID]</th>
+                    <td colspan="3">
+                        <input type="text" id="essayTitleInput" placeholder="제목 입력" style="font-weight:700;">
+                    </td>
+                </tr>
+                <tr>
+                    <th>시작일</th>
+                    <td>
+                        <input type="text" id="postStartDate" placeholder="YYYY-MM-DD">
+                    </td>
+                    <th>완료일</th>
+                    <td>
+                        <input type="text" id="postEndDate" placeholder="YYYY-MM-DD">
+                    </td>
+                </tr>
+                <tr>
+                    <th>요약</th>
+                    <td colspan="3">
+                        <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
     <!-- === [MODULE-HTML-END: meta-table] === -->
 
@@ -333,6 +357,21 @@
     function log(msg) {
         const el = $('testLog');
         el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
+    }
+
+    // 헤더 앞 열림/숨김(▼/▶) 토글 함수
+    function toggleLocalSection(targetId, btnId) {
+        const target = $(targetId);
+        const btn = $(btnId);
+        if (!target || !btn) return;
+
+        if (target.style.display === 'none') {
+            target.style.display = target.tagName === 'TABLE' ? 'table' : 'flex';
+            btn.innerText = '▼';
+        } else {
+            target.style.display = 'none';
+            btn.innerText = '▶';
+        }
     }
 
     // === [MODULE-SCRIPT: post-list] ===
@@ -455,8 +494,8 @@
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
         const title = post.제목 || post.title || '';
-        // 제목[ID] 통합 표시 (예: "반지 [2]")
-        $('essayTitleWithId').value = currentPostId ? `${title} [${currentPostId}]` : title;
+        // [ID] 표시 없이 순수 제목만 표기
+        $('essayTitleInput').value = title;
         $('postStartDate').value = post.작성시작일 || post.startDate || '';
         $('postEndDate').value = post.작성완료일 || post.endDate || '';
         $('postSummary').value = post.요약 || post.summary || '';
