@@ -1,4 +1,4 @@
-<!-- v0.11: test.html v0.3 이식(테두리 제거, 제목[ID] 순수제목화), 신호등/헤더 토글 시 타이틀 라인 유지형 본문 접기/펼치기 적용 -->
+<!-- v0.12: 작성 글 목록 하단 잘림 해결, 방안 C [−]/[+] 토글 및 숨김 상태 미니 배지/점선 피드백 적용 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -165,22 +165,50 @@
             transform: translateY(-0.5px);
         }
 
-        /* 공통 헤더 열림/숨김 토글 화살표 버튼 */
+        /* 공통 헤더 [−] / [+] 토글 버튼 및 숨김 뱃지 */
         .btn-section-toggle {
-            background: none;
-            border: none;
-            color: #475569;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: #334155;
             font-size: 0.72rem;
+            font-weight: 700;
+            font-family: monospace;
             cursor: pointer;
-            padding: 0 4px;
+            padding: 1px 5px;
+            border-radius: 3px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
-            transition: color 0.15s ease;
+            transition: all 0.15s ease;
         }
         .btn-section-toggle:hover {
+            border-color: var(--primary);
             color: var(--primary);
+        }
+        .btn-section-toggle.is-closed {
+            background: #fef3c7;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .badge-collapsed {
+            display: none;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #b45309;
+            background: #fef3c7;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid #fde68a;
+            margin-left: 4px;
+        }
+        .badge-collapsed.show {
+            display: inline-block;
+        }
+
+        .header-collapsed-line {
+            border-bottom: 1px dashed #cbd5e1 !important;
         }
 
         /* 액션 툴바 */
@@ -263,7 +291,7 @@
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .select-status {
@@ -277,14 +305,16 @@
             font-weight: 600;
         }
 
+        /* 하단 잘림 해결: 정수 배수 높이 및 여백 보강 */
         .post-list-rows {
             display: flex;
             flex-direction: column;
-            max-height: 200px;
+            max-height: 220px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 3px;
             background: #ffffff;
+            padding-bottom: 2px;
         }
 
         .post-row-item {
@@ -382,7 +412,7 @@
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .meta-grid-table {
@@ -443,7 +473,7 @@
         .api-header-left {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .api-section-title {
@@ -452,7 +482,7 @@
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .api-status-badge {
@@ -594,7 +624,7 @@
         .section-header-left {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
 
         .section-title {
@@ -705,7 +735,7 @@
         <div class="header-top-row">
             <div class="header-title-wrap">
                 <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v0.11</span>
+                <span class="version-tag">v0.12</span>
             </div>
             <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
@@ -736,10 +766,11 @@
 
     <!-- === [MODULE-HTML: post-list] === -->
     <div id="sec_postList" class="post-list-box">
-        <div class="post-list-header">
+        <div id="hdr_postList" class="post-list-header">
             <div class="post-list-title">
-                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">[−]</button>
                 <span>작성 글 목록</span>
+                <span id="badge_postList" class="badge-collapsed">숨김</span>
             </div>
             <div>
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
@@ -758,10 +789,11 @@
 
     <!-- === [MODULE-HTML: meta-table] === -->
     <div id="sec_meta" class="meta-table-box">
-        <div class="meta-table-header">
+        <div id="hdr_meta" class="meta-table-header">
             <span class="meta-table-title">
-                <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">[−]</button>
                 <span>작성 글 정보</span>
+                <span id="badge_meta" class="badge-collapsed">숨김</span>
             </span>
         </div>
         <div id="body_meta">
@@ -795,10 +827,11 @@
 
     <!-- 4. 글의 구성 -->
     <div id="sec_outline" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_outline" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">[−]</button>
                 <span class="section-title">글의 구성</span>
+                <span id="badge_outline" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
             </div>
             <div class="restore-group">
@@ -813,10 +846,11 @@
 
     <!-- 5. 완성 글 -->
     <div id="sec_completed" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_completed" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_completed" class="btn-section-toggle" onclick="toggleSection('completed')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_completed" class="btn-section-toggle" onclick="toggleSection('completed')" title="열림/숨김">[−]</button>
                 <span class="section-title">완성 글</span>
+                <span id="badge_completed" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('completedText', this)">📋 복사</button>
             </div>
         </div>
@@ -834,10 +868,11 @@
 
     <!-- 6. 신규 글 -->
     <div id="sec_newDraft" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_newDraft" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_newDraft" class="btn-section-toggle" onclick="toggleSection('newDraft')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_newDraft" class="btn-section-toggle" onclick="toggleSection('newDraft')" title="열림/숨김">[−]</button>
                 <span class="section-title">신규 글</span>
+                <span id="badge_newDraft" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('newDraftText', this)">📋 복사</button>
             </div>
         </div>
@@ -855,10 +890,11 @@
 
     <!-- 7. 글의 의도 -->
     <div id="sec_intent" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_intent" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_intent" class="btn-section-toggle" onclick="toggleSection('intent')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_intent" class="btn-section-toggle" onclick="toggleSection('intent')" title="열림/숨김">[−]</button>
                 <span class="section-title">글의 의도</span>
+                <span id="badge_intent" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('draftIntent', this)">📋 복사</button>
             </div>
         </div>
@@ -876,10 +912,11 @@
 
     <!-- 8. API 키 관리 (글의 의도와 요청내용 사이) -->
     <div id="sec_api" class="api-box">
-        <div class="api-box-header">
+        <div id="hdr_api" class="api-box-header">
             <div class="api-header-left">
-                <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">[−]</button>
                 <span class="api-section-title">API 설정</span>
+                <span id="badge_api" class="badge-collapsed">숨김</span>
                 <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">
                     🔑
@@ -909,10 +946,11 @@
 
     <!-- 9. 요청 내용 (to AI) -->
     <div id="sec_promptReq" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_promptReq" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_promptReq" class="btn-section-toggle" onclick="toggleSection('promptReq')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_promptReq" class="btn-section-toggle" onclick="toggleSection('promptReq')" title="열림/숨김">[−]</button>
                 <span class="section-title">요청 내용 (to AI)</span>
+                <span id="badge_promptReq" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('promptReqText', this)">📋 복사</button>
             </div>
         </div>
@@ -930,10 +968,11 @@
 
     <!-- 10. AI 수정 글 -->
     <div id="sec_aiRefined" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_aiRefined" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_aiRefined" class="btn-section-toggle" onclick="toggleSection('aiRefined')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_aiRefined" class="btn-section-toggle" onclick="toggleSection('aiRefined')" title="열림/숨김">[−]</button>
                 <span class="section-title">AI 수정 글</span>
+                <span id="badge_aiRefined" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('aiRefinedText', this)">📋 복사</button>
                 <button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>
             </div>
@@ -953,10 +992,11 @@
 
     <!-- 11. 보관 글 -->
     <div id="sec_snippets" class="editor-section">
-        <div class="section-header-line">
+        <div id="hdr_snippets" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_snippets" class="btn-section-toggle" onclick="toggleSection('snippets')" title="열림/숨김">▼</button>
+                <button type="button" id="arrow_snippets" class="btn-section-toggle" onclick="toggleSection('snippets')" title="열림/숨김">[−]</button>
                 <span class="section-title">보관 글</span>
+                <span id="badge_snippets" class="badge-collapsed">숨김</span>
                 <button type="button" class="btn-copy" onclick="copyContent('savedSnippets', this)">📋 복사</button>
             </div>
         </div>
@@ -976,7 +1016,7 @@
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V11";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V12";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
@@ -1186,23 +1226,35 @@
     }
 
     /* ==========================================================================
-       헤더 보존형 열림/숨김(본문 접기/펼치기) 토글 시스템
+       방안 C [−]/[+] 토글 및 숨김 상태 피드백 연동 시스템
        ========================================================================== */
     function toggleSection(key) {
         const bodyEl = $(`body_${key}`);
         const dot = $(`dot_${key}`);
         const arrow = $(`arrow_${key}`);
+        const badge = $(`badge_${key}`);
+        const hdr = $(`hdr_${key}`);
         if (!bodyEl) return;
 
         const isClosed = bodyEl.style.display === 'none';
         if (isClosed) {
             bodyEl.style.display = (key === 'meta' || key === 'postList') ? (key === 'meta' ? 'block' : 'flex') : 'flex';
             if (dot) dot.classList.remove('is-closed');
-            if (arrow) arrow.innerText = '▼';
+            if (arrow) {
+                arrow.innerText = '[−]';
+                arrow.classList.remove('is-closed');
+            }
+            if (badge) badge.classList.remove('show');
+            if (hdr) hdr.classList.remove('header-collapsed-line');
         } else {
             bodyEl.style.display = 'none';
             if (dot) dot.classList.add('is-closed');
-            if (arrow) arrow.innerText = '▶';
+            if (arrow) {
+                arrow.innerText = '[+]';
+                arrow.classList.add('is-closed');
+            }
+            if (badge) badge.classList.add('show');
+            if (hdr) hdr.classList.add('header-collapsed-line');
         }
     }
 
