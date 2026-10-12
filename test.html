@@ -1,10 +1,10 @@
-<!-- v0.5: 점선 리더라인 제거, 행 간 은은한 가로 구분선 추가, 짝수 행 교대 음영(Zebra) 시인성 강화 -->
+<!-- v0.1: '작성 글 목록' 및 '글 메타정보' 2개 창 전용 독립 경량 테스트 모듈 (나머지 창 완전 배제) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>작성 글 목록 테스트 - v0.5</title>
+    <title>글 목록 및 메타정보 테스트 - v0.1</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -16,27 +16,23 @@
             --text-sub: #64748b;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            line-height: 1.5;
+            line-height: 1.45;
             word-break: keep-all;
-            padding: 20px;
+            padding: 10px 12px 30px;
         }
 
-        .test-wrapper {
+        .container {
             max-width: 820px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 10px;
         }
 
         .test-header {
@@ -45,25 +41,25 @@
             justify-content: space-between;
             background: #ffffff;
             border: 1px solid var(--border-color);
-            padding: 10px 16px;
+            padding: 6px 12px;
             border-radius: 4px;
         }
 
         .test-header h1 {
-            font-size: 1.05rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .version-badge {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--primary);
             font-weight: 700;
             background: #eff6ff;
-            padding: 2px 6px;
+            padding: 1px 5px;
             border-radius: 3px;
             border: 1px solid #bfdbfe;
         }
@@ -73,10 +69,10 @@
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 10px 14px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
@@ -85,81 +81,60 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
 
         .post-list-title {
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             font-weight: 700;
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 6px;
-        }
-
-        .post-list-controls {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .select-status {
-            padding: 3px 6px;
-            font-size: 0.8rem;
+            padding: 2px 4px;
+            font-size: 0.76rem;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
             outline: none;
             background: #fff;
             color: #334155;
             font-weight: 600;
         }
 
-        /* 컴팩트 텍스트 리스트 컨테이너 */
         .post-list-rows {
             display: flex;
             flex-direction: column;
-            max-height: 280px;
+            max-height: 220px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
-        /* 행 스타일: 가로 구분선 및 교대 음영 */
         .post-row-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 10px;
+            padding: 3px 6px;
+            min-height: 26px;
             background-color: #ffffff;
             border-bottom: 1px solid #e2e8f0;
-            transition: background-color 0.12s ease;
+            transition: background-color 0.1s ease;
         }
-        .post-row-item:last-child {
-            border-bottom: none;
-        }
-
-        /* 짝수 행 음영 강화 */
-        .post-row-item:nth-child(even) {
-            background-color: #eef2f6;
-        }
-
-        /* 마우스 호버 반응 */
-        .post-row-item:hover {
-            background-color: #e2e8f0 !important;
-        }
-
-        /* 선택된 글 강조 */
-        .post-row-item.active {
-            background-color: #dbeafe !important;
-        }
+        .post-row-item:last-child { border-bottom: none; }
+        .post-row-item:nth-child(even) { background-color: #eef2f6; }
+        .post-row-item:hover { background-color: #e2e8f0 !important; }
+        .post-row-item.active { background-color: #dbeafe !important; }
 
         .post-row-title-area {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
             white-space: nowrap;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             color: #334155;
             flex: 1;
             overflow: hidden;
@@ -167,7 +142,7 @@
 
         .bullet-point {
             color: #94a3b8;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             user-select: none;
         }
         .post-row-item.active .bullet-point {
@@ -180,65 +155,124 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .post-row-title:hover {
-            text-decoration: underline;
-        }
+        .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title {
             color: var(--primary);
             font-weight: 700;
         }
 
-        /* 컴팩트 상황 토글 버튼 */
         .btn-status-toggle {
             flex-shrink: 0;
-            padding: 1px 6px;
-            font-size: 0.72rem;
+            padding: 1px 5px;
+            font-size: 0.68rem;
             font-weight: 600;
             border-radius: 3px;
             border: 1px solid transparent;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.12s ease;
-            margin-left: 8px;
+            transition: all 0.1s ease;
+            margin-left: 6px;
         }
         .btn-status-toggle.status-writing {
             background: #e0f2fe;
             color: #0369a1;
             border-color: #bae6fd;
         }
-        .btn-status-toggle.status-writing:hover {
-            background: #bae6fd;
-        }
+        .btn-status-toggle.status-writing:hover { background: #bae6fd; }
         .btn-status-toggle.status-plan {
             background: #fef3c7;
             color: #b45309;
             border-color: #fde68a;
         }
-        .btn-status-toggle.status-plan:hover {
-            background: #fde68a;
-        }
+        .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
-        .test-console {
+        /* === [MODULE-STYLE: meta-table] === */
+        .meta-table-box {
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 10px 14px;
-            font-size: 0.82rem;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
-        .test-console-title {
+
+        .meta-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meta-table-title {
+            font-size: 0.86rem;
             font-weight: 700;
-            margin-bottom: 4px;
-            color: #475569;
+            color: #1e293b;
         }
-        .test-log-box {
+
+        .btn-copy {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            color: #475569;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-copy:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--border-color);
+        }
+
+        .meta-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .meta-grid-table th {
+            width: 70px;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            padding: 4px 6px;
+            text-align: left;
+            border: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        .meta-grid-table td {
+            padding: 3px 6px;
+            border: 1px solid var(--border-light);
+            background: #ffffff;
+        }
+
+        .meta-grid-table input,
+        .meta-grid-table select,
+        .meta-grid-table textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 0.82rem;
+            font-family: inherit;
+            background: transparent;
+            color: #0f172a;
+        }
+        .meta-grid-table input:focus,
+        .meta-grid-table textarea:focus { background: #f0f7ff; }
+        /* === [MODULE-STYLE-END: meta-table] === */
+
+        /* 디버깅 로그 콘솔 */
+        .test-log {
             background: #0f172a;
             color: #38bdf8;
             padding: 8px 10px;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 0.76rem;
-            max-height: 110px;
+            font-size: 0.75rem;
+            max-height: 100px;
             overflow-y: auto;
             white-space: pre-wrap;
         }
@@ -246,10 +280,10 @@
 </head>
 <body>
 
-<div class="test-wrapper">
+<div class="container">
     <div class="test-header">
-        <h1>📑 작성 글 목록 모듈 테스트 <span class="version-badge">v0.5</span></h1>
-        <span style="font-size: 0.8rem; color: #64748b;">독립 디버깅 환경</span>
+        <h1>📑 글 목록 & 메타정보 디버깅 모듈 <span class="version-badge">v0.1</span></h1>
+        <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 테스트</span>
     </div>
 
     <!-- === [MODULE-HTML: post-list] === -->
@@ -258,8 +292,8 @@
             <div class="post-list-title">
                 <span>📑 작성 글 목록</span>
             </div>
-            <div class="post-list-controls">
-                <label for="statusFilter" style="font-size: 0.78rem; font-weight: 600; color: #475569;">상황:</label>
+            <div>
+                <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
                 <select id="statusFilter" class="select-status" onchange="renderPostList()">
                     <option value="전체" selected>전체</option>
                     <option value="작성">작성</option>
@@ -268,19 +302,63 @@
             </div>
         </div>
         <div id="postItemsGrid" class="post-list-rows">
-            <span style="font-size: 0.8rem; color: #64748b; padding: 4px;">목록을 불러오는 중입니다...</span>
+            <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중...</span>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
 
-    <div class="test-console">
-        <div class="test-console-title">🖥️ 선택 및 통신 로그 모니터:</div>
-        <div id="testLog" class="test-log-box">대기 중...</div>
+    <!-- === [MODULE-HTML: meta-table] === -->
+    <div id="sec_meta" class="meta-table-box">
+        <div class="meta-table-header">
+            <span class="meta-table-title">📋 글 메타정보</span>
+            <button type="button" class="btn-copy" onclick="copyMetaInfo(this)">📋 복사</button>
+        </div>
+        <table class="meta-grid-table">
+            <tr>
+                <th>제목</th>
+                <td colspan="3">
+                    <input type="text" id="essayTitle" placeholder="글 제목 입력" style="font-weight:700;">
+                </td>
+            </tr>
+            <tr>
+                <th>글 ID</th>
+                <td>
+                    <input type="text" id="postIdDisplay" placeholder="(자동 생성)" readonly style="color:#64748b;">
+                </td>
+                <th>상황</th>
+                <td>
+                    <select id="metaStatusSelect" onchange="syncMetaStatus()">
+                        <option value="작성">작성</option>
+                        <option value="예정">예정</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th>시작일</th>
+                <td>
+                    <input type="text" id="postStartDate" placeholder="YYYY-MM-DD">
+                </td>
+                <th>완료일</th>
+                <td>
+                    <input type="text" id="postEndDate" placeholder="YYYY-MM-DD">
+                </td>
+            </tr>
+            <tr>
+                <th>요약</th>
+                <td colspan="3">
+                    <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)"></textarea>
+                </td>
+            </tr>
+        </table>
     </div>
+    <!-- === [MODULE-HTML-END: meta-table] === -->
+
+    <div id="testLog" class="test-log">상태: 준비 완료</div>
 </div>
 
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
+    const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
     function log(msg) {
@@ -292,7 +370,6 @@
     let currentPostId = null;
     let currentPostStatus = "작성";
     let postListCache = [];
-    const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 
     window.addEventListener('DOMContentLoaded', () => {
         loadCachedPosts();
@@ -305,7 +382,7 @@
             try {
                 postListCache = JSON.parse(cached);
                 renderPostList();
-                log(`[캐시 로드] 이전 목록 즉시 표시 (총 ${postListCache.length}개)`);
+                log(`캐시 목록 ${postListCache.length}개 로드`);
             } catch (e) {
                 console.error(e);
             }
@@ -313,8 +390,6 @@
     }
 
     function fetchSheetPosts() {
-        log("구글 시트 백그라운드 동기화 시작 (JSONP)");
-
         const oldScript = document.getElementById('gas_jsonp_script');
         if (oldScript) oldScript.remove();
 
@@ -323,18 +398,13 @@
                 postListCache = response.data;
                 localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
                 renderPostList();
-                log(`[동기화 완료] 최신 목록 갱신됨 (총 ${postListCache.length}개)`);
-            } else {
-                log("목록 동기화 실패: 응답 이상");
+                log(`시트 동기화 완료: ${postListCache.length}개`);
             }
         };
 
         const script = document.createElement('script');
         script.id = 'gas_jsonp_script';
         script.src = `${GAS_ENDPOINT}?callback=handleGasResponse&_t=${new Date().getTime()}`;
-        script.onerror = function() {
-            log("GAS 통신 오류 (시트 연결 확인 필요)");
-        };
         document.body.appendChild(script);
     }
 
@@ -350,7 +420,7 @@
         });
 
         if (filtered.length === 0) {
-            grid.innerHTML = '<span style="font-size:0.8rem; color:#64748b; padding:8px 10px;">해당 조건의 글이 없습니다.</span>';
+            grid.innerHTML = '<span style="font-size:0.78rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
             return;
         }
 
@@ -362,13 +432,11 @@
             const row = document.createElement('div');
             row.className = `post-row-item ${currentPostId === postId ? 'active' : ''}`;
 
-            // 글머리표 + 글 제목
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
             titleArea.innerHTML = `<span class="bullet-point">•</span><span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
 
-            // 우측 끝 상황 토글 버튼
             const statusBtn = document.createElement('button');
             statusBtn.type = 'button';
             statusBtn.className = `btn-status-toggle ${postStatus === '작성' ? 'status-writing' : 'status-plan'}`;
@@ -394,44 +462,59 @@
 
         if (currentPostId === (post.ID || post.id)) {
             currentPostStatus = nextStatus;
+            $('metaStatusSelect').value = nextStatus;
         }
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
-        log(`[상태 변경] "${post.제목 || post.title}" (${current} -> ${nextStatus})`);
         renderPostList();
+        log(`상태 토글: ${post.제목 || post.title} (${current} -> ${nextStatus})`);
 
-        const payload = {
-            ID: post.ID || post.id,
-            id: post.ID || post.id,
-            status: nextStatus,
-            title: post.제목 || post.title || '',
-            outline: post.글의구성 || post.outline || '',
-            completed: post.완성글 || post.completed || '',
-            newDraft: post.신규글 || post.newDraft || '',
-            intent: post.글의의도 || post.intent || '',
-            promptReq: post.요청내용 || post.promptReq || '',
-            snippets: post.보관글 || post.snippets || ''
-        };
-
-        try {
-            fetch(GAS_ENDPOINT, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                log(`시트 동기화 완료: "${post.제목 || post.title}"`);
-            });
-        } catch (e) {
-            log(`상태 저장 에러: ${e}`);
-        }
+        fetch(GAS_ENDPOINT, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ID: post.ID || post.id,
+                id: post.ID || post.id,
+                status: nextStatus,
+                title: post.제목 || post.title || ''
+            })
+        });
     }
 
     function selectPost(post) {
-        currentPostId = post.ID || post.id;
+        currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
+
+        $('essayTitle').value = post.제목 || post.title || '';
+        $('postIdDisplay').value = currentPostId;
+        $('metaStatusSelect').value = currentPostStatus;
+        $('postStartDate').value = post.작성시작일 || post.startDate || '';
+        $('postEndDate').value = post.작성완료일 || post.endDate || '';
+        $('postSummary').value = post.요약 || post.summary || '';
+
         renderPostList();
-        log(`[글 선택] ID: ${currentPostId} | 제목: "${post.제목 || post.title}"`);
+        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId})`);
+    }
+
+    function syncMetaStatus() {
+        currentPostStatus = $('metaStatusSelect').value;
+        const matched = postListCache.find(p => (p.ID || p.id) === currentPostId);
+        if (matched) {
+            matched.상황 = currentPostStatus;
+            matched.status = currentPostStatus;
+            renderPostList();
+        }
+    }
+
+    function copyMetaInfo(btn) {
+        const text = `[글 메타정보]\n제목: ${$('essayTitle').value}\nID: ${$('postIdDisplay').value}\n상황: ${$('metaStatusSelect').value}\n시작일: ${$('postStartDate').value}\n완료일: ${$('postEndDate').value}\n요약: ${$('postSummary').value}`;
+        navigator.clipboard.writeText(text).then(() => {
+            const original = btn.innerText;
+            btn.innerText = '✓ 복사됨';
+            btn.style.color = '#16a34a';
+            setTimeout(() => { btn.innerText = original; btn.style.color = ''; }, 1500);
+        });
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 </script>
