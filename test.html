@@ -1,10 +1,10 @@
-<!-- v0.1: '작성 글 목록' 및 '글 메타정보' 2개 창 전용 독립 경량 테스트 모듈 (나머지 창 완전 배제) -->
+<!-- v0.2: '작성 글 정보'로 명칭 변경, 제목[ID] 통합, 복사 버튼 및 상황 필드 삭제, 셀 타이틀 중앙 정렬 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 및 메타정보 테스트 - v0.1</title>
+    <title>글 목록 및 메타정보 테스트 - v0.2</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -210,22 +210,6 @@
             color: #1e293b;
         }
 
-        .btn-copy {
-            background: #ffffff;
-            border: 1px solid var(--border-light);
-            color: #475569;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .btn-copy:hover {
-            background: #f1f5f9;
-            color: var(--primary);
-            border-color: var(--border-color);
-        }
-
         .meta-grid-table {
             width: 100%;
             border-collapse: collapse;
@@ -233,12 +217,12 @@
         }
 
         .meta-grid-table th {
-            width: 70px;
+            width: 80px;
             background: #f8fafc;
             color: #475569;
             font-weight: 600;
             padding: 4px 6px;
-            text-align: left;
+            text-align: center; /* 셀 내 타이틀 가운데 정렬 */
             border: 1px solid var(--border-light);
             white-space: nowrap;
         }
@@ -250,7 +234,6 @@
         }
 
         .meta-grid-table input,
-        .meta-grid-table select,
         .meta-grid-table textarea {
             width: 100%;
             border: none;
@@ -282,7 +265,7 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>📑 글 목록 & 메타정보 디버깅 모듈 <span class="version-badge">v0.1</span></h1>
+        <h1>📑 글 목록 & 작성 글 정보 디버깅 모듈 <span class="version-badge">v0.2</span></h1>
         <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 테스트</span>
     </div>
 
@@ -310,27 +293,13 @@
     <!-- === [MODULE-HTML: meta-table] === -->
     <div id="sec_meta" class="meta-table-box">
         <div class="meta-table-header">
-            <span class="meta-table-title">📋 글 메타정보</span>
-            <button type="button" class="btn-copy" onclick="copyMetaInfo(this)">📋 복사</button>
+            <span class="meta-table-title">📋 작성 글 정보</span>
         </div>
         <table class="meta-grid-table">
             <tr>
-                <th>제목</th>
+                <th>제목[ID]</th>
                 <td colspan="3">
-                    <input type="text" id="essayTitle" placeholder="글 제목 입력" style="font-weight:700;">
-                </td>
-            </tr>
-            <tr>
-                <th>글 ID</th>
-                <td>
-                    <input type="text" id="postIdDisplay" placeholder="(자동 생성)" readonly style="color:#64748b;">
-                </td>
-                <th>상황</th>
-                <td>
-                    <select id="metaStatusSelect" onchange="syncMetaStatus()">
-                        <option value="작성">작성</option>
-                        <option value="예정">예정</option>
-                    </select>
+                    <input type="text" id="essayTitleWithId" placeholder="제목 [ID]" style="font-weight:700;">
                 </td>
             </tr>
             <tr>
@@ -462,7 +431,6 @@
 
         if (currentPostId === (post.ID || post.id)) {
             currentPostStatus = nextStatus;
-            $('metaStatusSelect').value = nextStatus;
         }
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -486,35 +454,15 @@
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        $('essayTitle').value = post.제목 || post.title || '';
-        $('postIdDisplay').value = currentPostId;
-        $('metaStatusSelect').value = currentPostStatus;
+        const title = post.제목 || post.title || '';
+        // 제목[ID] 통합 표시 (예: "반지 [2]")
+        $('essayTitleWithId').value = currentPostId ? `${title} [${currentPostId}]` : title;
         $('postStartDate').value = post.작성시작일 || post.startDate || '';
         $('postEndDate').value = post.작성완료일 || post.endDate || '';
         $('postSummary').value = post.요약 || post.summary || '';
 
         renderPostList();
-        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId})`);
-    }
-
-    function syncMetaStatus() {
-        currentPostStatus = $('metaStatusSelect').value;
-        const matched = postListCache.find(p => (p.ID || p.id) === currentPostId);
-        if (matched) {
-            matched.상황 = currentPostStatus;
-            matched.status = currentPostStatus;
-            renderPostList();
-        }
-    }
-
-    function copyMetaInfo(btn) {
-        const text = `[글 메타정보]\n제목: ${$('essayTitle').value}\nID: ${$('postIdDisplay').value}\n상황: ${$('metaStatusSelect').value}\n시작일: ${$('postStartDate').value}\n완료일: ${$('postEndDate').value}\n요약: ${$('postSummary').value}`;
-        navigator.clipboard.writeText(text).then(() => {
-            const original = btn.innerText;
-            btn.innerText = '✓ 복사됨';
-            btn.style.color = '#16a34a';
-            setTimeout(() => { btn.innerText = original; btn.style.color = ''; }, 1500);
-        });
+        log(`선택됨: "${title}" (ID: ${currentPostId})`);
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 </script>
