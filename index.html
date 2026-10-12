@@ -1,4 +1,4 @@
-<!-- v0.9: test.html v0.5 이식 (교대 음영, 가로 경계선, 불필요 버튼 제거, 캐시 우선 0초 렌더링 목록 적용) -->
+<!-- v0.10: 모바일 컴팩트 최적화, 글 메타정보 표 신설(제목/ID/상황/시작일/완료일/요약), API키 창 위치 이동, 전 영역 복사 버튼 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -26,9 +26,9 @@
             font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            line-height: 1.6;
+            line-height: 1.45;
             word-break: keep-all;
-            padding: 16px 20px 40px;
+            padding: 10px 12px 30px;
         }
 
         .container {
@@ -36,7 +36,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 10px;
         }
 
         /* 1. 스퀘어 모서리 2단 헤더 */
@@ -47,7 +47,7 @@
             border: 1px solid #cbd5e1;
             border-bottom: 2px solid #94a3b8;
             border-radius: 0px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
             user-select: none;
         }
 
@@ -55,32 +55,32 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 14px;
+            padding: 6px 10px;
             border-bottom: 1px solid #e2e8f0;
         }
 
         .header-title-wrap {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .header-title-wrap h1 {
-            font-size: 1.05rem;
+            font-size: 0.98rem;
             font-weight: 700;
             color: #1e293b;
             letter-spacing: -0.01em;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .header-title-wrap .version-tag {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             color: #2563eb;
             font-weight: 700;
             background: #ffffff;
-            padding: 1px 6px;
+            padding: 1px 5px;
             border-radius: 3px;
             border: 1px solid #bfdbfe;
         }
@@ -89,9 +89,9 @@
             background: none;
             border: none;
             color: #64748b;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             line-height: 1;
-            padding: 2px 6px;
+            padding: 2px 4px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -101,30 +101,30 @@
         .header-toggle-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 6px 14px;
+            gap: 10px;
+            padding: 5px 10px;
             background: #fafafa;
             flex-wrap: wrap;
         }
 
         .toggle-guide-label {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: #64748b;
-            margin-right: 4px;
+            margin-right: 2px;
         }
 
         .traffic-group {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
             flex-wrap: wrap;
         }
 
         .traffic-btn {
             position: relative;
-            width: 17px;
-            height: 17px;
+            width: 15px;
+            height: 15px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -140,11 +140,12 @@
         }
 
         .tb-postList { background-color: #0284c7; }
-        .tb-api { background-color: #f59e0b; }
+        .tb-meta { background-color: #0d9488; }
         .tb-outline { background-color: #10b981; }
         .tb-completed { background-color: #3b82f6; }
         .tb-newDraft { background-color: #8b5cf6; }
         .tb-intent { background-color: #6366f1; }
+        .tb-api { background-color: #f59e0b; }
         .tb-promptReq { background-color: #ec4899; }
         .tb-aiRefined { background-color: #06b6d4; }
         .tb-snippets { background-color: #64748b; }
@@ -156,7 +157,7 @@
         .traffic-btn.is-closed::after {
             content: '/';
             position: absolute;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 900;
             color: #ffffff;
             line-height: 1;
@@ -169,13 +170,13 @@
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             padding: 0 2px;
         }
 
         .btn {
-            padding: 6px 14px;
-            font-size: 0.85rem;
+            padding: 5px 10px;
+            font-size: 0.8rem;
             font-weight: 600;
             border-radius: 4px;
             border: 1px solid transparent;
@@ -203,15 +204,36 @@
         }
         .btn-danger:hover { background-color: #fef2f2; }
 
+        /* 공통 헤더 복사 버튼 */
+        .btn-copy {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            color: #475569;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            transition: all 0.15s ease;
+        }
+        .btn-copy:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--border-color);
+        }
+
         /* === [MODULE-STYLE: post-list] === */
         .post-list-box {
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 10px 14px;
+            padding: 8px 10px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
 
@@ -220,29 +242,29 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
 
         .post-list-title {
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             font-weight: 700;
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .post-list-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .select-status {
-            padding: 3px 6px;
-            font-size: 0.8rem;
+            padding: 2px 4px;
+            font-size: 0.76rem;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
             outline: none;
             background: #fff;
             color: #334155;
@@ -252,20 +274,22 @@
         .post-list-rows {
             display: flex;
             flex-direction: column;
-            max-height: 280px;
+            max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
+        /* 라디오 버튼 높이급 슬림 행 */
         .post-row-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 10px;
+            padding: 3px 6px;
+            min-height: 26px;
             background-color: #ffffff;
             border-bottom: 1px solid #e2e8f0;
-            transition: background-color 0.12s ease;
+            transition: background-color 0.1s ease;
         }
         .post-row-item:last-child {
             border-bottom: none;
@@ -286,10 +310,10 @@
         .post-row-title-area {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
             white-space: nowrap;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             color: #334155;
             flex: 1;
             overflow: hidden;
@@ -297,7 +321,7 @@
 
         .bullet-point {
             color: #94a3b8;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             user-select: none;
         }
         .post-row-item.active .bullet-point {
@@ -320,15 +344,15 @@
 
         .btn-status-toggle {
             flex-shrink: 0;
-            padding: 1px 6px;
-            font-size: 0.72rem;
+            padding: 1px 5px;
+            font-size: 0.68rem;
             font-weight: 600;
             border-radius: 3px;
             border: 1px solid transparent;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.12s ease;
-            margin-left: 8px;
+            transition: all 0.1s ease;
+            margin-left: 6px;
         }
         .btn-status-toggle.status-writing {
             background: #e0f2fe;
@@ -348,15 +372,77 @@
         }
         /* === [MODULE-STYLE-END: post-list] === */
 
-        /* API 키 관리 박스 */
+        /* [신규] 글 메타정보 표 카드 */
+        .meta-table-box {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .meta-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meta-table-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .meta-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .meta-grid-table th {
+            width: 70px;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            padding: 4px 6px;
+            text-align: left;
+            border: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        .meta-grid-table td {
+            padding: 3px 6px;
+            border: 1px solid var(--border-light);
+            background: #ffffff;
+        }
+
+        .meta-grid-table input,
+        .meta-grid-table select,
+        .meta-grid-table textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 0.82rem;
+            font-family: inherit;
+            background: transparent;
+            color: #0f172a;
+        }
+        .meta-grid-table input:focus,
+        .meta-grid-table textarea:focus {
+            background: #f0f7ff;
+        }
+
+        /* 4. API 키 관리 박스 (글의 의도와 요청내용 사이로 이동) */
         .api-box {
             background: #fffdf5;
             border: 1px solid #fde68a;
-            padding: 10px 14px;
+            padding: 8px 10px;
             border-radius: 4px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .api-box-header {
@@ -368,16 +454,16 @@
         .api-header-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .api-status-badge {
-            font-size: 0.78rem;
+            font-size: 0.74rem;
             font-weight: 700;
             color: #d97706;
             background: #fef3c7;
-            padding: 3px 8px;
-            border-radius: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
             border: 1px solid #fde68a;
         }
 
@@ -385,46 +471,46 @@
             background: #ffffff;
             color: #d97706;
             border: 1px solid #fde68a;
-            border-radius: 4px;
-            padding: 2px 7px;
-            font-size: 0.82rem;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 0.78rem;
             text-decoration: none;
         }
 
         .api-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             position: relative;
             flex-wrap: wrap;
         }
 
         .api-row input {
             flex: 1;
-            min-width: 200px;
-            padding: 7px 10px;
-            font-size: 0.85rem;
+            min-width: 160px;
+            padding: 5px 8px;
+            font-size: 0.8rem;
             border: 1px solid #cbd5e1;
-            border-radius: 4px;
+            border-radius: 3px;
             outline: none;
             background: #fff;
         }
 
-        .api-btn-group { display: flex; gap: 6px; align-items: center; }
+        .api-btn-group { display: flex; gap: 4px; align-items: center; }
         .dropdown { position: relative; display: inline-block; }
 
         .api-save-btn {
             background: #f57c00;
             color: white;
             border: none;
-            padding: 7px 12px;
-            border-radius: 4px;
-            font-size: 0.82rem;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 3px;
         }
         .api-save-btn:disabled {
             background: #cbd5e1;
@@ -438,9 +524,9 @@
             background: #64748b;
             color: white;
             border: none;
-            padding: 7px 10px;
-            border-radius: 4px;
-            font-size: 0.82rem;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
             display: none;
@@ -452,22 +538,22 @@
             right: 0;
             top: 110%;
             background-color: #ffffff;
-            min-width: 150px;
-            box-shadow: 0px 6px 14px rgba(0,0,0,0.12);
+            min-width: 140px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
+            border-radius: 3px;
             z-index: 50;
         }
 
         .dropdown-content button {
             color: #334155;
-            padding: 8px 12px;
+            padding: 6px 10px;
             text-align: left;
             background: none;
             border: none;
             width: 100%;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.76rem;
             font-weight: 600;
             display: block;
         }
@@ -477,73 +563,45 @@
             background: #ef4444;
             color: white;
             border: none;
-            padding: 7px 10px;
-            border-radius: 4px;
-            font-size: 0.82rem;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 0.76rem;
             font-weight: 700;
             cursor: pointer;
             display: none;
         }
 
-        /* 제목 한 줄 */
-        .title-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #ffffff;
-            padding: 10px 14px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-
-        .title-row label {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #1e293b;
-            white-space: nowrap;
-        }
-
-        .title-row input {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 1rem;
-            font-weight: 600;
-            background: transparent;
-        }
-
-        /* 개별 집필 영역 */
+        /* 개별 집필 영역 (슬림 플랫) */
         .editor-section {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            margin-top: 2px;
+            gap: 3px;
         }
 
         .section-header-line {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 2px 2px;
+            padding: 1px 2px;
         }
 
         .section-header-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .section-title {
-            font-size: 0.92rem;
+            font-size: 0.86rem;
             font-weight: 700;
             color: #334155;
         }
 
         textarea.flat-textarea {
             width: 100%;
-            padding: 10px 12px;
-            font-size: 0.94rem;
-            line-height: 1.6;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            line-height: 1.5;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: #ffffff;
@@ -556,24 +614,24 @@
             box-shadow: 0 0 0 1px var(--primary);
         }
 
-        #essayOutline { font-size: 0.9rem; letter-spacing: -0.01em; }
+        #essayOutline { font-size: 0.85rem; letter-spacing: -0.01em; }
 
         .status-toolbar-flat {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.76rem;
+            font-size: 0.72rem;
             color: var(--text-sub);
-            padding: 2px 2px;
+            padding: 1px 2px;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 4px;
         }
 
         .stat-info { font-weight: 500; }
 
         .restore-group {
             display: flex;
-            gap: 4px;
+            gap: 3px;
             margin-left: auto;
         }
 
@@ -581,14 +639,14 @@
             background: #ffffff;
             border: 1px solid var(--border-light);
             color: #475569;
-            font-size: 0.74rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 1px 6px;
+            border-radius: 3px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 3px;
+            gap: 2px;
         }
         .btn-restore-icon:hover {
             background-color: #f1f5f9;
@@ -599,9 +657,9 @@
             background: #4f46e5;
             color: #ffffff;
             border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.78rem;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.74rem;
             font-weight: 700;
             cursor: pointer;
         }
@@ -611,18 +669,19 @@
             background: #0284c7;
             color: #ffffff;
             border: none;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.74rem;
             font-weight: 700;
             cursor: pointer;
         }
         .btn-append-header:hover { background: #0369a1; }
 
         @media (max-width: 640px) {
-            body { padding: 10px 12px 30px; }
-            .action-toolbar-clean { justify-content: flex-start; }
-            .section-header-line { flex-wrap: wrap; gap: 6px; }
+            body { padding: 6px 8px 24px; }
+            .container { gap: 8px; }
+            .meta-grid-table th { width: 60px; font-size: 0.75rem; }
+            .meta-grid-table td { font-size: 0.78rem; }
         }
     </style>
 </head>
@@ -634,7 +693,7 @@
         <div class="header-top-row">
             <div class="header-title-wrap">
                 <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v0.9</span>
+                <span class="version-tag">v0.10</span>
             </div>
             <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
@@ -642,15 +701,16 @@
         <div class="header-toggle-row">
             <span class="toggle-guide-label">열고 닫기:</span>
             <div class="traffic-group">
-                <span id="dot_postList" class="traffic-btn tb-postList" onclick="toggleSection('postList')" title="작성 글 목록 열고 닫기"></span>
-                <span id="dot_api" class="traffic-btn tb-api" onclick="toggleSection('api')" title="API 설정 열고 닫기"></span>
-                <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성 열고 닫기"></span>
-                <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글 열고 닫기"></span>
-                <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글 열고 닫기"></span>
-                <span id="dot_intent" class="traffic-btn tb-intent" onclick="toggleSection('intent')" title="글의 의도 열고 닫기"></span>
-                <span id="dot_promptReq" class="traffic-btn tb-promptReq" onclick="toggleSection('promptReq')" title="요청 내용 (to AI) 열고 닫기"></span>
-                <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" onclick="toggleSection('aiRefined')" title="AI 수정 글 열고 닫기"></span>
-                <span id="dot_snippets" class="traffic-btn tb-snippets" onclick="toggleSection('snippets')" title="보관 글 열고 닫기"></span>
+                <span id="dot_postList" class="traffic-btn tb-postList" onclick="toggleSection('postList')" title="작성 글 목록"></span>
+                <span id="dot_meta" class="traffic-btn tb-meta" onclick="toggleSection('meta')" title="글 메타정보"></span>
+                <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성"></span>
+                <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글"></span>
+                <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글"></span>
+                <span id="dot_intent" class="traffic-btn tb-intent" onclick="toggleSection('intent')" title="글의 의도"></span>
+                <span id="dot_api" class="traffic-btn tb-api" onclick="toggleSection('api')" title="API 설정"></span>
+                <span id="dot_promptReq" class="traffic-btn tb-promptReq" onclick="toggleSection('promptReq')" title="요청 내용 (to AI)"></span>
+                <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" onclick="toggleSection('aiRefined')" title="AI 수정 글"></span>
+                <span id="dot_snippets" class="traffic-btn tb-snippets" onclick="toggleSection('snippets')" title="보관 글"></span>
             </div>
         </div>
     </header>
@@ -669,7 +729,7 @@
                 <span>📑 작성 글 목록</span>
             </div>
             <div class="post-list-controls">
-                <label for="statusFilter" style="font-size: 0.78rem; font-weight: 600; color: #475569;">상황:</label>
+                <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
                 <select id="statusFilter" class="select-status" onchange="renderPostList()">
                     <option value="전체" selected>전체</option>
                     <option value="작성">작성</option>
@@ -678,12 +738,126 @@
             </div>
         </div>
         <div id="postItemsGrid" class="post-list-rows">
-            <span style="font-size: 0.8rem; color: #64748b; padding: 4px;">목록을 불러오는 중입니다...</span>
+            <span style="font-size: 0.78rem; color: #64748b; padding: 3px 6px;">목록을 불러오는 중입니다...</span>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
 
-    <!-- 4. API 키 관리 -->
+    <!-- [신규] 3. 글 메타정보 표 카드 (제목 결합) -->
+    <div id="sec_meta" class="meta-table-box">
+        <div class="meta-table-header">
+            <span class="meta-table-title">📋 글 메타정보</span>
+            <button type="button" class="btn-copy" onclick="copyMetaInfo(this)">📋 복사</button>
+        </div>
+        <table class="meta-grid-table">
+            <tr>
+                <th>제목</th>
+                <td colspan="3">
+                    <input type="text" id="essayTitle" placeholder="글 제목 입력" oninput="markDirty()" style="font-weight:700;">
+                </td>
+            </tr>
+            <tr>
+                <th>글 ID</th>
+                <td>
+                    <input type="text" id="postIdDisplay" placeholder="(자동 생성)" readonly style="color:#64748b;">
+                </td>
+                <th>상황</th>
+                <td>
+                    <select id="metaStatusSelect" onchange="syncMetaStatus(); markDirty();">
+                        <option value="작성">작성</option>
+                        <option value="예정">예정</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th>시작일</th>
+                <td>
+                    <input type="text" id="postStartDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                </td>
+                <th>완료일</th>
+                <td>
+                    <input type="text" id="postEndDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                </td>
+            </tr>
+            <tr>
+                <th>요약</th>
+                <td colspan="3">
+                    <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)" oninput="markDirty()"></textarea>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 4. 글의 구성 -->
+    <div id="sec_outline" class="editor-section">
+        <div class="section-header-line">
+            <div class="section-header-left">
+                <span class="section-title">글의 구성</span>
+                <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
+            </div>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('outline')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('outline')">⟲ 최근 저장 상태로</button>
+            </div>
+        </div>
+        <textarea id="essayOutline" class="flat-textarea" style="min-height: 65px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
+    </div>
+
+    <!-- 5. 완성 글 -->
+    <div id="sec_completed" class="editor-section">
+        <div class="section-header-line">
+            <div class="section-header-left">
+                <span class="section-title">완성 글</span>
+                <button type="button" class="btn-copy" onclick="copyContent('completedText', this)">📋 복사</button>
+            </div>
+        </div>
+        <textarea id="completedText" class="flat-textarea" style="min-height: 110px;" oninput="handleFieldInput('completed')"></textarea>
+        <div class="status-toolbar-flat">
+            <span class="stat-info" id="stat_completed">0자 (약 0분)</span>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('completed')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('completed')">⟲ 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 신규 글 -->
+    <div id="sec_newDraft" class="editor-section">
+        <div class="section-header-line">
+            <div class="section-header-left">
+                <span class="section-title">신규 글</span>
+                <button type="button" class="btn-copy" onclick="copyContent('newDraftText', this)">📋 복사</button>
+            </div>
+        </div>
+        <textarea id="newDraftText" class="flat-textarea" style="min-height: 80px;" oninput="handleFieldInput('newDraft')"></textarea>
+        <div class="status-toolbar-flat">
+            <span class="stat-info" id="stat_newDraft">0자 (약 0분)</span>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('newDraft')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('newDraft')">⟲ 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. 글의 의도 -->
+    <div id="sec_intent" class="editor-section">
+        <div class="section-header-line">
+            <div class="section-header-left">
+                <span class="section-title">글의 의도</span>
+                <button type="button" class="btn-copy" onclick="copyContent('draftIntent', this)">📋 복사</button>
+            </div>
+        </div>
+        <textarea id="draftIntent" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('intent')"></textarea>
+        <div class="status-toolbar-flat">
+            <span class="stat-info" id="stat_intent">0자</span>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('intent')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('intent')">⟲ 최근 저장 상태로</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [위치 이동] 8. API 키 관리 (글의 의도와 요청내용 사이) -->
     <div id="sec_api" class="api-box">
         <div class="api-box-header">
             <div class="api-header-left">
@@ -712,75 +886,15 @@
         </div>
     </div>
 
-    <!-- 5. 제목 한 줄 배치 -->
-    <div class="title-row">
-        <label for="essayTitle">제목:</label>
-        <input type="text" id="essayTitle" oninput="markDirty()">
-    </div>
-
-    <!-- 6. 글의 구성 -->
-    <div id="sec_outline" class="editor-section">
-        <div class="section-header-line">
-            <span class="section-title">글의 구성</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('outline')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('outline')">⟲ 최근 저장 상태로</button>
-            </div>
-        </div>
-        <textarea id="essayOutline" class="flat-textarea" style="min-height: 80px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
-    </div>
-
-    <!-- 7. 완성 글 -->
-    <div id="sec_completed" class="editor-section">
-        <div class="section-header-line">
-            <span class="section-title">완성 글</span>
-        </div>
-        <textarea id="completedText" class="flat-textarea" style="min-height: 140px;" oninput="handleFieldInput('completed')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_completed">0자 (약 0분)</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('completed')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('completed')">⟲ 최근 저장 상태로</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 8. 신규 글 -->
-    <div id="sec_newDraft" class="editor-section">
-        <div class="section-header-line">
-            <span class="section-title">신규 글</span>
-        </div>
-        <textarea id="newDraftText" class="flat-textarea" style="min-height: 100px;" oninput="handleFieldInput('newDraft')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_newDraft">0자 (약 0분)</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('newDraft')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('newDraft')">⟲ 최근 저장 상태로</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 9. 글의 의도 -->
-    <div id="sec_intent" class="editor-section">
-        <div class="section-header-line">
-            <span class="section-title">글의 의도</span>
-        </div>
-        <textarea id="draftIntent" class="flat-textarea" style="min-height: 60px;" oninput="handleFieldInput('intent')"></textarea>
-        <div class="status-toolbar-flat">
-            <span class="stat-info" id="stat_intent">0자</span>
-            <div class="restore-group">
-                <button type="button" class="btn-restore-icon" onclick="undoField('intent')">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSaved('intent')">⟲ 최근 저장 상태로</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 10. 요청 내용 (to AI) -->
+    <!-- 9. 요청 내용 (to AI) -->
     <div id="sec_promptReq" class="editor-section">
         <div class="section-header-line">
-            <span class="section-title">요청 내용 (to AI)</span>
+            <div class="section-header-left">
+                <span class="section-title">요청 내용 (to AI)</span>
+                <button type="button" class="btn-copy" onclick="copyContent('promptReqText', this)">📋 복사</button>
+            </div>
         </div>
-        <textarea id="promptReqText" class="flat-textarea" style="min-height: 60px;" oninput="handleFieldInput('promptReq')"></textarea>
+        <textarea id="promptReqText" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('promptReq')"></textarea>
         <div class="status-toolbar-flat">
             <span class="stat-info" id="stat_promptReq">0자</span>
             <div class="restore-group">
@@ -790,16 +904,17 @@
         </div>
     </div>
 
-    <!-- 11. AI 수정 글 -->
+    <!-- 10. AI 수정 글 -->
     <div id="sec_aiRefined" class="editor-section">
         <div class="section-header-line">
             <div class="section-header-left">
                 <span class="section-title">AI 수정 글</span>
+                <button type="button" class="btn-copy" onclick="copyContent('aiRefinedText', this)">📋 복사</button>
                 <button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>
             </div>
             <button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>
         </div>
-        <textarea id="aiRefinedText" class="flat-textarea" style="min-height: 110px; background-color: #f8fafc;" oninput="handleFieldInput('aiRefined')"></textarea>
+        <textarea id="aiRefinedText" class="flat-textarea" style="min-height: 90px; background-color: #f8fafc;" oninput="handleFieldInput('aiRefined')"></textarea>
         <div class="status-toolbar-flat">
             <span class="stat-info" id="stat_aiRefined">0자 (약 0분)</span>
             <div class="restore-group">
@@ -809,12 +924,15 @@
         </div>
     </div>
 
-    <!-- 12. 보관 글 -->
+    <!-- 11. 보관 글 -->
     <div id="sec_snippets" class="editor-section">
         <div class="section-header-line">
-            <span class="section-title">보관 글</span>
+            <div class="section-header-left">
+                <span class="section-title">보관 글</span>
+                <button type="button" class="btn-copy" onclick="copyContent('savedSnippets', this)">📋 복사</button>
+            </div>
         </div>
-        <textarea id="savedSnippets" class="flat-textarea" style="min-height: 80px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
+        <textarea id="savedSnippets" class="flat-textarea" style="min-height: 60px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
         <div class="status-toolbar-flat">
             <span class="stat-info" id="stat_snippets">0자</span>
             <div class="restore-group">
@@ -828,7 +946,7 @@
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
-    const STORAGE_KEY = "WRITER_STUDIO_DATA_V09";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
@@ -882,7 +1000,7 @@
         });
 
         if (filtered.length === 0) {
-            grid.innerHTML = '<span style="font-size:0.8rem; color:#64748b; padding:8px 10px;">해당 조건의 글이 없습니다.</span>';
+            grid.innerHTML = '<span style="font-size:0.78rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
             return;
         }
 
@@ -924,6 +1042,7 @@
 
         if (currentPostId === (post.ID || post.id)) {
             currentPostStatus = nextStatus;
+            $('metaStatusSelect').value = nextStatus;
         }
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -939,7 +1058,10 @@
             newDraft: post.신규글 || post.newDraft || '',
             intent: post.글의의도 || post.intent || '',
             promptReq: post.요청내용 || post.promptReq || '',
-            snippets: post.보관글 || post.snippets || ''
+            snippets: post.보관글 || post.snippets || '',
+            summary: post.요약 || post.summary || '',
+            startDate: post.작성시작일 || post.startDate || '',
+            endDate: post.작성완료일 || post.endDate || ''
         };
 
         try {
@@ -959,10 +1081,18 @@
             return;
         }
 
-        currentPostId = post.ID || post.id;
+        currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
+        // 1. 메타데이터 매핑
         $('essayTitle').value = post.제목 || post.title || '';
+        $('postIdDisplay').value = currentPostId;
+        $('metaStatusSelect').value = currentPostStatus;
+        $('postStartDate').value = post.작성시작일 || post.startDate || '';
+        $('postEndDate').value = post.작성완료일 || post.endDate || '';
+        $('postSummary').value = post.요약 || post.summary || '';
+
+        // 2. 집필 내용 매핑
         $('essayOutline').value = post.글의구성 || post.outline || '';
         $('completedText').value = post.완성글 || post.completed || '';
         $('newDraftText').value = post.신규글 || post.newDraft || '';
@@ -974,6 +1104,16 @@
         updateAllStats();
         renderPostList();
         isDirty = false;
+    }
+
+    function syncMetaStatus() {
+        currentPostStatus = $('metaStatusSelect').value;
+        const matched = postListCache.find(p => (p.ID || p.id) === currentPostId);
+        if (matched) {
+            matched.상황 = currentPostStatus;
+            matched.status = currentPostStatus;
+            renderPostList();
+        }
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 
@@ -1005,6 +1145,48 @@
     });
 
     function markDirty() { isDirty = true; }
+
+    /* ==========================================================================
+       클립보드 복사 엔진
+       ========================================================================== */
+    function copyContent(elementId, btn) {
+        const el = $(elementId);
+        if (!el || !el.value.trim()) {
+            return alert('복사할 내용이 없습니다.');
+        }
+        navigator.clipboard.writeText(el.value).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '✓ 복사됨';
+            btn.style.color = '#16a34a';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = '';
+            }, 1500);
+        }).catch(err => {
+            console.error('복사 실패:', err);
+            alert('복사 권한이 없거나 지원되지 않는 브라우저입니다.');
+        });
+    }
+
+    function copyMetaInfo(btn) {
+        const title = $('essayTitle').value.trim();
+        const id = $('postIdDisplay').value.trim();
+        const status = $('metaStatusSelect').value;
+        const start = $('postStartDate').value.trim();
+        const end = $('postEndDate').value.trim();
+        const summary = $('postSummary').value.trim();
+
+        const text = `[글 메타정보]\n제목: ${title}\nID: ${id}\n상황: ${status}\n시작일: ${start}\n완료일: ${end}\n요약: ${summary}`;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '✓ 복사됨';
+            btn.style.color = '#16a34a';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = '';
+            }, 1500);
+        });
+    }
 
     /* ==========================================================================
        신호등 원클릭 열고 닫기(접기/펼치기)
@@ -1274,13 +1456,17 @@
 
         if (!currentPostId) {
             currentPostId = "ID_" + new Date().getTime();
+            $('postIdDisplay').value = currentPostId;
         }
 
         const payload = {
             ID: currentPostId,
             id: currentPostId,
-            status: currentPostStatus || "작성",
+            status: currentPostStatus || $('metaStatusSelect').value || "작성",
             title: titleVal,
+            startDate: $('postStartDate').value.trim(),
+            endDate: $('postEndDate').value.trim(),
+            summary: $('postSummary').value.trim(),
             outline: $('essayOutline').value,
             completed: $('completedText').value,
             newDraft: $('newDraftText').value,
@@ -1327,9 +1513,18 @@
         if (!raw) return;
         try {
             const data = JSON.parse(raw);
-            if (data.ID || data.id) currentPostId = data.ID || data.id;
-            if (data.status) currentPostStatus = data.status;
+            if (data.ID || data.id) {
+                currentPostId = data.ID || data.id;
+                $('postIdDisplay').value = currentPostId;
+            }
+            if (data.status) {
+                currentPostStatus = data.status;
+                $('metaStatusSelect').value = data.status;
+            }
             if (data.title) $('essayTitle').value = data.title;
+            if (data.startDate) $('postStartDate').value = data.startDate;
+            if (data.endDate) $('postEndDate').value = data.endDate;
+            if (data.summary) $('postSummary').value = data.summary;
             if (data.outline) $('essayOutline').value = data.outline;
             if (data.completed) $('completedText').value = data.completed;
             if (data.newDraft) $('newDraftText').value = data.newDraft;
