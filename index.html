@@ -1,10 +1,10 @@
-<!-- v1.4: 글머리표(•) 완전 제거, 분류 태그 사각 박스/테두리 제거 및 슬림 텍스트 컬럼화로 정돈 -->
+<!-- v0.13: v0.12 전체 기능 최적화, 코드 리팩토링 및 로직 간소화 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 & 글의 구성 테스트 - v1.4</title>
+    <title>글쓰기 스튜디오</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -32,59 +32,154 @@
         }
 
         .container {
-            max-width: 820px;
+            max-width: 920px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        .test-header {
+        /* 1. 스퀘어 모서리 2단 헤더 */
+        header.mac-window-header {
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+            border: 1px solid #cbd5e1;
+            border-bottom: 2px solid #94a3b8;
+            border-radius: 0px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            user-select: none;
+        }
+
+        .header-top-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .test-header h1 {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #1e293b;
+        .header-title-wrap {
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .version-badge {
+        .header-title-wrap h1 {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .header-title-wrap .version-tag {
             font-size: 0.7rem;
             color: var(--primary);
             font-weight: 700;
-            background: #eff6ff;
+            background: #ffffff;
             padding: 1px 5px;
             border-radius: 3px;
             border: 1px solid #bfdbfe;
         }
 
-        /* 정사각형 토글 미니 버튼 */
+        .btn-close-app {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 2px 4px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .btn-close-app:hover { color: #dc2626; }
+
+        /* 헤더 2번째 줄: 신호등 토글 바 */
+        .header-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            background: #fafafa;
+            flex-wrap: wrap;
+        }
+
+        .toggle-guide-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-right: 2px;
+        }
+
+        .traffic-group {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .traffic-btn {
+            position: relative;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 0.5px solid rgba(0, 0, 0, 0.15);
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .traffic-btn:hover {
+            transform: scale(1.15);
+            opacity: 0.9;
+        }
+
+        .tb-postList { background-color: #0284c7; }
+        .tb-meta { background-color: #0d9488; }
+        .tb-outline { background-color: #10b981; }
+        .tb-completed { background-color: #3b82f6; }
+        .tb-newDraft { background-color: #8b5cf6; }
+        .tb-intent { background-color: #6366f1; }
+        .tb-api { background-color: #f59e0b; }
+        .tb-promptReq { background-color: #ec4899; }
+        .tb-aiRefined { background-color: #06b6d4; }
+        .tb-snippets { background-color: #64748b; }
+
+        .traffic-btn.is-closed {
+            filter: grayscale(0.5) brightness(0.85);
+            opacity: 0.7;
+        }
+        .traffic-btn.is-closed::after {
+            content: '/';
+            position: absolute;
+            font-size: 11px;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            transform: translateY(-0.5px);
+        }
+
+        /* 공통 헤더 [−] / [+] 토글 버튼 및 숨김 뱃지 */
         .btn-section-toggle {
-            width: 18px;
-            height: 18px;
             background: #ffffff;
             border: 1px solid var(--border-color);
             color: #334155;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             font-family: monospace;
             cursor: pointer;
+            padding: 1px 5px;
             border-radius: 3px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
-            padding: 0;
             transition: all 0.15s ease;
         }
         .btn-section-toggle:hover {
@@ -115,6 +210,32 @@
         .header-collapsed-line {
             border-bottom: 1px dashed #cbd5e1 !important;
         }
+
+        /* 액션 툴바 */
+        .action-toolbar-clean {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 6px;
+            padding: 0 2px;
+        }
+
+        .btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-default { background: #ffffff; border-color: var(--border-color); color: var(--text-main); }
+        .btn-default:hover { background-color: #f1f5f9; }
+        .btn-primary { background: var(--primary); color: #ffffff; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-danger { background: #ffffff; border-color: #fca5a5; color: #dc2626; }
+        .btn-danger:hover { background-color: #fef2f2; }
 
         .btn-copy {
             background: #ffffff;
@@ -149,14 +270,6 @@
             align-items: center;
             padding-bottom: 3px;
             border-bottom: 1px solid var(--border-light);
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .post-list-title-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .post-list-title {
@@ -168,19 +281,7 @@
             gap: 5px;
         }
 
-        .category-filter-wrap {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .status-filter-wrap {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .select-filter {
+        .select-status {
             padding: 2px 4px;
             font-size: 0.76rem;
             border: 1px solid var(--border-color);
@@ -191,6 +292,7 @@
             font-weight: 600;
         }
 
+        /* 하단 잘림 해결: 정수 배수 높이 및 여백 보강 */
         .post-list-rows {
             display: flex;
             flex-direction: column;
@@ -206,7 +308,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 3px 8px;
+            padding: 3px 6px;
             min-height: 26px;
             background-color: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -220,7 +322,7 @@
         .post-row-title-area {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
             cursor: pointer;
             white-space: nowrap;
             font-size: 0.82rem;
@@ -229,39 +331,13 @@
             overflow: hidden;
         }
 
-        /* 사각 박스 및 테두리를 완전히 없앤 슬림 텍스트 열 스타일 */
-        .post-category-tag {
-            display: inline-block;
-            width: 62px;
-            text-align: left;
-            font-size: 0.74rem;
-            font-weight: 600;
-            color: #64748b;
-            background: transparent;
-            padding: 0;
-            border: none;
-            box-shadow: none;
-            flex-shrink: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            user-select: none;
-        }
+        .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
+        .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
-        .post-row-item.active .post-category-tag {
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        .post-row-title {
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .post-row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
         .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
-        /* 상황 토글 버튼 스타일 */
         .btn-status-toggle {
             flex-shrink: 0;
             padding: 1px 5px;
@@ -274,29 +350,223 @@
             transition: all 0.1s ease;
             margin-left: 6px;
         }
-        .btn-status-toggle.status-writing {
-            background: #e0f2fe;
-            color: #0369a1;
-            border-color: #bae6fd;
-        }
+        .btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
         .btn-status-toggle.status-writing:hover { background: #bae6fd; }
-
-        .btn-status-toggle.status-done {
-            background: #dcfce7;
-            color: #15803d;
-            border-color: #bbf7d0;
-        }
-        .btn-status-toggle.status-done:hover { background: #bbf7d0; }
-
-        .btn-status-toggle.status-plan {
-            background: #fef3c7;
-            color: #b45309;
-            border-color: #fde68a;
-        }
+        .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; border-color: #fde68a; }
         .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
-        /* === [MODULE-STYLE: outline] === */
+        /* === [MODULE-STYLE: meta-table] === */
+        .meta-table-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .meta-table-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .meta-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+        }
+
+        .meta-grid-table th {
+            width: 80px;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            padding: 4px 6px;
+            text-align: center;
+            border: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        .meta-grid-table td {
+            padding: 3px 6px;
+            border: 1px solid var(--border-light);
+            background: #ffffff;
+        }
+
+        .meta-grid-table input,
+        .meta-grid-table textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 0.82rem;
+            font-family: inherit;
+            background: transparent;
+            color: #0f172a;
+        }
+        .meta-grid-table input:focus,
+        .meta-grid-table textarea:focus { background: #f0f7ff; }
+        /* === [MODULE-STYLE-END: meta-table] === */
+
+        /* API 키 관리 박스 */
+        .api-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .api-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .api-header-left {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .api-section-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .api-status-badge {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #d97706;
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #fde68a;
+        }
+
+        .btn-key-compact {
+            background: #ffffff;
+            color: #d97706;
+            border: 1px solid #fde68a;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 0.78rem;
+            text-decoration: none;
+        }
+
+        .api-content-wrap {
+            background: #fffdf5;
+            border: 1px solid #fde68a;
+            padding: 6px 8px;
+            border-radius: 4px;
+        }
+
+        .api-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        .api-row input {
+            flex: 1;
+            min-width: 160px;
+            padding: 5px 8px;
+            font-size: 0.8rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            outline: none;
+            background: #fff;
+        }
+
+        .api-btn-group { display: flex; gap: 4px; align-items: center; }
+        .dropdown { position: relative; display: inline-block; }
+
+        .api-save-btn {
+            background: #f57c00;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .api-save-btn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+        .api-wait-btn { background: #e67e22 !important; }
+
+        .api-cancel-btn {
+            background: #64748b;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 110%;
+            background-color: #ffffff;
+            min-width: 140px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            z-index: 50;
+        }
+
+        .dropdown-content button {
+            color: #334155;
+            padding: 6px 10px;
+            text-align: left;
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.76rem;
+            font-weight: 600;
+            display: block;
+        }
+        .dropdown-content.show { display: block; }
+
+        .api-del-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 3px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* 개별 집필 영역 (슬림 플랫) */
         .editor-section {
             display: flex;
             flex-direction: column;
@@ -326,7 +596,7 @@
         .editor-content-wrap {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
 
         textarea.flat-textarea {
@@ -338,8 +608,7 @@
             border-radius: 4px;
             background: #ffffff;
             outline: none;
-            resize: none;
-            overflow-y: hidden;
+            resize: vertical;
             font-family: inherit;
         }
         textarea.flat-textarea:focus {
@@ -349,12 +618,23 @@
 
         #essayOutline { font-size: 0.85rem; letter-spacing: -0.01em; }
 
-        .outline-bottom-toolbar {
+        .status-toolbar-flat {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            gap: 4px;
+            font-size: 0.72rem;
+            color: var(--text-sub);
             padding: 1px 2px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .stat-info { font-weight: 500; }
+
+        .restore-group {
+            display: flex;
+            gap: 3px;
+            margin-left: auto;
         }
 
         .btn-restore-icon {
@@ -363,7 +643,7 @@
             color: #475569;
             font-size: 0.7rem;
             font-weight: 600;
-            padding: 2px 6px;
+            padding: 1px 6px;
             border-radius: 3px;
             cursor: pointer;
             display: inline-flex;
@@ -371,52 +651,89 @@
             gap: 2px;
         }
         .btn-restore-icon:hover { background-color: #f1f5f9; color: #0f172a; }
-        /* === [MODULE-STYLE-END: outline] === */
 
-        .test-log {
-            background: #0f172a;
-            color: #38bdf8;
-            padding: 8px 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 0.75rem;
-            max-height: 100px;
-            overflow-y: auto;
-            white-space: pre-wrap;
+        .btn-ai-req {
+            background: #4f46e5;
+            color: #ffffff;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-ai-req:hover { background: #4338ca; }
+
+        .btn-append-header {
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-append-header:hover { background: #0369a1; }
+
+        @media (max-width: 640px) {
+            body { padding: 6px 8px 24px; }
+            .container { gap: 8px; }
+            .meta-grid-table th { width: 70px; font-size: 0.75rem; }
+            .meta-grid-table td { font-size: 0.78rem; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="test-header">
-        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.4</span></h1>
-        <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 검증</span>
+    <!-- 1. 스퀘어 모서리 2단 헤더 -->
+    <header class="mac-window-header">
+        <div class="header-top-row">
+            <div class="header-title-wrap">
+                <h1>✍️ 글쓰기 스튜디오</h1>
+                <span class="version-tag">v0.13</span>
+            </div>
+            <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
+        </div>
+
+        <div class="header-toggle-row">
+            <span class="toggle-guide-label">열고 닫기:</span>
+            <div class="traffic-group">
+                <span id="dot_postList" class="traffic-btn tb-postList" onclick="toggleSection('postList')" title="작성 글 목록"></span>
+                <span id="dot_meta" class="traffic-btn tb-meta" onclick="toggleSection('meta')" title="작성 글 정보"></span>
+                <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성"></span>
+                <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글"></span>
+                <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글"></span>
+                <span id="dot_intent" class="traffic-btn tb-intent" onclick="toggleSection('intent')" title="글의 의도"></span>
+                <span id="dot_api" class="traffic-btn tb-api" onclick="toggleSection('api')" title="API 설정"></span>
+                <span id="dot_promptReq" class="traffic-btn tb-promptReq" onclick="toggleSection('promptReq')" title="요청 내용 (to AI)"></span>
+                <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" onclick="toggleSection('aiRefined')" title="AI 수정 글"></span>
+                <span id="dot_snippets" class="traffic-btn tb-snippets" onclick="toggleSection('snippets')" title="보관 글"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. 헤더 하단 액션 버튼 -->
+    <div class="action-toolbar-clean">
+        <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
+        <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
+        <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
     </div>
 
     <!-- === [MODULE-HTML: post-list] === -->
     <div id="sec_postList" class="post-list-box">
         <div id="hdr_postList" class="post-list-header">
-            <div class="post-list-title-wrap">
-                <div class="post-list-title">
-                    <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
-                    <span>작성 글 목록</span>
-                    <span id="badge_postList" class="badge-collapsed">숨김</span>
-                </div>
-                <div class="category-filter-wrap">
-                    <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
-                    <select id="categoryFilter" class="select-filter" onchange="handleFilterChange()">
-                        <option value="전체" selected>전체</option>
-                    </select>
-                </div>
+            <div class="post-list-title">
+                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">[−]</button>
+                <span>작성 글 목록</span>
+                <span id="badge_postList" class="badge-collapsed">숨김</span>
             </div>
-
-            <div class="status-filter-wrap">
+            <div>
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
-                <select id="statusFilter" class="select-filter" onchange="handleFilterChange()">
+                <select id="statusFilter" class="select-status" onchange="renderPostList()">
                     <option value="전체" selected>전체</option>
                     <option value="작성">작성</option>
-                    <option value="완료">완료</option>
                     <option value="예정">예정</option>
                 </select>
             </div>
@@ -427,129 +744,253 @@
     </div>
     <!-- === [MODULE-HTML-END: post-list] === -->
 
-    <!-- === [MODULE-HTML: outline] === -->
+    <!-- === [MODULE-HTML: meta-table] === -->
+    <div id="sec_meta" class="meta-table-box">
+        <div id="hdr_meta" class="meta-table-header">
+            <span class="meta-table-title">
+                <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">[−]</button>
+                <span>작성 글 정보</span>
+                <span id="badge_meta" class="badge-collapsed">숨김</span>
+            </span>
+        </div>
+        <div id="body_meta">
+            <table class="meta-grid-table">
+                <tr>
+                    <th>제목[ID]</th>
+                    <td colspan="3">
+                        <input type="text" id="essayTitleInput" placeholder="제목 입력" oninput="markDirty()" style="font-weight:700;">
+                    </td>
+                </tr>
+                <tr>
+                    <th>시작일</th>
+                    <td>
+                        <input type="text" id="postStartDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                    </td>
+                    <th>완료일</th>
+                    <td>
+                        <input type="text" id="postEndDate" placeholder="YYYY-MM-DD" oninput="markDirty()">
+                    </td>
+                </tr>
+                <tr>
+                    <th>요약</th>
+                    <td colspan="3">
+                        <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)" oninput="markDirty()"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <!-- === [MODULE-HTML-END: meta-table] === -->
+
+    <!-- 4. 글의 구성 -->
     <div id="sec_outline" class="editor-section">
         <div id="hdr_outline" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">−</button>
+                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">[−]</button>
                 <span class="section-title">글의 구성</span>
                 <span id="badge_outline" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
             </div>
-            <button type="button" id="copyBtn_outline" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
+            <div class="restore-group">
+                <button type="button" class="btn-restore-icon" onclick="undoField('outline')">↺ 취소</button>
+                <button type="button" class="btn-restore-icon" onclick="restoreSaved('outline')">⟲ 최근 저장 상태로</button>
+            </div>
         </div>
         <div id="body_outline" class="editor-content-wrap">
-            <textarea id="essayOutline" class="flat-textarea" rows="3" placeholder="글의 구성을 입력하세요 (● 기호 자동 줄바꿈 지원)" onkeydown="handleBulletEnter(event, this)" oninput="handleOutlineInput()"></textarea>
-            <div class="outline-bottom-toolbar">
-                <button type="button" class="btn-restore-icon" onclick="undoOutline()">↺ 취소</button>
-                <button type="button" class="btn-restore-icon" onclick="restoreSavedOutline()">⟲ 최근 저장 상태로</button>
+            <textarea id="essayOutline" class="flat-textarea" style="min-height: 65px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('outline')"></textarea>
+        </div>
+    </div>
+
+    <!-- 5. 완성 글 -->
+    <div id="sec_completed" class="editor-section">
+        <div id="hdr_completed" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_completed" class="btn-section-toggle" onclick="toggleSection('completed')" title="열림/숨김">[−]</button>
+                <span class="section-title">완성 글</span>
+                <span id="badge_completed" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('completedText', this)">📋 복사</button>
+            </div>
+        </div>
+        <div id="body_completed" class="editor-content-wrap">
+            <textarea id="completedText" class="flat-textarea" style="min-height: 110px;" oninput="handleFieldInput('completed')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_completed">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('completed')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('completed')">⟲ 최근 저장 상태로</button>
+                </div>
             </div>
         </div>
     </div>
-    <!-- === [MODULE-HTML-END: outline] === -->
 
-    <div id="testLog" class="test-log">상태: 준비 완료</div>
+    <!-- 6. 신규 글 -->
+    <div id="sec_newDraft" class="editor-section">
+        <div id="hdr_newDraft" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_newDraft" class="btn-section-toggle" onclick="toggleSection('newDraft')" title="열림/숨김">[−]</button>
+                <span class="section-title">신규 글</span>
+                <span id="badge_newDraft" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('newDraftText', this)">📋 복사</button>
+            </div>
+        </div>
+        <div id="body_newDraft" class="editor-content-wrap">
+            <textarea id="newDraftText" class="flat-textarea" style="min-height: 80px;" oninput="handleFieldInput('newDraft')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_newDraft">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('newDraft')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('newDraft')">⟲ 최근 저장 상태로</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. 글의 의도 -->
+    <div id="sec_intent" class="editor-section">
+        <div id="hdr_intent" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_intent" class="btn-section-toggle" onclick="toggleSection('intent')" title="열림/숨김">[−]</button>
+                <span class="section-title">글의 의도</span>
+                <span id="badge_intent" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('draftIntent', this)">📋 복사</button>
+            </div>
+        </div>
+        <div id="body_intent" class="editor-content-wrap">
+            <textarea id="draftIntent" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('intent')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_intent">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('intent')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('intent')">⟲ 최근 저장 상태로</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. API 키 관리 (글의 의도와 요청내용 사이) -->
+    <div id="sec_api" class="api-box">
+        <div id="hdr_api" class="api-box-header">
+            <div class="api-header-left">
+                <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">[−]</button>
+                <span class="api-section-title">API 설정</span>
+                <span id="badge_api" class="badge-collapsed">숨김</span>
+                <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">
+                    🔑
+                </a>
+            </div>
+        </div>
+        <div id="body_api" class="api-content-wrap">
+            <div class="api-row">
+                <input type="password" id="apiKeyInput" oninput="checkKeyInputState()">
+                <div class="api-btn-group">
+                    <div class="dropdown" id="apiDropdownContainer">
+                        <button type="button" id="apiSaveBtn" class="api-save-btn" onclick="handleSaveButtonClick()">
+                            <span id="apiSaveBtnText">키 설치하기</span>
+                            <span id="dropdownArrow">▼</span>
+                        </button>
+                        <div id="apiDropdownMenu" class="dropdown-content">
+                            <button type="button" onclick="selectKeyChoice('shared')">공용 키 설치하기</button>
+                            <button type="button" onclick="selectKeyChoice('personal')">개인 키 설치하기</button>
+                        </div>
+                    </div>
+                    <button type="button" id="apiCancelBtn" class="api-cancel-btn" onclick="cancelKeyInput()">취소</button>
+                </div>
+                <button type="button" id="apiDelBtn" class="api-del-btn" onclick="deleteApiKey()">키 삭제하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. 요청 내용 (to AI) -->
+    <div id="sec_promptReq" class="editor-section">
+        <div id="hdr_promptReq" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_promptReq" class="btn-section-toggle" onclick="toggleSection('promptReq')" title="열림/숨김">[−]</button>
+                <span class="section-title">요청 내용 (to AI)</span>
+                <span id="badge_promptReq" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('promptReqText', this)">📋 복사</button>
+            </div>
+        </div>
+        <div id="body_promptReq" class="editor-content-wrap">
+            <textarea id="promptReqText" class="flat-textarea" style="min-height: 50px;" oninput="handleFieldInput('promptReq')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_promptReq">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('promptReq')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('promptReq')">⟲ 최근 저장 상태로</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. AI 수정 글 -->
+    <div id="sec_aiRefined" class="editor-section">
+        <div id="hdr_aiRefined" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_aiRefined" class="btn-section-toggle" onclick="toggleSection('aiRefined')" title="열림/숨김">[−]</button>
+                <span class="section-title">AI 수정 글</span>
+                <span id="badge_aiRefined" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('aiRefinedText', this)">📋 복사</button>
+                <button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>
+            </div>
+            <button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>
+        </div>
+        <div id="body_aiRefined" class="editor-content-wrap">
+            <textarea id="aiRefinedText" class="flat-textarea" style="min-height: 90px; background-color: #f8fafc;" oninput="handleFieldInput('aiRefined')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_aiRefined">0자 (약 0분)</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('aiRefined')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('aiRefined')">⟲ 최근 저장 상태로</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11. 보관 글 -->
+    <div id="sec_snippets" class="editor-section">
+        <div id="hdr_snippets" class="section-header-line">
+            <div class="section-header-left">
+                <button type="button" id="arrow_snippets" class="btn-section-toggle" onclick="toggleSection('snippets')" title="열림/숨김">[−]</button>
+                <span class="section-title">보관 글</span>
+                <span id="badge_snippets" class="badge-collapsed">숨김</span>
+                <button type="button" class="btn-copy" onclick="copyContent('savedSnippets', this)">📋 복사</button>
+            </div>
+        </div>
+        <div id="body_snippets" class="editor-content-wrap">
+            <textarea id="savedSnippets" class="flat-textarea" style="min-height: 60px;" onkeydown="handleBulletEnter(event, this)" oninput="handleFieldInput('snippets')"></textarea>
+            <div class="status-toolbar-flat">
+                <span class="stat-info" id="stat_snippets">0자</span>
+                <div class="restore-group">
+                    <button type="button" class="btn-restore-icon" onclick="undoField('snippets')">↺ 취소</button>
+                    <button type="button" class="btn-restore-icon" onclick="restoreSaved('snippets')">⟲ 최근 저장 상태로</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
+    const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
+    const STORAGE_KEY = "WRITER_STUDIO_DATA_V13";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
     const $ = id => document.getElementById(id);
 
-    function log(msg) {
-        const el = $('testLog');
-        el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
-    }
-
-    // 정사각형 토글 로직
-    function toggleSection(key) {
-        const bodyEl = $(`body_${key}`);
-        const arrow = $(`arrow_${key}`);
-        const badge = $(`badge_${key}`);
-        const hdr = $(`hdr_${key}`);
-        const copyBtn = $(`copyBtn_${key}`);
-        if (!bodyEl) return;
-
-        const isClosed = bodyEl.style.display === 'none';
-        if (isClosed) {
-            bodyEl.style.display = 'flex';
-            if (arrow) {
-                arrow.innerText = '−';
-                arrow.classList.remove('is-closed');
-            }
-            if (badge) badge.classList.remove('show');
-            if (hdr) hdr.classList.remove('header-collapsed-line');
-            if (copyBtn) copyBtn.style.display = 'inline-flex';
-        } else {
-            bodyEl.style.display = 'none';
-            if (arrow) {
-                arrow.innerText = '+';
-                arrow.classList.add('is-closed');
-            }
-            if (badge) badge.classList.add('show');
-            if (hdr) hdr.classList.add('header-collapsed-line');
-            if (copyBtn) copyBtn.style.display = 'none';
-        }
-    }
-
-    // 클립보드 복사
-    function copyContent(elementId, btn) {
-        const el = $(elementId);
-        if (!el || !el.value.trim()) {
-            return alert('복사할 내용이 없습니다.');
-        }
-        navigator.clipboard.writeText(el.value).then(() => {
-            const originalText = btn.innerText;
-            btn.innerText = '✓ 복사됨';
-            btn.style.color = '#16a34a';
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.color = '';
-            }, 1500);
-        });
-    }
-
-    // 텍스트 영역 자동 높이 조절
-    function autoResizeTextarea(textarea) {
-        if (!textarea) return;
-        textarea.style.height = 'auto';
-        textarea.style.height = `${Math.max(textarea.scrollHeight, 72)}px`;
-    }
-
-    // 글의 구성 창 내용 완전 초기화
-    function resetOutlineArea() {
-        const textarea = $('essayOutline');
-        textarea.value = '';
-        outlineSaved = '';
-        outlineHistory = [''];
-        autoResizeTextarea(textarea);
-    }
-
-    // 분류 / 상황 드롭다운 선택 시: 목록 재렌더링 및 글의 구성 창 초기화
-    function handleFilterChange() {
-        currentPostId = null;
-        resetOutlineArea();
-        renderPostList();
-        log('필터 변경: 글의 구성 초기화됨');
-    }
+    let isDirty = false;
+    let isPersonalWaitState = false;
 
     // === [MODULE-SCRIPT: post-list] ===
     let currentPostId = null;
     let currentPostStatus = "작성";
     let postListCache = [];
 
-    window.addEventListener('DOMContentLoaded', () => {
-        loadCachedPosts();
-        fetchSheetPosts();
-    });
-
     function loadCachedPosts() {
         const cached = localStorage.getItem(POSTS_CACHE_KEY);
         if (cached) {
             try {
                 postListCache = JSON.parse(cached);
-                populateCategoryFilter();
                 renderPostList();
-                log(`캐시 목록 ${postListCache.length}개 로드`);
             } catch (e) {
                 console.error(e);
             }
@@ -564,9 +1005,7 @@
             if (response && response.status === "success" && response.data) {
                 postListCache = response.data;
                 localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
-                populateCategoryFilter();
                 renderPostList();
-                log(`시트 동기화 완료: ${postListCache.length}개`);
             }
         };
 
@@ -576,46 +1015,15 @@
         document.body.appendChild(script);
     }
 
-    // '분류' 고유값 추출하여 드롭다운 구성
-    function populateCategoryFilter() {
-        const select = $('categoryFilter');
-        const currentVal = select.value;
-        const categories = new Set();
-
-        postListCache.forEach(item => {
-            const cat = (item.분류 || item.category || '').trim();
-            if (cat) categories.add(cat);
-        });
-
-        select.innerHTML = '<option value="전체">전체</option>';
-        categories.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            opt.innerText = cat;
-            select.appendChild(opt);
-        });
-
-        if (Array.from(categories).includes(currentVal)) {
-            select.value = currentVal;
-        } else {
-            select.value = '전체';
-        }
-    }
-
     function renderPostList() {
         const grid = $('body_postList');
-        const statusFilter = $('statusFilter').value;
-        const categoryFilter = $('categoryFilter').value;
+        const filter = $('statusFilter').value;
         grid.innerHTML = '';
 
         const filtered = postListCache.filter(item => {
             const itemStatus = (item.상황 || item.status || '작성').trim();
-            const itemCategory = (item.분류 || item.category || '').trim();
-
-            const matchStatus = (statusFilter === '전체') || (itemStatus === statusFilter);
-            const matchCategory = (categoryFilter === '전체') || (itemCategory === categoryFilter);
-
-            return matchStatus && matchCategory;
+            if (filter === '전체') return true;
+            return itemStatus === filter;
         });
 
         if (filtered.length === 0) {
@@ -627,29 +1035,20 @@
             const postId = post.ID || post.id || '';
             const postTitle = post.제목 || post.title || '(제목 없음)';
             const postStatus = (post.상황 || post.status || '작성').trim();
-            const postCategory = (post.분류 || post.category || '').trim();
 
             const row = document.createElement('div');
             row.className = `post-row-item ${currentPostId === postId ? 'active' : ''}`;
 
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
-
-            // 불릿 제거 + 사각 테두리 없는 슬림 텍스트 열
-            let categoryText = postCategory || '-';
-            let categoryHtml = `<span class="post-category-tag" title="${categoryText}">${categoryText}</span>`;
-            titleArea.innerHTML = `${categoryHtml}<span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
+            titleArea.innerHTML = `<span class="bullet-point">•</span><span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
-
-            let statusClass = 'status-writing';
-            if (postStatus === '완료') statusClass = 'status-done';
-            else if (postStatus === '예정') statusClass = 'status-plan';
 
             const statusBtn = document.createElement('button');
             statusBtn.type = 'button';
-            statusBtn.className = `btn-status-toggle ${statusClass}`;
+            statusBtn.className = `btn-status-toggle ${postStatus === '작성' ? 'status-writing' : 'status-plan'}`;
             statusBtn.innerText = postStatus;
-            statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
+            statusBtn.title = `클릭 시 '${postStatus === '작성' ? '예정' : '작성'}'으로 변경`;
             statusBtn.onclick = (e) => {
                 e.stopPropagation();
                 togglePostStatus(post);
@@ -663,10 +1062,7 @@
 
     function togglePostStatus(post) {
         const current = (post.상황 || post.status || '작성').trim();
-        let nextStatus = '작성';
-        if (current === '작성') nextStatus = '완료';
-        else if (current === '완료') nextStatus = '예정';
-        else if (current === '예정') nextStatus = '작성';
+        const nextStatus = (current === '작성') ? '예정' : '작성';
 
         post.상황 = nextStatus;
         post.status = nextStatus;
@@ -677,73 +1073,312 @@
 
         localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
         renderPostList();
-        log(`상태 토글: "${post.제목 || post.title}" (${current} -> ${nextStatus})`);
 
-        fetch(GAS_ENDPOINT, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                ID: post.ID || post.id,
-                id: post.ID || post.id,
-                status: nextStatus,
-                category: post.분류 || post.category || '',
-                title: post.제목 || post.title || '',
-                outline: post.글의구성 || post['글의 구성'] || post.outline || ''
-            })
-        });
+        const payload = {
+            ID: post.ID || post.id,
+            id: post.ID || post.id,
+            status: nextStatus,
+            title: post.제목 || post.title || '',
+            outline: post.글의구성 || post.outline || '',
+            completed: post.완성글 || post.completed || '',
+            newDraft: post.신규글 || post.newDraft || '',
+            intent: post.글의의도 || post.intent || '',
+            promptReq: post.요청내용 || post.promptReq || '',
+            snippets: post.보관글 || post.snippets || '',
+            summary: post.요약 || post.summary || '',
+            startDate: post.작성시작일 || post.startDate || '',
+            endDate: post.작성완료일 || post.endDate || ''
+        };
+
+        try {
+            fetch(GAS_ENDPOINT, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } catch (e) {
+            console.error("상태 저장 에러:", e);
+        }
     }
 
     function selectPost(post) {
+        if (isDirty && !confirm('작성 중인 변경 사항이 있습니다. 저장하지 않고 다른 글로 전환하시겠습니까?')) {
+            return;
+        }
+
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        const outlineText = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
+        $('essayTitleInput').value = post.제목 || post.title || '';
+        $('postStartDate').value = post.작성시작일 || post.startDate || '';
+        $('postEndDate').value = post.작성완료일 || post.endDate || '';
+        $('postSummary').value = post.요약 || post.summary || '';
 
-        const textarea = $('essayOutline');
-        textarea.value = outlineText;
-        outlineSaved = outlineText;
-        outlineHistory = [outlineText];
-        autoResizeTextarea(textarea);
+        $('essayOutline').value = post.글의구성 || post.outline || '';
+        $('completedText').value = post.완성글 || post.completed || '';
+        $('newDraftText').value = post.신규글 || post.newDraft || '';
+        $('draftIntent').value = post.글의의도 || post.intent || '';
+        $('promptReqText').value = post.요청내용 || post.promptReq || '';
+        $('aiRefinedText').value = '';$('savedSnippets').value = post.보관글 || post.snippets || '';
 
+        initFieldStates();
+        updateAllStats();
         renderPostList();
-        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 연동 (${outlineText.length}자)`);
+        isDirty = false;
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 
-    // === [MODULE-SCRIPT: outline] ===
-    let outlineSaved = '';
-    let outlineHistory = [''];
+    const fieldMap = {
+        outline: 'essayOutline',
+        completed: 'completedText',
+        newDraft: 'newDraftText',
+        intent: 'draftIntent',
+        promptReq: 'promptReqText',
+        aiRefined: 'aiRefinedText',
+        snippets: 'savedSnippets'
+    };
 
-    function handleOutlineInput() {
-        const textarea = $('essayOutline');
-        const val = textarea.value;
-        if (outlineHistory[outlineHistory.length - 1] !== val) {
-            outlineHistory.push(val);
-            if (outlineHistory.length > 50) outlineHistory.shift();
+    let fieldState = {};
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initFieldStates();
+        loadSavedData();
+        checkApiKeyStatus();
+        updateAllStats();
+        loadCachedPosts();
+        fetchSheetPosts();
+
+        window.onclick = (e) => {
+            if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
+                document.querySelectorAll(".dropdown-content.show").forEach(el => el.classList.remove('show'));
+            }
+        };
+    });
+
+    function markDirty() { isDirty = true; }
+
+    /* ==========================================================================
+       클립보드 복사 엔진
+       ========================================================================== */
+    function copyContent(elementId, btn) {
+        const el = $(elementId);
+        if (!el || !el.value.trim()) {
+            return alert('복사할 내용이 없습니다.');
         }
-        autoResizeTextarea(textarea);
+        navigator.clipboard.writeText(el.value).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = '✓ 복사됨';
+            btn.style.color = '#16a34a';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = '';
+            }, 1500);
+        }).catch(err => {
+            console.error('복사 실패:', err);
+            alert('복사 권한이 없거나 지원되지 않는 브라우저입니다.');
+        });
     }
 
-    function undoOutline() {
-        if (outlineHistory.length > 1) {
-            outlineHistory.pop();
-            const textarea = $('essayOutline');
-            textarea.value = outlineHistory[outlineHistory.length - 1];
-            autoResizeTextarea(textarea);
+    /* ==========================================================================
+       방안 C [−]/[+] 토글 및 숨김 상태 피드백 연동 시스템
+       ========================================================================== */
+    function toggleSection(key) {
+        const bodyEl = $(`body_${key}`);
+        const dot = $(`dot_${key}`);
+        const arrow = $(`arrow_${key}`);
+        const badge = $(`badge_${key}`);
+        const hdr = $(`hdr_${key}`);
+        if (!bodyEl) return;
+
+        const isClosed = bodyEl.style.display === 'none';
+        
+        if (isClosed) {
+            bodyEl.style.display = (key === 'meta') ? 'block' : 'flex';
+            if (dot) dot.classList.remove('is-closed');
+            if (arrow) {
+                arrow.innerText = '[−]';
+                arrow.classList.remove('is-closed');
+            }
+            if (badge) badge.classList.remove('show');
+            if (hdr) hdr.classList.remove('header-collapsed-line');
+        } else {
+            bodyEl.style.display = 'none';
+            if (dot) dot.classList.add('is-closed');
+            if (arrow) {
+                arrow.innerText = '[+]';
+                arrow.classList.add('is-closed');
+            }
+            if (badge) badge.classList.add('show');
+            if (hdr) hdr.classList.add('header-collapsed-line');
+        }
+    }
+
+    /* ==========================================================================
+       API Key 관리 시스템
+       ========================================================================== */
+    function checkApiKeyStatus() {
+        const savedKey = localStorage.getItem("GEMINI_USER_API_KEY");
+        const keyType = localStorage.getItem("GEMINI_KEY_TYPE");
+        const badge = $("apiStatusBadge");
+
+        if (savedKey) {
+            isPersonalWaitState = false;
+            $("apiKeyInput").value = savedKey;
+            $("apiDelBtn").style.display = "inline-block";
+            $("apiSaveBtn").classList.remove("api-wait-btn");
+            $("apiCancelBtn").style.display = "none";
+            $("dropdownArrow").style.display = "none";
+            $("apiSaveBtn").disabled = true;
+
+            if (keyType === "personal") {
+                $("apiSaveBtnText").innerText = "개인 키 설치완료";
+                badge.innerText = "🔒 개인 키 사용 중";
+                Object.assign(badge.style, { color: "#16a34a", background: "#dcfce7", borderColor: "#86efac" });
+            } else {
+                $("apiSaveBtnText").innerText = "공용 키 설치완료";
+                badge.innerText = "🟢 공용 키 사용 중";
+                Object.assign(badge.style, { color: "#d97706", background: "#fef3c7", borderColor: "#fde68a" });
+            }
+        } else {
+            $("apiKeyInput").value = "";
+            $("apiDelBtn").style.display = "none";
+            $("apiSaveBtn").disabled = false;
+            $("apiSaveBtn").classList.remove("api-wait-btn");
+            badge.innerText = "⚠️ 키 미설정 상태";
+            Object.assign(badge.style, { color: "#dc2626", background: "#fee2e2", borderColor: "#fca5a5" });
+
+            if (isPersonalWaitState) {
+                $("apiSaveBtnText").innerText = "개인 키 설치대기";
+                $("dropdownArrow").style.display = "none";
+                $("apiSaveBtn").classList.add("api-wait-btn");
+                $("apiCancelBtn").style.display = "inline-block";
+            } else {
+                checkKeyInputState();
+            }
+        }
+    }
+
+    function checkKeyInputState() {
+        if (localStorage.getItem("GEMINI_USER_API_KEY") || isPersonalWaitState) return;
+        const hasInput = $("apiKeyInput").value.trim().length > 0;
+        $("apiSaveBtnText").innerText = hasInput ? "개인 키 설치하기" : "키 설치하기";
+        $("dropdownArrow").style.display = hasInput ? "none" : "inline";
+        $("apiCancelBtn").style.display = hasInput ? "inline-block" : "none";
+    }
+
+    function handleSaveButtonClick() {
+        if (localStorage.getItem("GEMINI_USER_API_KEY")) return;
+        const keyVal = $("apiKeyInput").value.trim();
+        if (isPersonalWaitState || keyVal.length > 0) {
+            if (keyVal.length === 0) {
+                alert("API Key를 입력한 뒤 눌러주세요.");
+                return $("apiKeyInput").focus();
+            }
+            localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+            localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+        } else {
+            $("apiDropdownMenu").classList.toggle("show");
+        }
+    }
+
+    function selectKeyChoice(type) {
+        $("apiDropdownMenu").classList.remove('show');
+        if (type === 'shared') {
+            if (PUBLIC_SHARED_KEY && !PUBLIC_SHARED_KEY.startsWith("__")) {
+                localStorage.setItem("GEMINI_USER_API_KEY", PUBLIC_SHARED_KEY);
+                localStorage.setItem("GEMINI_KEY_TYPE", "shared");
+                isPersonalWaitState = false;
+                checkApiKeyStatus();
+            } else {
+                alert("공용 키가 설정되어 있지 않습니다.");
+            }
+        } else if (type === 'personal') {
+            const keyVal = $("apiKeyInput").value.trim();
+            if (keyVal.length > 0) {
+                localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+                localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+                isPersonalWaitState = false;
+                checkApiKeyStatus();
+            } else {
+                isPersonalWaitState = true;
+                checkApiKeyStatus();
+                $("apiKeyInput").focus();
+            }
+        }
+    }
+
+    function cancelKeyInput() {
+        isPersonalWaitState = false;
+        $("apiKeyInput").value = "";
+        checkApiKeyStatus();
+    }
+
+    function deleteApiKey() {
+        if (confirm("저장된 API Key를 삭제하시겠습니까?")) {
+            localStorage.removeItem("GEMINI_USER_API_KEY");
+            localStorage.removeItem("GEMINI_KEY_TYPE");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+            $("apiKeyInput").focus();
+        }
+    }
+
+    /* ==========================================================================
+       복원(Undo) 스택 및 편집 제어
+       ========================================================================== */
+    function initFieldStates() {
+        for (let key in fieldMap) {
+            const el = $(fieldMap[key]);
+            const val = el ? el.value : '';
+            fieldState[key] = {
+                currentSaved: val,
+                history: [val]
+            };
+        }
+    }
+
+    function handleFieldInput(key) {
+        markDirty();
+        const el = $(fieldMap[key]);
+        if (!el) return;
+        
+        const val = el.value;
+        const stack = fieldState[key].history;
+        if (stack[stack.length - 1] !== val) {
+            stack.push(val);
+            if (stack.length > 50) stack.shift();
+        }
+        updateStat(key, val);
+    }
+
+    function undoField(key) {
+        const el = $(fieldMap[key]);
+        if (!el || !fieldState[key]) return;
+        const stack = fieldState[key].history;
+        if (stack.length > 1) {
+            stack.pop();
+            el.value = stack[stack.length - 1];
+            updateStat(key, el.value);
+            markDirty();
         } else {
             alert('되돌릴 이전 입력 내용이 없습니다.');
         }
     }
 
-    function restoreSavedOutline() {
-        const textarea = $('essayOutline');
-        if (textarea.value === outlineSaved) {
+    function restoreSaved(key) {
+        const el = $(fieldMap[key]);
+        if (!el || !fieldState[key]) return;
+        const targetVal = fieldState[key].currentSaved;
+        if (el.value === targetVal) {
             return alert('이미 최근 저장된 상태와 동일합니다.');
         }
-        outlineHistory.push(outlineSaved);
-        textarea.value = outlineSaved;
-        autoResizeTextarea(textarea);
+        fieldState[key].history.push(targetVal);
+        el.value = targetVal;
+        updateStat(key, targetVal);
+        markDirty();
     }
 
     function handleBulletEnter(e, textarea) {
@@ -761,17 +1396,236 @@
                     const after = value.substring(end);
                     textarea.value = before + after;
                     textarea.selectionStart = textarea.selectionEnd = lineStart;
-                    autoResizeTextarea(textarea);
                     return;
                 }
                 const bullet = '\n● ';
                 textarea.value = value.substring(0, start) + bullet + value.substring(end);
                 textarea.selectionStart = textarea.selectionEnd = start + bullet.length;
-                handleOutlineInput();
+                textarea.dispatchEvent(new Event('input'));
             }
         }
     }
-    // === [MODULE-SCRIPT-END: outline] ===
+
+    function updateStat(key, text) {
+        const len = text.length;
+        const readingTime = Math.ceil(len / 400);
+
+        if (key === 'completed' || key === 'newDraft' || key === 'aiRefined') {
+            const statEl = $(`stat_${key}`);
+            if (statEl) {
+                statEl.innerText = `${len.toLocaleString()}자 (약 ${readingTime}분)`;
+            }
+        } else if (key === 'intent' || key === 'promptReq' || key === 'snippets') {
+            const statEl = $(`stat_${key}`);
+            if (statEl) {
+                statEl.innerText = `${len.toLocaleString()}자`;
+            }
+        }
+    }
+
+    function updateAllStats() {
+        for (let key in fieldMap) {
+            const el = $(fieldMap[key]);
+            if (el) updateStat(key, el.value);
+        }
+    }
+
+    function appendDraftToCompleted() {
+        const aiText = $('aiRefinedText').value.trim();
+        const fallbackText = $('newDraftText').value.trim();
+        const textToAppend = aiText || fallbackText;
+
+        if (!textToAppend) {
+            return alert('이어 붙일 내용이 없습니다.');
+        }
+
+        const completedEl = $('completedText');
+        const currentCompleted = completedEl.value.trim();
+
+        completedEl.value = currentCompleted ? currentCompleted + "\n\n" + textToAppend : textToAppend;
+        handleFieldInput('completed');
+
+        $('newDraftText').value = '';$('draftIntent').value = '';
+        $('promptReqText').value = '';$('aiRefinedText').value = '';
+        handleFieldInput('newDraft');
+        handleFieldInput('intent');
+        handleFieldInput('promptReq');
+        handleFieldInput('aiRefined');
+    }
+
+    /* ==========================================================================
+       저장 (로컬 스토리지 + 구글 시트 양방향 동기화)
+       ========================================================================== */
+    async function saveWork(mode) {
+        const titleVal = $('essayTitleInput').value.trim();
+        if (!titleVal) {
+            return alert('제목을 입력해주세요.');
+        }
+
+        if (!currentPostId) {
+            currentPostId = "ID_" + new Date().getTime();
+        }
+
+        const payload = {
+            ID: currentPostId,
+            id: currentPostId,
+            status: currentPostStatus || "작성",
+            title: titleVal,
+            startDate: $('postStartDate').value.trim(),
+            endDate: $('postEndDate').value.trim(),
+            summary: $('postSummary').value.trim(),
+            outline: $('essayOutline').value,
+            completed: $('completedText').value,
+            newDraft: $('newDraftText').value,
+            intent: $('draftIntent').value,
+            promptReq: $('promptReqText').value,
+            aiRefined: $('aiRefinedText').value,
+            snippets: $('savedSnippets').value,
+            updatedAt: new Date().toISOString()
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        for (let key in fieldMap) {
+            const el = $(fieldMap[key]);
+            if (el && fieldState[key]) {
+                fieldState[key].currentSaved = el.value;
+            }
+        }
+        isDirty = false;
+
+        try {
+            fetch(GAS_ENDPOINT, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                fetchSheetPosts();
+            });
+        } catch (err) {
+            console.error("구글 시트 저장 통신 오류:", err);
+        }
+
+        if (mode === 'stay') {
+            alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
+        } else if (mode === 'exit') {
+            if (confirm('저장되었습니다. 창을 닫으시겠습니까?')) {
+                window.close();
+            }
+        }
+    }
+
+    function loadSavedData() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            if (data.ID || data.id) currentPostId = data.ID || data.id;
+            if (data.status) currentPostStatus = data.status;
+            if (data.title) $('essayTitleInput').value = data.title;
+            if (data.startDate) $('postStartDate').value = data.startDate;
+            if (data.endDate) $('postEndDate').value = data.endDate;
+            if (data.summary) $('postSummary').value = data.summary;
+            if (data.outline) $('essayOutline').value = data.outline;
+            if (data.completed) $('completedText').value = data.completed;
+            if (data.newDraft) $('newDraftText').value = data.newDraft;
+            if (data.intent) $('draftIntent').value = data.intent;
+            if (data.promptReq) $('promptReqText').value = data.promptReq;
+            if (data.aiRefined) $('aiRefinedText').value = data.aiRefined;
+            if (data.snippets) $('savedSnippets').value = data.snippets;
+            initFieldStates();
+        } catch(e) {
+            console.error("데이터 로드 실패", e);
+        }
+    }
+
+    function cancelWork() {
+        if (isDirty) {
+            if (confirm('작성 중인 내용이 저장되지 않았습니다. 취소하고 마지막 저장 상태로 되돌리시겠습니까?')) {
+                loadSavedData();
+                isDirty = false;
+            }
+        } else {
+            alert('변경된 내용이 없습니다.');
+        }
+    }
+
+    function cancelAndClose() {
+        if (isDirty) {
+            if (confirm('저장되지 않은 변경사항이 있습니다. 그래도 닫으시겠습니까?')) {
+                window.close();
+            }
+        } else {
+            window.close();
+        }
+    }
+
+    /* ==========================================================================
+       Gemini API AI 수정 파이프라인
+       ========================================================================== */
+    async function requestAiRefine() {
+        const apiKey = localStorage.getItem("GEMINI_USER_API_KEY");
+        if (!apiKey) {
+            return alert('Gemini API Key를 먼저 설치해주세요.');
+        }
+
+        const completed = $('completedText').value.trim();
+        const newDraft = $('newDraftText').value.trim();
+        const intent = $('draftIntent').value.trim();
+        const promptReq = $('promptReqText').value.trim();
+
+        if (!newDraft) {
+            return alert('신규 글을 먼저 작성해주세요.');
+        }
+
+        const prompt = `당신은 유려한 감성과 논리적인 구조를 겸비한 브런치 전문 에세이 편집자이자 라이팅 코치입니다.
+다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.
+
+[이제까지 작성 완료된 글]:
+${completed || "(첫 단락입니다)"}
+
+[신규 작성한 글]:
+${newDraft}
+
+[글의 의도]:
+${intent || "(별도 의도 없음)"}
+
+[AI에게 바라는 구체적 요청 사항]:
+${promptReq || "(기본 자연스러운 흐름 퇴고 요망)"}
+
+[수정 가이드]:
+1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.
+2. 사용하기로 했다면, 요청 사항에 맞춰 브런치 에세이 특유의 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.
+3. 출력 형식:
+- 채택 판단 코멘트(1줄)
+- [수정 완성 단락]`;
+
+        const aiRefinedEl = $('aiRefinedText');
+        aiRefinedEl.value = "AI 검토 및 퇴고 중입니다...";
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                aiRefinedEl.value = data.candidates[0].content.parts[0].text;
+                handleFieldInput('aiRefined');
+            } else {
+                aiRefinedEl.value = "수정안 생성에 실패했습니다.";
+                console.error(data);
+            }
+        } catch (err) {
+            console.error(err);
+            aiRefinedEl.value = "통신 중 오류가 발생했습니다.";
+        }
+    }
 </script>
 </body>
 </html>
+ 
