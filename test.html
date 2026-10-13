@@ -1,10 +1,10 @@
-<!-- v1.0: '작성 글 목록' 및 '글의 구성' 독립 검증용 경량 테스트 모듈 -->
+<!-- v1.1: 정사각형 토글 버튼, 숨김시 복사버튼 은닉, 취소버튼 하단배치, 자동높이확장, 상황 3단계(완료 추가) 및 분류 동적 필터 적용 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 & 글의 구성 테스트 - v1.0</title>
+    <title>글 목록 & 글의 구성 테스트 - v1.1</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -68,21 +68,23 @@
             border: 1px solid #bfdbfe;
         }
 
-        /* 공통 헤더 [−] / [+] 토글 버튼 및 숨김 뱃지 */
+        /* 정사각형 토글 미니 버튼 */
         .btn-section-toggle {
+            width: 18px;
+            height: 18px;
             background: #ffffff;
             border: 1px solid var(--border-color);
             color: #334155;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 700;
             font-family: monospace;
             cursor: pointer;
-            padding: 1px 5px;
             border-radius: 3px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
+            padding: 0;
             transition: all 0.15s ease;
         }
         .btn-section-toggle:hover {
@@ -147,6 +149,8 @@
             align-items: center;
             padding-bottom: 3px;
             border-bottom: 1px solid var(--border-light);
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .post-list-title {
@@ -158,7 +162,19 @@
             gap: 5px;
         }
 
-        .select-status {
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .select-filter {
             padding: 2px 4px;
             font-size: 0.76rem;
             border: 1px solid var(--border-color);
@@ -210,10 +226,22 @@
         .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
         .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
+        .post-category-tag {
+            font-size: 0.7rem;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 1px 4px;
+            border-radius: 2px;
+            border: 1px solid #e2e8f0;
+            margin-right: 2px;
+            flex-shrink: 0;
+        }
+
         .post-row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
         .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
+        /* 상황 토글 버튼 3종 스타일 */
         .btn-status-toggle {
             flex-shrink: 0;
             padding: 1px 5px;
@@ -226,9 +254,25 @@
             transition: all 0.1s ease;
             margin-left: 6px;
         }
-        .btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+        .btn-status-toggle.status-writing {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-color: #bae6fd;
+        }
         .btn-status-toggle.status-writing:hover { background: #bae6fd; }
-        .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+
+        .btn-status-toggle.status-done {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #bbf7d0;
+        }
+        .btn-status-toggle.status-done:hover { background: #bbf7d0; }
+
+        .btn-status-toggle.status-plan {
+            background: #fef3c7;
+            color: #b45309;
+            border-color: #fde68a;
+        }
         .btn-status-toggle.status-plan:hover { background: #fde68a; }
         /* === [MODULE-STYLE-END: post-list] === */
 
@@ -262,7 +306,7 @@
         .editor-content-wrap {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 4px;
         }
 
         textarea.flat-textarea {
@@ -274,7 +318,8 @@
             border-radius: 4px;
             background: #ffffff;
             outline: none;
-            resize: vertical;
+            resize: none; /* 세로 늘림은 자동 크기 조절로 처리 */
+            overflow-y: hidden;
             font-family: inherit;
         }
         textarea.flat-textarea:focus {
@@ -284,10 +329,12 @@
 
         #essayOutline { font-size: 0.85rem; letter-spacing: -0.01em; }
 
-        .restore-group {
+        .outline-bottom-toolbar {
             display: flex;
-            gap: 3px;
-            margin-left: auto;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 2px;
         }
 
         .btn-restore-icon {
@@ -296,7 +343,7 @@
             color: #475569;
             font-size: 0.7rem;
             font-weight: 600;
-            padding: 1px 6px;
+            padding: 2px 6px;
             border-radius: 3px;
             cursor: pointer;
             display: inline-flex;
@@ -323,7 +370,7 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.0</span></h1>
+        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.1</span></h1>
         <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 검증</span>
     </div>
 
@@ -331,17 +378,26 @@
     <div id="sec_postList" class="post-list-box">
         <div id="hdr_postList" class="post-list-header">
             <div class="post-list-title">
-                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">[−]</button>
+                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
                 <span>작성 글 목록</span>
                 <span id="badge_postList" class="badge-collapsed">숨김</span>
             </div>
-            <div>
-                <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
-                <select id="statusFilter" class="select-status" onchange="renderPostList()">
-                    <option value="전체" selected>전체</option>
-                    <option value="작성">작성</option>
-                    <option value="예정">예정</option>
-                </select>
+            <div class="filter-controls">
+                <div class="filter-item">
+                    <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
+                    <select id="statusFilter" class="select-filter" onchange="renderPostList()">
+                        <option value="전체" selected>전체</option>
+                        <option value="작성">작성</option>
+                        <option value="완료">완료</option>
+                        <option value="예정">예정</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
+                    <select id="categoryFilter" class="select-filter" onchange="renderPostList()">
+                        <option value="전체" selected>전체</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div id="body_postList" class="post-list-rows">
@@ -354,18 +410,18 @@
     <div id="sec_outline" class="editor-section">
         <div id="hdr_outline" class="section-header-line">
             <div class="section-header-left">
-                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">[−]</button>
+                <button type="button" id="arrow_outline" class="btn-section-toggle" onclick="toggleSection('outline')" title="열림/숨김">−</button>
                 <span class="section-title">글의 구성</span>
                 <span id="badge_outline" class="badge-collapsed">숨김</span>
-                <button type="button" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
             </div>
-            <div class="restore-group">
+            <button type="button" id="copyBtn_outline" class="btn-copy" onclick="copyContent('essayOutline', this)">📋 복사</button>
+        </div>
+        <div id="body_outline" class="editor-content-wrap">
+            <textarea id="essayOutline" class="flat-textarea" rows="3" placeholder="글의 구성을 입력하세요 (● 기호 자동 줄바꿈 지원)" onkeydown="handleBulletEnter(event, this)" oninput="handleOutlineInput()"></textarea>
+            <div class="outline-bottom-toolbar">
                 <button type="button" class="btn-restore-icon" onclick="undoOutline()">↺ 취소</button>
                 <button type="button" class="btn-restore-icon" onclick="restoreSavedOutline()">⟲ 최근 저장 상태로</button>
             </div>
-        </div>
-        <div id="body_outline" class="editor-content-wrap">
-            <textarea id="essayOutline" class="flat-textarea" style="min-height: 80px;" placeholder="글의 구성을 입력하세요 (● 기호 자동 줄바꿈 지원)" onkeydown="handleBulletEnter(event, this)" oninput="handleOutlineInput()"></textarea>
         </div>
     </div>
     <!-- === [MODULE-HTML-END: outline] === -->
@@ -383,31 +439,34 @@
         el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
     }
 
-    // [−] / [+] 토글 로직
+    // 정사각형 토글 로직 및 숨김 시 기능 버튼 은닉
     function toggleSection(key) {
         const bodyEl = $(`body_${key}`);
         const arrow = $(`arrow_${key}`);
         const badge = $(`badge_${key}`);
         const hdr = $(`hdr_${key}`);
+        const copyBtn = $(`copyBtn_${key}`);
         if (!bodyEl) return;
 
         const isClosed = bodyEl.style.display === 'none';
         if (isClosed) {
             bodyEl.style.display = 'flex';
             if (arrow) {
-                arrow.innerText = '[−]';
+                arrow.innerText = '−';
                 arrow.classList.remove('is-closed');
             }
             if (badge) badge.classList.remove('show');
             if (hdr) hdr.classList.remove('header-collapsed-line');
+            if (copyBtn) copyBtn.style.display = 'inline-flex';
         } else {
             bodyEl.style.display = 'none';
             if (arrow) {
-                arrow.innerText = '[+]';
+                arrow.innerText = '+';
                 arrow.classList.add('is-closed');
             }
             if (badge) badge.classList.add('show');
             if (hdr) hdr.classList.add('header-collapsed-line');
+            if (copyBtn) copyBtn.style.display = 'none';
         }
     }
 
@@ -428,6 +487,13 @@
         });
     }
 
+    // 텍스트 영역 자동 높이 조절
+    function autoResizeTextarea(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.max(textarea.scrollHeight, 70)}px`;
+    }
+
     // === [MODULE-SCRIPT: post-list] ===
     let currentPostId = null;
     let currentPostStatus = "작성";
@@ -443,6 +509,7 @@
         if (cached) {
             try {
                 postListCache = JSON.parse(cached);
+                populateCategoryFilter();
                 renderPostList();
                 log(`캐시 목록 ${postListCache.length}개 로드`);
             } catch (e) {
@@ -459,6 +526,7 @@
             if (response && response.status === "success" && response.data) {
                 postListCache = response.data;
                 localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+                populateCategoryFilter();
                 renderPostList();
                 log(`시트 동기화 완료: ${postListCache.length}개`);
             }
@@ -470,15 +538,46 @@
         document.body.appendChild(script);
     }
 
+    // 시트에서 고유 '분류' 값 추출하여 드롭다운 구성
+    function populateCategoryFilter() {
+        const select = $('categoryFilter');
+        const currentVal = select.value;
+        const categories = new Set();
+
+        postListCache.forEach(item => {
+            const cat = (item.분류 || item.category || '').trim();
+            if (cat) categories.add(cat);
+        });
+
+        select.innerHTML = '<option value="전체">전체</option>';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            select.appendChild(opt);
+        });
+
+        if (Array.from(categories).includes(currentVal)) {
+            select.value = currentVal;
+        } else {
+            select.value = '전체';
+        }
+    }
+
     function renderPostList() {
         const grid = $('body_postList');
-        const filter = $('statusFilter').value;
+        const statusFilter = $('statusFilter').value;
+        const categoryFilter = $('categoryFilter').value;
         grid.innerHTML = '';
 
         const filtered = postListCache.filter(item => {
             const itemStatus = (item.상황 || item.status || '작성').trim();
-            if (filter === '전체') return true;
-            return itemStatus === filter;
+            const itemCategory = (item.분류 || item.category || '').trim();
+
+            const matchStatus = (statusFilter === '전체') || (itemStatus === statusFilter);
+            const matchCategory = (categoryFilter === '전체') || (itemCategory === categoryFilter);
+
+            return matchStatus && matchCategory;
         });
 
         if (filtered.length === 0) {
@@ -490,20 +589,28 @@
             const postId = post.ID || post.id || '';
             const postTitle = post.제목 || post.title || '(제목 없음)';
             const postStatus = (post.상황 || post.status || '작성').trim();
+            const postCategory = (post.분류 || post.category || '').trim();
 
             const row = document.createElement('div');
             row.className = `post-row-item ${currentPostId === postId ? 'active' : ''}`;
 
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
-            titleArea.innerHTML = `<span class="bullet-point">•</span><span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
+
+            let categoryTagHtml = postCategory ? `<span class="post-category-tag">${postCategory}</span>` : '';
+            titleArea.innerHTML = `<span class="bullet-point">•</span>${categoryTagHtml}<span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
+
+            // 상태 3종 클래스 분기
+            let statusClass = 'status-writing';
+            if (postStatus === '완료') statusClass = 'status-done';
+            else if (postStatus === '예정') statusClass = 'status-plan';
 
             const statusBtn = document.createElement('button');
             statusBtn.type = 'button';
-            statusBtn.className = `btn-status-toggle ${postStatus === '작성' ? 'status-writing' : 'status-plan'}`;
+            statusBtn.className = `btn-status-toggle ${statusClass}`;
             statusBtn.innerText = postStatus;
-            statusBtn.title = `클릭 시 '${postStatus === '작성' ? '예정' : '작성'}'으로 변경`;
+            statusBtn.title = "클릭 시 다음 상황으로 변경 (작성 -> 완료 -> 예정)";
             statusBtn.onclick = (e) => {
                 e.stopPropagation();
                 togglePostStatus(post);
@@ -515,9 +622,13 @@
         });
     }
 
+    // 3단계 순환 토글 (작성 -> 완료 -> 예정 -> 작성)
     function togglePostStatus(post) {
         const current = (post.상황 || post.status || '작성').trim();
-        const nextStatus = (current === '작성') ? '예정' : '작성';
+        let nextStatus = '작성';
+        if (current === '작성') nextStatus = '완료';
+        else if (current === '완료') nextStatus = '예정';
+        else if (current === '예정') nextStatus = '작성';
 
         post.상황 = nextStatus;
         post.status = nextStatus;
@@ -538,6 +649,7 @@
                 ID: post.ID || post.id,
                 id: post.ID || post.id,
                 status: nextStatus,
+                category: post.분류 || post.category || '',
                 title: post.제목 || post.title || '',
                 outline: post.글의구성 || post.outline || ''
             })
@@ -548,14 +660,16 @@
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        // 선택된 글의 구성을 글의 구성 창에 매핑
+        // 선택된 글의 구성을 글의 구성 창에 매핑 및 자동 높이 계산
         const outlineText = post.글의구성 || post.outline || '';
-        $('essayOutline').value = outlineText;
+        const textarea = $('essayOutline');
+        textarea.value = outlineText;
         outlineSaved = outlineText;
         outlineHistory = [outlineText];
+        autoResizeTextarea(textarea);
 
         renderPostList();
-        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 로드됨`);
+        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 연동 완료`);
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 
@@ -564,28 +678,34 @@
     let outlineHistory = [''];
 
     function handleOutlineInput() {
-        const val = $('essayOutline').value;
+        const textarea = $('essayOutline');
+        const val = textarea.value;
         if (outlineHistory[outlineHistory.length - 1] !== val) {
             outlineHistory.push(val);
             if (outlineHistory.length > 50) outlineHistory.shift();
         }
+        autoResizeTextarea(textarea);
     }
 
     function undoOutline() {
         if (outlineHistory.length > 1) {
             outlineHistory.pop();
-            $('essayOutline').value = outlineHistory[outlineHistory.length - 1];
+            const textarea = $('essayOutline');
+            textarea.value = outlineHistory[outlineHistory.length - 1];
+            autoResizeTextarea(textarea);
         } else {
             alert('되돌릴 이전 입력 내용이 없습니다.');
         }
     }
 
     function restoreSavedOutline() {
-        if ($('essayOutline').value === outlineSaved) {
+        const textarea = $('essayOutline');
+        if (textarea.value === outlineSaved) {
             return alert('이미 최근 저장된 상태와 동일합니다.');
         }
         outlineHistory.push(outlineSaved);
-        $('essayOutline').value = outlineSaved;
+        textarea.value = outlineSaved;
+        autoResizeTextarea(textarea);
     }
 
     function handleBulletEnter(e, textarea) {
@@ -603,6 +723,7 @@
                     const after = value.substring(end);
                     textarea.value = before + after;
                     textarea.selectionStart = textarea.selectionEnd = lineStart;
+                    autoResizeTextarea(textarea);
                     return;
                 }
                 const bullet = '\n● ';
