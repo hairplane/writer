@@ -573,7 +573,7 @@
     const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
     const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
     const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
-    const $ = id => document.getElementById(id);
+    const $ = function(id) { return document.getElementById(id); };
 
     let isDirty = false;
     let isPersonalWaitState = false;
@@ -596,7 +596,7 @@
 
     const fieldMap = {};
     const fieldState = {};
-    SECTION_CONFIGS.forEach(c => { fieldMap[c.key] = c.id; });
+    SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
 
     // 7개 집필 창 동적 생성 (컴포넌트 빌더 루프)
     function buildEditorSections() {
@@ -604,56 +604,49 @@
         const apiBox = $('sec_api');
         container.innerHTML = '';
 
-        SECTION_CONFIGS.forEach(cfg => {
+        SECTION_CONFIGS.forEach(function(cfg) {
             const sec = document.createElement('div');
-            sec.id = `sec_${cfg.key}`;
+            sec.id = 'sec_' + cfg.key;
             sec.className = 'editor-section';
 
             // 헤더 조립
             const hdr = document.createElement('div');
-            hdr.id = `hdr_${cfg.key}`;
+            hdr.id = 'hdr_' + cfg.key;
             hdr.className = 'section-header-line';
 
             let extraAiButtons = '';
             if (cfg.isAi) {
-                extraAiButtons = `
-                    <button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>
-                    <button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>
-                `;
+                extraAiButtons = '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
+                                 '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
             }
 
-            hdr.innerHTML = `
-                <div class="section-header-left">
-                    <button type="button" id="arrow_${cfg.key}" class="btn-section-toggle" onclick="toggleSection('${cfg.key}')" title="열림/숨김">−</button>
-                    <span class="section-title">${cfg.title}</span>
-                    <span id="badge_${cfg.key}" class="badge-collapsed">숨김</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button type="button" id="copyBtn_${cfg.key}" class="btn-copy" onclick="copyContent('${cfg.id}', this)">📋 복사</button>
-                    ${extraAiButtons}
-                </div>
-            `;
+            hdr.innerHTML = '<div class="section-header-left">' +
+                '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
+                '<span class="section-title">' + cfg.title + '</span>' +
+                '<span id="badge_' + cfg.key + '" class="badge-collapsed">숨김</span>' +
+                '</div>' +
+                '<div style="display:flex; align-items:center; gap:4px;">' +
+                '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
+                extraAiButtons +
+                '</div>';
 
             // 본문 조립
             const body = document.createElement('div');
-            body.id = `body_${cfg.key}`;
+            body.id = 'body_' + cfg.key;
             body.className = 'editor-content-wrap';
 
             const bgStyle = cfg.isAi ? 'background-color: #f8fafc;' : '';
-            const bulletAttr = cfg.bullet ? `onkeydown="handleBulletEnter(event, this)"` : '';
+            const bulletAttr = cfg.bullet ? 'onkeydown="handleBulletEnter(event, this)"' : '';
+            const statHtml = cfg.stat ? '<span class="stat-info" id="stat_' + cfg.key + '">0자</span>' : '<span></span>';
 
-            let statHtml = cfg.stat ? `<span class="stat-info" id="stat_${cfg.key}">0자</span>` : `<span></span>`;
-
-            body.innerHTML = `
-                <textarea id="${cfg.id}" class="flat-textarea" style="min-height:${cfg.minH}px; ${bgStyle}" ${bulletAttr} oninput="handleFieldInput('${cfg.key}')"></textarea>
-                <div class="editor-bottom-toolbar">
-                    ${statHtml}
-                    <div class="restore-group">
-                        <button type="button" class="btn-restore-icon" onclick="undoField('${cfg.key}')">↺ 취소</button>
-                        <button type="button" class="btn-restore-icon" onclick="restoreSaved('${cfg.key}')">⟲ 최근 저장 상태로</button>
-                    </div>
-                </div>
-            `;
+            body.innerHTML = '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
+                '<div class="editor-bottom-toolbar">' +
+                statHtml +
+                '<div class="restore-group">' +
+                '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
+                '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
+                '</div>' +
+                '</div>';
 
             sec.appendChild(hdr);
             sec.appendChild(body);
@@ -669,7 +662,7 @@
     /* ==========================================================================
        초기화 및 공통 이벤트
        ========================================================================== */
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', function() {
         buildEditorSections();
         initFieldStates();
         loadSavedData();
@@ -678,42 +671,42 @@
         loadCachedPosts();
         fetchSheetPosts();
 
-        window.onclick = (e) => {
+        window.onclick = function(e) {
             if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
-                document.querySelectorAll(".dropdown-content.show").forEach(el => el.classList.remove('show'));
+                document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
+                    el.classList.remove('show');
+                });
             }
         };
     });
 
     function markDirty() { isDirty = true; }
 
-    // 자동 높이 조절 엔진
-    function autoResizeTextarea(textarea, minH = 50) {
+    function autoResizeTextarea(textarea, minH) {
         if (!textarea) return;
+        const baseH = minH || 50;
         textarea.style.height = 'auto';
-        textarea.style.height = `${Math.max(textarea.scrollHeight, minH)}px`;
+        textarea.style.height = Math.max(textarea.scrollHeight, baseH) + 'px';
     }
 
-    // 클립보드 복사 엔진
     function copyContent(elementId, btn) {
         const el = $(elementId);
         if (!el || !el.value.trim()) return alert('복사할 내용이 없습니다.');
-        navigator.clipboard.writeText(el.value).then(() => {
+        navigator.clipboard.writeText(el.value).then(function() {
             const originalText = btn.innerText;
             btn.innerText = '✓ 복사됨';
             btn.style.color = '#16a34a';
-            setTimeout(() => { btn.innerText = originalText; btn.style.color = ''; }, 1500);
+            setTimeout(function() { btn.innerText = originalText; btn.style.color = ''; }, 1500);
         });
     }
 
-    // 정사각형 토글 및 버튼 자동 은닉 엔진
     function toggleSection(key) {
-        const bodyEl = $(`body_${key}`);
-        const dot = $(`dot_${key}`);
-        const arrow = $(`arrow_${key}`);
-        const badge = $(`badge_${key}`);
-        const hdr = $(`hdr_${key}`);
-        const copyBtn = $(`copyBtn_${key}`);
+        const bodyEl = $('body_' + key);
+        const dot = $('dot_' + key);
+        const arrow = $('arrow_' + key);
+        const badge = $('badge_' + key);
+        const hdr = $('hdr_' + key);
+        const copyBtn = $('copyBtn_' + key);
         if (!bodyEl) return;
 
         const isClosed = bodyEl.style.display === 'none';
@@ -763,7 +756,7 @@
 
         const script = document.createElement('script');
         script.id = 'gas_jsonp_script';
-        script.src = `${GAS_ENDPOINT}?callback=handleGasResponse&_t=${new Date().getTime()}`;
+        script.src = GAS_ENDPOINT + '?callback=handleGasResponse&_t=' + new Date().getTime();
         document.body.appendChild(script);
     }
 
@@ -772,13 +765,13 @@
         const currentVal = select.value;
         const categories = new Set();
 
-        postListCache.forEach(item => {
+        postListCache.forEach(function(item) {
             const cat = (item.분류 || item.category || '').trim();
             if (cat) categories.add(cat);
         });
 
         select.innerHTML = '<option value="전체">전체</option>';
-        categories.forEach(cat => {
+        categories.forEach(function(cat) {
             const opt = document.createElement('option');
             opt.value = cat;
             opt.innerText = cat;
@@ -790,7 +783,6 @@
 
     function handleFilterChange() {
         currentPostId = null;
-        // 글의 구성 초기화
         const outlineEl = $('essayOutline');
         if (outlineEl) {
             outlineEl.value = '';
@@ -806,7 +798,7 @@
         const categoryFilter = $('categoryFilter').value;
         grid.innerHTML = '';
 
-        const filtered = postListCache.filter(item => {
+        const filtered = postListCache.filter(function(item) {
             const itemStatus = (item.상황 || item.status || '작성').trim();
             const itemCategory = (item.분류 || item.category || '').trim();
             const matchStatus = (statusFilter === '전체') || (itemStatus === statusFilter);
@@ -819,37 +811,33 @@
             return;
         }
 
-        filtered.forEach(post => {
+        filtered.forEach(function(post) {
             const postId = post.ID || post.id || '';
             const postTitle = post.제목 || post.title || '(제목 없음)';
             const postStatus = (post.상황 || post.status || '작성').trim();
             const postCategory = (post.분류 || post.category || '').trim();
 
             const row = document.createElement('div');
-            row.className = `post-row-item ${currentPostId === postId ? 'active' : ''}`;
+            row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
 
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
 
-            // 불릿 제거 + 고정폭 슬림 텍스트 열
-            let categoryText = postCategory || '-';
-            titleArea.innerHTML = `
-                <span class="post-category-tag" title="${categoryText}">${categoryText}</span>
-                <span class="post-row-title" title="${postTitle}">${postTitle}</span>
-            `;
-            titleArea.onclick = () => selectPost(post);
+            const categoryText = postCategory || '-';
+            titleArea.innerHTML = '<span class="post-category-tag" title="' + categoryText + '">' + categoryText + '</span>' +
+                                  '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
+            titleArea.onclick = function() { selectPost(post); };
 
-            // 상황 3단 토글 클래스
             let statusClass = 'status-writing';
             if (postStatus === '완료') statusClass = 'status-done';
             else if (postStatus === '예정') statusClass = 'status-plan';
 
             const statusBtn = document.createElement('button');
             statusBtn.type = 'button';
-            statusBtn.className = `btn-status-toggle ${statusClass}`;
+            statusBtn.className = 'btn-status-toggle ' + statusClass;
             statusBtn.innerText = postStatus;
             statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
-            statusBtn.onclick = (e) => {
+            statusBtn.onclick = function(e) {
                 e.stopPropagation();
                 togglePostStatus(post);
             };
@@ -860,7 +848,6 @@
         });
     }
 
-    // 상황 3단계 순환 토글 (작성 -> 완료 -> 예정)
     function togglePostStatus(post) {
         const current = (post.상황 || post.status || '작성').trim();
         let nextStatus = '작성';
@@ -922,7 +909,7 @@
     }
 
     function resizeAllTextareas() {
-        SECTION_CONFIGS.forEach(cfg => {
+        SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             if (el) autoResizeTextarea(el, cfg.minH);
         });
@@ -932,7 +919,7 @@
        복원(Undo) 스택 및 편집 제어
        ========================================================================== */
     function initFieldStates() {
-        SECTION_CONFIGS.forEach(cfg => {
+        SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             const val = el ? el.value : '';
             fieldState[cfg.key] = { currentSaved: val, history: [val] };
@@ -941,7 +928,7 @@
 
     function handleFieldInput(key) {
         markDirty();
-        const cfg = SECTION_CONFIGS.find(c => c.key === key);
+        const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
         const el = $(cfg.id);
         if (!el) return;
 
@@ -956,7 +943,7 @@
     }
 
     function undoField(key) {
-        const cfg = SECTION_CONFIGS.find(c => c.key === key);
+        const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
         const el = $(cfg.id);
         if (!el || !fieldState[key]) return;
         const stack = fieldState[key].history;
@@ -972,7 +959,7 @@
     }
 
     function restoreSaved(key) {
-        const cfg = SECTION_CONFIGS.find(c => c.key === key);
+        const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
         const el = $(cfg.id);
         if (!el || !fieldState[key]) return;
         const targetVal = fieldState[key].currentSaved;
@@ -1010,36 +997,36 @@
     }
 
     function updateStat(key, text) {
-        const cfg = SECTION_CONFIGS.find(c => c.key === key);
+        const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
         if (!cfg || !cfg.stat) return;
-        const statEl = $(`stat_${key}`);
+        const statEl = $('stat_' + key);
         if (!statEl) return;
 
         const len = text.length;
         if (cfg.readTime) {
             const readingTime = Math.ceil(len / 400);
-            statEl.innerText = `${len.toLocaleString()}자 (약 ${readingTime}분)`;
+            statEl.innerText = len.toLocaleString() + '자 (약 ' + readingTime + '분)';
         } else {
-            statEl.innerText = `${len.toLocaleString()}자`;
+            statEl.innerText = len.toLocaleString() + '자';
         }
     }
 
     function updateAllStats() {
-        SECTION_CONFIGS.forEach(cfg => {
+        SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             if (el) updateStat(cfg.key, el.value);
         });
     }
 
     function appendDraftToCompleted() {
-        const textToAppend = $('aiRefinedText').value.trim() \vert{}\vert{}$('newDraftText').value.trim();
+        const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
         if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
 
         const completedEl = $('completedText');
         completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
         handleFieldInput('completed');
 
-        ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(k => {
+        ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(function(k) {
             const el = $(fieldMap[k]);
             if (el) { el.value = ''; handleFieldInput(k); }
         });
@@ -1076,7 +1063,7 @@
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        SECTION_CONFIGS.forEach(cfg => {
+        SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             if (el && fieldState[cfg.key]) fieldState[cfg.key].currentSaved = el.value;
         });
@@ -1088,7 +1075,7 @@
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
-            }).then(() => { fetchSheetPosts(); });
+            }).then(function() { fetchSheetPosts(); });
         } catch (err) {
             console.error("구글 시트 저장 통신 오류:", err);
         }
@@ -1112,7 +1099,7 @@
             if (data.endDate) $('postEndDate').value = data.endDate;
             if (data.summary) $('postSummary').value = data.summary;
 
-            SECTION_CONFIGS.forEach(cfg => {
+            SECTION_CONFIGS.forEach(function(cfg) {
                 if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
             });
             initFieldStates();
@@ -1262,33 +1249,22 @@
 
         if (!newDraft) return alert('신규 글을 먼저 작성해주세요.');
 
-        const prompt = `당신은 유려한 감성과 논리적인 구조를 겸비한 전문 글쓰기 편집자이자 라이팅 코치입니다.
-다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.
-
-[이제까지 작성 완료된 글]:
-${completed || "(첫 단락입니다)"}
-
-[신규 작성한 글]:
-${newDraft}
-
-[글의 의도]:
-${intent || "(별도 의도 없음)"}
-
-[AI에게 바라는 구체적 요청 사항]:
-${promptReq || "(기본 자연스러운 흐름 퇴고 요망)"}
-
-[수정 가이드]:
-1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.
-2. 사용하기로 했다면, 요청 사항에 맞춰 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.
-3. 출력 형식:
-- 채택 판단 코멘트(1줄)
-- [수정 완성 단락]`;
+        const prompt = "당신은 유려한 감성과 논리적인 구조를 겸비한 전문 글쓰기 편집자이자 라이팅 코치입니다.\n" +
+            "다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.\n\n" +
+            "[이제까지 작성 완료된 글]:\n" + (completed || "(첫 단락입니다)") + "\n\n" +
+            "[신규 작성한 글]:\n" + newDraft + "\n\n" +
+            "[글의 의도]:\n" + (intent || "(별도 의도 없음)") + "\n\n" +
+            "[AI에게 바라는 구체적 요청 사항]:\n" + (promptReq || "(기본 자연스러운 흐름 퇴고 요망)") + "\n\n" +
+            "[수정 가이드]:\n" +
+            "1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.\n" +
+            "2. 사용하기로 했다면, 요청 사항에 맞춰 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.\n" +
+            "3. 출력 형식:\n- 채택 판단 코멘트(1줄)\n- [수정 완성 단락]";
 
         const aiRefinedEl = $('aiRefinedText');
         aiRefinedEl.value = "AI 검토 및 퇴고 중입니다...";
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
