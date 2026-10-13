@@ -1,10 +1,10 @@
-<!-- v1.1: 정사각형 토글 버튼, 숨김시 복사버튼 은닉, 취소버튼 하단배치, 자동높이확장, 상황 3단계(완료 추가) 및 분류 동적 필터 적용 -->
+<!-- v1.2: 분류 태그 너비 고정(제목 시작위치 일렬정렬), 분류 드롭다운 타이틀 옆 배치, 글 선택 시 글의구성 완벽 연동 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 & 글의 구성 테스트 - v1.1</title>
+    <title>글 목록 & 글의 구성 테스트 - v1.2</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -153,6 +153,12 @@
             gap: 6px;
         }
 
+        .post-list-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .post-list-title {
             font-size: 0.86rem;
             font-weight: 700;
@@ -162,13 +168,13 @@
             gap: 5px;
         }
 
-        .filter-controls {
+        .category-filter-wrap {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 3px;
         }
 
-        .filter-item {
+        .status-filter-wrap {
             display: flex;
             align-items: center;
             gap: 3px;
@@ -214,7 +220,7 @@
         .post-row-title-area {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             cursor: pointer;
             white-space: nowrap;
             font-size: 0.82rem;
@@ -226,22 +232,33 @@
         .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
         .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
+        /* 분류 태그 너비 고정: 제목 시작 위치 정렬 */
         .post-category-tag {
-            font-size: 0.7rem;
-            color: #64748b;
+            display: inline-block;
+            width: 62px;
+            text-align: center;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #475569;
             background: #f1f5f9;
-            padding: 1px 4px;
-            border-radius: 2px;
+            padding: 1px 0;
+            border-radius: 3px;
             border: 1px solid #e2e8f0;
-            margin-right: 2px;
             flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .post-row-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+        .post-row-title {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
-        /* 상황 토글 버튼 3종 스타일 */
+        /* 상황 토글 버튼 스타일 */
         .btn-status-toggle {
             flex-shrink: 0;
             padding: 1px 5px;
@@ -318,7 +335,7 @@
             border-radius: 4px;
             background: #ffffff;
             outline: none;
-            resize: none; /* 세로 늘림은 자동 크기 조절로 처리 */
+            resize: none;
             overflow-y: hidden;
             font-family: inherit;
         }
@@ -370,34 +387,37 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.1</span></h1>
+        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.2</span></h1>
         <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 검증</span>
     </div>
 
     <!-- === [MODULE-HTML: post-list] === -->
     <div id="sec_postList" class="post-list-box">
         <div id="hdr_postList" class="post-list-header">
-            <div class="post-list-title">
-                <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
-                <span>작성 글 목록</span>
-                <span id="badge_postList" class="badge-collapsed">숨김</span>
-            </div>
-            <div class="filter-controls">
-                <div class="filter-item">
-                    <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
-                    <select id="statusFilter" class="select-filter" onchange="renderPostList()">
-                        <option value="전체" selected>전체</option>
-                        <option value="작성">작성</option>
-                        <option value="완료">완료</option>
-                        <option value="예정">예정</option>
-                    </select>
+            <!-- 2. '분류' 드롭다운을 '작성 글 목록' 바로 옆으로 배치 -->
+            <div class="post-list-title-wrap">
+                <div class="post-list-title">
+                    <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
+                    <span>작성 글 목록</span>
+                    <span id="badge_postList" class="badge-collapsed">숨김</span>
                 </div>
-                <div class="filter-item">
+                <div class="category-filter-wrap">
                     <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
                     <select id="categoryFilter" class="select-filter" onchange="renderPostList()">
                         <option value="전체" selected>전체</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- 우측 끝: '상황' 필터 -->
+            <div class="status-filter-wrap">
+                <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
+                <select id="statusFilter" class="select-filter" onchange="renderPostList()">
+                    <option value="전체" selected>전체</option>
+                    <option value="작성">작성</option>
+                    <option value="완료">완료</option>
+                    <option value="예정">예정</option>
+                </select>
             </div>
         </div>
         <div id="body_postList" class="post-list-rows">
@@ -439,7 +459,7 @@
         el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
     }
 
-    // 정사각형 토글 로직 및 숨김 시 기능 버튼 은닉
+    // 정사각형 토글 로직
     function toggleSection(key) {
         const bodyEl = $(`body_${key}`);
         const arrow = $(`arrow_${key}`);
@@ -491,7 +511,7 @@
     function autoResizeTextarea(textarea) {
         if (!textarea) return;
         textarea.style.height = 'auto';
-        textarea.style.height = `${Math.max(textarea.scrollHeight, 70)}px`;
+        textarea.style.height = `${Math.max(textarea.scrollHeight, 72)}px`;
     }
 
     // === [MODULE-SCRIPT: post-list] ===
@@ -538,7 +558,7 @@
         document.body.appendChild(script);
     }
 
-    // 시트에서 고유 '분류' 값 추출하여 드롭다운 구성
+    // '분류' 고유값 추출하여 드롭다운 구성
     function populateCategoryFilter() {
         const select = $('categoryFilter');
         const currentVal = select.value;
@@ -597,11 +617,11 @@
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
 
-            let categoryTagHtml = postCategory ? `<span class="post-category-tag">${postCategory}</span>` : '';
+            // 고정 너비 태그 (없더라도 동일한 여백 유지)
+            let categoryTagHtml = `<span class="post-category-tag" title="${postCategory || '미분류'}">${postCategory || '-'}</span>`;
             titleArea.innerHTML = `<span class="bullet-point">•</span>${categoryTagHtml}<span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
 
-            // 상태 3종 클래스 분기
             let statusClass = 'status-writing';
             if (postStatus === '완료') statusClass = 'status-done';
             else if (postStatus === '예정') statusClass = 'status-plan';
@@ -610,7 +630,7 @@
             statusBtn.type = 'button';
             statusBtn.className = `btn-status-toggle ${statusClass}`;
             statusBtn.innerText = postStatus;
-            statusBtn.title = "클릭 시 다음 상황으로 변경 (작성 -> 완료 -> 예정)";
+            statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
             statusBtn.onclick = (e) => {
                 e.stopPropagation();
                 togglePostStatus(post);
@@ -622,7 +642,6 @@
         });
     }
 
-    // 3단계 순환 토글 (작성 -> 완료 -> 예정 -> 작성)
     function togglePostStatus(post) {
         const current = (post.상황 || post.status || '작성').trim();
         let nextStatus = '작성';
@@ -651,17 +670,19 @@
                 status: nextStatus,
                 category: post.분류 || post.category || '',
                 title: post.제목 || post.title || '',
-                outline: post.글의구성 || post.outline || ''
+                outline: post.글의구성 || post['글의 구성'] || post.outline || ''
             })
         });
     }
 
+    // 글 선택 시 '글의 구성' 내용 시트 데이터로부터 매핑
     function selectPost(post) {
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        // 선택된 글의 구성을 글의 구성 창에 매핑 및 자동 높이 계산
-        const outlineText = post.글의구성 || post.outline || '';
+        // 시트 헤더 공백/명칭 다각도 탐색
+        const outlineText = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
+
         const textarea = $('essayOutline');
         textarea.value = outlineText;
         outlineSaved = outlineText;
@@ -669,7 +690,7 @@
         autoResizeTextarea(textarea);
 
         renderPostList();
-        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 연동 완료`);
+        log(`선택됨: "${post.제목 || post.title}" (ID: ${currentPostId}) | 구성 연동 (${outlineText.length}자)`);
     }
     // === [MODULE-SCRIPT-END: post-list] ===
 
