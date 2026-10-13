@@ -1,10 +1,10 @@
-<!-- v1.2: 분류 태그 너비 고정(제목 시작위치 일렬정렬), 분류 드롭다운 타이틀 옆 배치, 글 선택 시 글의구성 완벽 연동 -->
+<!-- v1.3: 분류 태그 스타일 개선(순백 배경/선명한 테두리), 필터 변경 시 글의 구성 창 자동 초기화 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글 목록 & 글의 구성 테스트 - v1.2</title>
+    <title>글 목록 & 글의 구성 테스트 - v1.3</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -232,18 +232,19 @@
         .bullet-point { color: #94a3b8; font-size: 0.75rem; user-select: none; }
         .post-row-item.active .bullet-point { color: var(--primary); font-weight: 900; }
 
-        /* 분류 태그 너비 고정: 제목 시작 위치 정렬 */
+        /* 선명하고 정돈된 순백 배경의 분류 태그 */
         .post-category-tag {
             display: inline-block;
             width: 62px;
             text-align: center;
             font-size: 0.68rem;
             font-weight: 600;
-            color: #475569;
-            background: #f1f5f9;
+            color: #334155;
+            background: #ffffff;
             padding: 1px 0;
             border-radius: 3px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
             flex-shrink: 0;
             white-space: nowrap;
             overflow: hidden;
@@ -387,14 +388,13 @@
 
 <div class="container">
     <div class="test-header">
-        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.2</span></h1>
+        <h1>글 목록 & 글의 구성 테스트 <span class="version-badge">v1.3</span></h1>
         <span style="font-size: 0.75rem; color: #64748b;">초경량 독립 검증</span>
     </div>
 
     <!-- === [MODULE-HTML: post-list] === -->
     <div id="sec_postList" class="post-list-box">
         <div id="hdr_postList" class="post-list-header">
-            <!-- 2. '분류' 드롭다운을 '작성 글 목록' 바로 옆으로 배치 -->
             <div class="post-list-title-wrap">
                 <div class="post-list-title">
                     <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
@@ -403,16 +403,15 @@
                 </div>
                 <div class="category-filter-wrap">
                     <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
-                    <select id="categoryFilter" class="select-filter" onchange="renderPostList()">
+                    <select id="categoryFilter" class="select-filter" onchange="handleFilterChange()">
                         <option value="전체" selected>전체</option>
                     </select>
                 </div>
             </div>
 
-            <!-- 우측 끝: '상황' 필터 -->
             <div class="status-filter-wrap">
                 <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
-                <select id="statusFilter" class="select-filter" onchange="renderPostList()">
+                <select id="statusFilter" class="select-filter" onchange="handleFilterChange()">
                     <option value="전체" selected>전체</option>
                     <option value="작성">작성</option>
                     <option value="완료">완료</option>
@@ -512,6 +511,23 @@
         if (!textarea) return;
         textarea.style.height = 'auto';
         textarea.style.height = `${Math.max(textarea.scrollHeight, 72)}px`;
+    }
+
+    // 글의 구성 창 내용 완전 초기화
+    function resetOutlineArea() {
+        const textarea = $('essayOutline');
+        textarea.value = '';
+        outlineSaved = '';
+        outlineHistory = [''];
+        autoResizeTextarea(textarea);
+    }
+
+    // 분류 / 상황 드롭다운 선택 시: 목록 재렌더링 및 글의 구성 창 초기화
+    function handleFilterChange() {
+        currentPostId = null;
+        resetOutlineArea();
+        renderPostList();
+        log('필터 변경: 글의 구성 초기화됨');
     }
 
     // === [MODULE-SCRIPT: post-list] ===
@@ -617,7 +633,6 @@
             const titleArea = document.createElement('div');
             titleArea.className = 'post-row-title-area';
 
-            // 고정 너비 태그 (없더라도 동일한 여백 유지)
             let categoryTagHtml = `<span class="post-category-tag" title="${postCategory || '미분류'}">${postCategory || '-'}</span>`;
             titleArea.innerHTML = `<span class="bullet-point">•</span>${categoryTagHtml}<span class="post-row-title" title="${postTitle}">${postTitle}</span>`;
             titleArea.onclick = () => selectPost(post);
@@ -675,12 +690,10 @@
         });
     }
 
-    // 글 선택 시 '글의 구성' 내용 시트 데이터로부터 매핑
     function selectPost(post) {
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        // 시트 헤더 공백/명칭 다각도 탐색
         const outlineText = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
 
         const textarea = $('essayOutline');
