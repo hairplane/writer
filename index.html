@@ -1,154 +1,166 @@
-<!-- index.html v2.0: 3단 분리 아키텍처(Main Orchestrator), style.css v0.1 및 app.js v0.1 로드 -->
+<!-- v2.1: 헤더 타이틀 버전 v2.1 갱신, 2단 헤더/신호등 도트/동적 집필 컨테이너 및 커스텀 모달 마크업 동기화 완비 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>글쓰기 스튜디오</title>
-    <!-- 디자인 서브루틴 분리 -->
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>글쓰기 스튜디오</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="container">
+  <div class="container">
     <!-- 1. 스퀘어 모서리 2단 헤더 -->
     <header class="mac-window-header">
-        <div class="header-top-row">
-            <div class="header-title-wrap">
-                <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v2.00</span>
-            </div>
-            <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
+      <div class="header-top-row">
+        <div class="header-title-wrap">
+          <h1>✍️ 글쓰기 스튜디오</h1>
+          <span class="version-tag">v2.1</span>
         </div>
-
-        <div class="header-toggle-row">
-            <span class="toggle-guide-label">열고 닫기:</span>
-            <div class="traffic-group">
-                <span id="dot_postList" class="traffic-btn tb-postList" onclick="toggleSection('postList')" title="작성 글 목록"></span>
-                <span id="dot_meta" class="traffic-btn tb-meta" onclick="toggleSection('meta')" title="작성 글 정보"></span>
-                <span id="dot_outline" class="traffic-btn tb-outline" onclick="toggleSection('outline')" title="글의 구성"></span>
-                <span id="dot_completed" class="traffic-btn tb-completed" onclick="toggleSection('completed')" title="완성 글"></span>
-                <span id="dot_newDraft" class="traffic-btn tb-newDraft" onclick="toggleSection('newDraft')" title="신규 글"></span>
-                <span id="dot_intent" class="traffic-btn tb-intent" onclick="toggleSection('intent')" title="글의 의도"></span>
-                <span id="dot_api" class="traffic-btn tb-api" onclick="toggleSection('api')" title="API 설정"></span>
-                <span id="dot_promptReq" class="traffic-btn tb-promptReq" onclick="toggleSection('promptReq')" title="요청 내용 (to AI)"></span>
-                <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" onclick="toggleSection('aiRefined')" title="AI 수정 글"></span>
-                <span id="dot_snippets" class="traffic-btn tb-snippets" onclick="toggleSection('snippets')" title="보관 글"></span>
-            </div>
+        <button type="button" class="btn-close-app" id="btn-header-close" title="창 닫기">✕</button>
+      </div>
+      <div class="header-toggle-row">
+        <span class="toggle-guide-label">열고 닫기:</span>
+        <div class="traffic-group">
+          <span id="dot_postList" class="traffic-btn tb-postList" title="작성 글 목록"></span>
+          <span id="dot_meta" class="traffic-btn tb-meta" title="작성 글 정보"></span>
+          <span id="dot_outline" class="traffic-btn tb-outline" title="글의 구성"></span>
+          <span id="dot_completed" class="traffic-btn tb-completed" title="완성 글"></span>
+          <span id="dot_newDraft" class="traffic-btn tb-newDraft" title="신규 글"></span>
+          <span id="dot_intent" class="traffic-btn tb-intent" title="글의 의도"></span>
+          <span id="dot_api" class="traffic-btn tb-api" title="API 설정"></span>
+          <span id="dot_promptReq" class="traffic-btn tb-promptReq" title="요청 내용 (to AI)"></span>
+          <span id="dot_aiRefined" class="traffic-btn tb-aiRefined" title="AI 수정 글"></span>
+          <span id="dot_snippets" class="traffic-btn tb-snippets" title="보관 글"></span>
         </div>
+      </div>
     </header>
 
     <!-- 2. 액션 툴바 -->
     <div id="mainActionToolbar" class="action-toolbar-clean">
-        <button type="button" class="btn btn-default" onclick="saveWork('stay')">저장/계속</button>
-        <button type="button" class="btn btn-primary" onclick="saveWork('exit')">저장/종료</button>
-        <button type="button" class="btn btn-danger" onclick="cancelWork()">취소</button>
+      <button type="button" class="btn btn-default" id="btn-save-stay">저장/계속</button>
+      <button type="button" class="btn btn-primary" id="btn-save-exit">저장/종료</button>
+      <button type="button" class="btn btn-danger" id="btn-cancel-work">취소</button>
     </div>
 
-    <!-- 3. 작성 글 목록 -->
+    <!-- 3. 작성 글 목록 (슬림 열 + 분류 필터) -->
     <div id="sec_postList" class="post-list-box">
-        <div id="hdr_postList" class="post-list-header">
-            <div class="post-list-title-wrap">
-                <div class="post-list-title">
-                    <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
-                    <span class="section-title" id="title_postList" onclick="toggleFocusView('postList')" title="클릭 시 단독 집중 모드">작성 글 목록</span>
-                    <span id="badge_postList" class="badge-collapsed">숨김</span>
-                </div>
-                <div>
-                    <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
-                    <select id="categoryFilter" class="select-filter" onchange="handleFilterChange()">
-                        <option value="전체" selected>전체</option>
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
-                <select id="statusFilter" class="select-filter" onchange="handleFilterChange()">
-                    <option value="전체" selected>전체</option>
-                    <option value="작성">작성</option>
-                    <option value="완료">완료</option>
-                    <option value="예정">예정</option>
-                </select>
-            </div>
+      <div id="hdr_postList" class="post-list-header">
+        <div class="post-list-title-wrap">
+          <div class="post-list-title">
+            <button type="button" id="arrow_postList" class="btn-section-toggle" title="열림/숨김">−</button>
+            <span class="section-title" id="title_postList" title="클릭 시 단독 집중 모드">작성 글 목록</span>
+            <span id="badge_postList" class="badge-collapsed">숨김</span>
+          </div>
+          <div>
+            <label for="categoryFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">분류:</label>
+            <select id="categoryFilter" class="select-filter">
+              <option value="전체" selected>전체</option>
+            </select>
+          </div>
         </div>
-        <div id="body_postList" class="post-list-rows">
-            <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중입니다...</span>
+        <div>
+          <label for="statusFilter" style="font-size: 0.74rem; font-weight: 600; color: #475569;">상황:</label>
+          <select id="statusFilter" class="select-filter">
+            <option value="전체" selected>전체</option>
+            <option value="작성">작성</option>
+            <option value="완료">완료</option>
+            <option value="예정">예정</option>
+          </select>
         </div>
+      </div>
+      <div id="body_postList" class="post-list-rows">
+        <span style="font-size: 0.78rem; color: #64748b; padding: 4px 6px;">목록을 불러오는 중입니다...</span>
+      </div>
     </div>
 
     <!-- 4. 작성 글 정보 (메타 표) -->
     <div id="sec_meta" class="meta-table-box">
-        <div id="hdr_meta" class="meta-table-header">
-            <span class="meta-table-title">
-                <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">−</button>
-                <span class="section-title" id="title_meta" onclick="toggleFocusView('meta')" title="클릭 시 단독 집중 모드">작성 글 정보</span>
-                <span id="badge_meta" class="badge-collapsed">숨김</span>
-            </span>
-        </div>
-        <div id="body_meta">
-            <table class="meta-grid-table">
-                <tr>
-                    <th>제목[ID]</th>
-                    <td colspan="3">
-                        <input type="text" id="essayTitleInput" placeholder="제목 입력" oninput="markDirty()" style="font-weight:700;">
-                    </td>
-                </tr>
-                <tr>
-                    <th>시작일</th>
-                    <td><input type="text" id="postStartDate" placeholder="YYYY-MM-DD" oninput="markDirty()"></td>
-                    <th>완료일</th>
-                    <td><input type="text" id="postEndDate" placeholder="YYYY-MM-DD" oninput="markDirty()"></td>
-                </tr>
-                <tr>
-                    <th>요약</th>
-                    <td colspan="3">
-                        <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)" oninput="markDirty()"></textarea>
-                    </td>
-                </tr>
-            </table>
-        </div>
+      <div id="hdr_meta" class="meta-table-header">
+        <span class="meta-table-title">
+          <button type="button" id="arrow_meta" class="btn-section-toggle" title="열림/숨김">−</button>
+          <span class="section-title" id="title_meta" title="클릭 시 단독 집중 모드">작성 글 정보</span>
+          <span id="badge_meta" class="badge-collapsed">숨김</span>
+        </span>
+      </div>
+      <div id="body_meta">
+        <table class="meta-grid-table">
+          <tr>
+            <th>제목[ID]</th>
+            <td colspan="3">
+              <input type="text" id="essayTitleInput" placeholder="제목 입력" style="font-weight:700;">
+            </td>
+          </tr>
+          <tr>
+            <th>시작일</th>
+            <td><input type="text" id="postStartDate" placeholder="YYYY-MM-DD"></td>
+            <th>완료일</th>
+            <td><input type="text" id="postEndDate" placeholder="YYYY-MM-DD"></td>
+          </tr>
+          <tr>
+            <th>요약</th>
+            <td colspan="3">
+              <textarea id="postSummary" rows="2" placeholder="글 요약 (1~2줄)"></textarea>
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
 
-    <!-- 5. 7개 집필 창 동적 렌더링 컨테이너 -->
+    <!-- 5. 7개 집필 창 동적 마운트 컨테이너 -->
     <div id="editor-container" style="display:flex; flex-direction:column; gap:10px;"></div>
 
-    <!-- API 키 관리 박스 (app.js에 의해 '글의 의도'와 '요청 내용' 사이에 자동 배치) -->
+    <!-- 6. API 키 관리 박스 (JS 컴포넌트 빌더에 의해 동적 위치 삽입) -->
     <div id="sec_api" class="api-box">
-        <div id="hdr_api" class="api-box-header">
-            <div class="api-header-left">
-                <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">−</button>
-                <span class="api-section-title">
-                    <span class="section-title" id="title_api" onclick="toggleFocusView('api')" title="클릭 시 단독 집중 모드">API 설정</span>
-                </span>
-                <span id="badge_api" class="badge-collapsed">숨김</span>
-                <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 발급/관리 콘솔 열기">🔑</a>
-            </div>
+      <div id="hdr_api" class="api-box-header">
+        <div class="api-header-left">
+          <button type="button" id="arrow_api" class="btn-section-toggle" title="열림/숨김">−</button>
+          <span class="api-section-title">
+            <span class="section-title" id="title_api" title="클릭 시 단독 집중 모드">API 설정</span>
+          </span>
+          <span id="badge_api" class="badge-collapsed">숨김</span>
+          <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn-key-compact" title="Google AI Studio 키 콘솔">🔑</a>
         </div>
-        <div id="body_api" class="api-content-wrap">
-            <div class="api-row">
-                <input type="password" id="apiKeyInput" oninput="checkKeyInputState()">
-                <div class="api-btn-group">
-                    <div class="dropdown" id="apiDropdownContainer">
-                        <button type="button" id="apiSaveBtn" class="api-save-btn" onclick="handleSaveButtonClick()">
-                            <span id="apiSaveBtnText">키 설치하기</span>
-                            <span id="dropdownArrow">▼</span>
-                        </button>
-                        <div id="apiDropdownMenu" class="dropdown-content">
-                            <button type="button" onclick="selectKeyChoice('shared')">공용 키 설치하기</button>
-                            <button type="button" onclick="selectKeyChoice('personal')">개인 키 설치하기</button>
-                        </div>
-                    </div>
-                    <button type="button" id="apiCancelBtn" class="api-cancel-btn" onclick="cancelKeyInput()">취소</button>
-                </div>
-                <button type="button" id="apiDelBtn" class="api-del-btn" onclick="deleteApiKey()">키 삭제하기</button>
+      </div>
+      <div id="body_api" class="api-content-wrap">
+        <div class="api-row">
+          <input type="password" id="apiKeyInput">
+          <div class="api-btn-group">
+            <div class="dropdown" id="apiDropdownContainer">
+              <button type="button" id="apiSaveBtn" class="api-save-btn">
+                <span id="apiSaveBtnText">키 설치하기</span>
+                <span id="dropdownArrow">▼</span>
+              </button>
+              <div id="apiDropdownMenu" class="dropdown-content">
+                <button type="button" id="btn-api-shared">공용 키 설치하기</button>
+                <button type="button" id="btn-api-personal">개인 키 설치하기</button>
+              </div>
             </div>
+            <button type="button" id="apiCancelBtn" class="api-cancel-btn">취소</button>
+          </div>
+          <button type="button" id="apiDelBtn" class="api-del-btn">키 삭제하기</button>
         </div>
+      </div>
     </div>
-</div>
 
-<!-- 기능 로직 서브루틴 분리 -->
-<script src="app.js"></script>
+    <!-- 7. 커스텀 저장 확인 모달 -->
+    <div id="unsaved-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">⚠️ 저장 확인</h3>
+        </div>
+        <div class="modal-body">
+          <p>저장되지 않은 변경사항이 있습니다.<br>어떻게 처리할까요?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="modal-btn-cancel" class="btn btn-default">계속 편집</button>
+          <button type="button" id="modal-btn-discard" class="btn btn-danger">저장 안 함</button>
+          <button type="button" id="modal-btn-save" class="btn btn-primary">저장하고 종료</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
