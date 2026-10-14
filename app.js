@@ -1,468 +1,793 @@
-// app.js v0.1
-/**
- * ============================================================================
- * 프로젝트: 글쓰기 스튜디오 (Writer Studio) v1.3
- * 모듈 구조: Fortran의 Main-Subroutine 분리 철학을 차용한 단일 책임 서브루틴 집합
- * ============================================================================
- */
+/* app.js v0.1: 비즈니스 로직, Google Sheets(GAS) 통신, 뷰포트/포커스 뷰 제어 서브루틴 모음 */
+const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
+const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
+const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
+const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
+const $ = function(id) { return document.getElementById(id); };
 
-// ============================================================================
-// 1. 전역 상태 저장소 (Global State / Fortran COMMON Block 대응)
-// ============================================================================
-const STATE = {
-  activeRowIndex: null,      // 현재 선택된 구글 시트 행 번호
-  isDirty: false,            // 입력 변경 여부 플래그
-  focusedSectionId: null,    // 현재 단독 집중 모드(Focus View) 상태인 섹션 ID
-  articles: [],              // 글 목록 원본 데이터
-  categories: new Set(),     // 추출된 분류 목록
-  gasEndpoint: 'https://script.google.com/macros/s/AKfycbx_placeholder_endpoint/exec', // GAS URL
-  geminiApiKey: localStorage.getItem('GEMINI_API_KEY') || ''
-};
+let isDirty = false;
+let isPersonalWaitState = false;
+let currentPostId = null;
+let currentPostStatus = "작성";
+let postListCache = [];
+let currentFocusedKey = null;
 
-// 7대 집필 창 정의 데이터 주도 스펙
+/* ==========================================================================
+   모바일 가상 키보드 및 뷰포트 높이 실시간 보정 (Visual Viewport API)
+   ========================================================================== */
+function updateAppHeight() {
+    if (window.visualViewport) {
+        document.documentElement.style.setProperty('--app-height', `${window.visualViewport.height}px`);
+    } else {
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    }
+}
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateAppHeight);
+    window.visualViewport.addEventListener('scroll', updateAppHeight);
+} else {
+    window.addEventListener('resize', updateAppHeight);
+}
+updateAppHeight();
+
+/* ==========================================================================
+   데이터 주도 렌더링 설정
+   ========================================================================== */
 const SECTION_CONFIGS = [
-  { id: 'sec-outline', key: 'outline', title: '글의 구성', aiSupport: false },
-  { id: 'sec-complete', key: 'complete', title: '완성 글', aiSupport: false },
-  { id: 'sec-draft', key: 'draft', title: '신규 글', aiSupport: false },
-  { id: 'sec-intent', key: 'intent', title: '글의 의도', aiSupport: false },
-  { id: 'sec-request', key: 'request', title: '요청 내용', aiSupport: false },
-  { id: 'sec-ai-edit', key: 'aiEdit', title: 'AI 수정 글', aiSupport: true },
-  { id: 'sec-archive', key: 'archive', title: '보관 글', aiSupport: false }
+    { key: 'outline',   id: 'essayOutline',   title: '글의 구성',      minH: 70,  stat: false, readTime: false, bullet: true },
+    { key: 'completed', id: 'completedText',  title: '완성 글',        minH: 120, stat: true,  readTime: true,  bullet: false },
+    { key: 'newDraft',  id: 'newDraftText',   title: '신규 글',        minH: 80,  stat: true,  readTime: true,  bullet: false },
+    { key: 'intent',    id: 'draftIntent',    title: '글의 의도',      minH: 50,  stat: true,  readTime: false, bullet: false },
+    { key: 'promptReq', id: 'promptReqText',  title: '요청 내용 (to AI)', minH: 50,  stat: true,  readTime: false, bullet: false },
+    { key: 'aiRefined', id: 'aiRefinedText',  title: 'AI 수정 글',     minH: 90,  stat: true,  readTime: true,  bullet: false, isAi: true },
+    { key: 'snippets',  id: 'savedSnippets',  title: '보관 글',        minH: 60,  stat: true,  readTime: false, bullet: true }
 ];
 
-// 상황 순환 토글 정의
-const STATUS_CYCLE = ['작성', '완료', '예정'];
+const ALL_SECTION_KEYS = ['postList', 'meta', 'outline', 'completed', 'newDraft', 'intent', 'api', 'promptReq', 'aiRefined', 'snippets'];
+const fieldMap = {};
+const fieldState = {};
+SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
 
-// ============================================================================
-// 2. 메인 진입점 (Main Routine)
-// ============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initWorkspace();
-  initEventListeners();
-  initHistoryAndVisualViewport();
-  loadInitialDataMock(); // 실제 환경에서는 fetchSheetData() 연동
+// 7개 집필 창 동적 생성 (컴포넌트 빌더 루프)
+function buildEditorSections() {
+    const container = $('editor-container');
+    const apiBox = $('sec_api');
+    container.innerHTML = '';
+
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const sec = document.createElement('div');
+        sec.id = 'sec_' + cfg.key;
+        sec.className = 'editor-section';
+
+        const hdr = document.createElement('div');
+        hdr.id = 'hdr_' + cfg.key;
+        hdr.className = 'section-header-line';
+
+        let extraAiButtons = '';
+        if (cfg.isAi) {
+            extraAiButtons = '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
+                             '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
+        }
+
+        hdr.innerHTML = '<div class="section-header-left">' +
+            '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
+            '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
+            '<span id="badge_' + cfg.key + '" class="badge-collapsed">숨김</span>' +
+            '</div>' +
+            '<div style="display:flex; align-items:center; gap:4px;">' +
+            '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
+            extraAiButtons +
+            '</div>';
+
+        const body = document.createElement('div');
+        body.id = 'body_' + cfg.key;
+        body.className = 'editor-content-wrap';
+
+        const bgStyle = cfg.isAi ? 'background-color: #f8fafc;' : '';
+        const bulletAttr = cfg.bullet ? 'onkeydown="handleBulletEnter(event, this)"' : '';
+        const statHtml = cfg.stat ? '<span class="stat-info" id="stat_' + cfg.key + '">0자</span>' : '<span></span>';
+
+        body.innerHTML = '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
+            '<div class="editor-bottom-toolbar">' +
+            statHtml +
+            '<div class="restore-group">' +
+            '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
+            '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
+            '</div>' +
+            '</div>';
+
+        sec.appendChild(hdr);
+        sec.appendChild(body);
+        container.appendChild(sec);
+
+        if (cfg.key === 'intent') {
+            container.appendChild(apiBox);
+        }
+    });
+}
+
+/* ==========================================================================
+   소제목 클릭 시 '단독 집중 모드 (Focus View)' 토글 엔진
+   ========================================================================== */
+function toggleFocusView(key) {
+    if (currentFocusedKey === key) {
+        document.body.classList.remove('mode-focus');
+        ALL_SECTION_KEYS.forEach(function(k) {
+            const sec = $('sec_' + k);
+            if (sec) {
+                sec.style.display = (k === 'meta' || k === 'postList') ? 'flex' : 'flex';
+                sec.classList.remove('is-focused-section');
+            }
+            const titleEl = $('title_' + k);
+            if (titleEl) titleEl.classList.remove('is-focused');
+        });
+
+        const actionToolbar = $('mainActionToolbar');
+        if (actionToolbar) actionToolbar.style.display = 'flex';
+        currentFocusedKey = null;
+
+        resizeAllTextareas();
+    } else {
+        document.body.classList.add('mode-focus');
+        ALL_SECTION_KEYS.forEach(function(k) {
+            const sec = $('sec_' + k);
+            if (sec) {
+                if (k === key) {
+                    sec.style.display = 'flex';
+                    sec.classList.add('is-focused-section');
+                } else {
+                    sec.style.display = 'none';
+                    sec.classList.remove('is-focused-section');
+                }
+            }
+            const titleEl = $('title_' + k);
+            if (titleEl) {
+                if (k === key) titleEl.classList.add('is-focused');
+                else titleEl.classList.remove('is-focused');
+            }
+        });
+
+        currentFocusedKey = key;
+
+        const bodyEl = $('body_' + key);
+        if (bodyEl && bodyEl.style.display === 'none') {
+            toggleSection(key);
+        }
+
+        const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+        if (cfg) {
+            const targetArea = $(cfg.id);
+            if (targetArea) targetArea.style.height = '';
+        }
+    }
+}
+
+/* ==========================================================================
+   초기화 및 공통 이벤트
+   ========================================================================== */
+window.addEventListener('DOMContentLoaded', function() {
+    buildEditorSections();
+    initFieldStates();
+    loadSavedData();
+    checkApiKeyStatus();
+    updateAllStats();
+    loadCachedPosts();
+    fetchSheetPosts();
+
+    window.onclick = function(e) {
+        if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
+            document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
+                el.classList.remove('show');
+            });
+        }
+    };
 });
 
-// ============================================================================
-// 3. 서브루틴: UI 초기화 및 컴포넌트 동적 빌드 (Subroutine: UI Renderer)
-// ============================================================================
-function initWorkspace() {
-  const container = document.getElementById('dynamic-sections-container');
-  container.innerHTML = '';
+function markDirty() { isDirty = true; }
 
-  SECTION_CONFIGS.forEach(cfg => {
-    const card = document.createElement('div');
-    card.id = cfg.id;
-    card.className = 'section-card';
-    card.dataset.sectionKey = cfg.key;
-
-    card.innerHTML = `
-      <div class="section-card-header">
-        <div class="header-meta-left" title="클릭 시 단독 집중 모드 전환">
-          <button type="button" class="btn-collapse-toggle">−</button>
-          <span class="section-title">${cfg.title}</span>
-        </div>
-        <div class="header-meta-right">
-          <span class="word-count-badge">0자 | 예상 0분</span>
-          ${cfg.aiSupport ? '<button type="button" class="btn btn-sm btn-outline-primary btn-ai-action">AI 수정 실행</button>' : ''}
-          <button type="button" class="btn btn-sm btn-secondary btn-copy">복사</button>
-        </div>
-      </div>
-      <div class="section-card-body">
-        <textarea class="section-textarea" placeholder="${cfg.title} 내용을 입력하세요..."></textarea>
-      </div>
-    `;
-
-    container.appendChild(card);
-  });
+function autoResizeTextarea(textarea, minH) {
+    if (!textarea) return;
+    if (document.body.classList.contains('mode-focus')) return;
+    const baseH = minH || 50;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.max(textarea.scrollHeight, baseH) + 'px';
 }
 
-// ============================================================================
-// 4. 서브루틴: 단독 집중 모드 및 뒤로가기 제어 (Subroutine: Focus & History)
-// ============================================================================
-function initHistoryAndVisualViewport() {
-  // 브라우저 뒤로가기(스마트폰 하단 '<' 버튼) 이벤트 감지
-  window.addEventListener('popstate', (e) => {
-    if (STATE.focusedSectionId) {
-      // 페이지를 이탈하지 않고 단독 집중 모드만 안전하게 해제
-      exitFocusMode(false);
-    }
-  });
-
-  // 모바일 가상 키보드 발생 시 visualViewport 연동 크기 보정
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-      if (STATE.focusedSectionId) {
-        const card = document.getElementById(STATE.focusedSectionId);
-        if (card) {
-          card.style.height = `${window.visualViewport.height}px`;
-        }
-      }
+function copyContent(elementId, btn) {
+    const el = $(elementId);
+    if (!el || !el.value.trim()) return alert('복사할 내용이 없습니다.');
+    navigator.clipboard.writeText(el.value).then(function() {
+        const originalText = btn.innerText;
+        btn.innerText = '✓ 복사됨';
+        btn.style.color = '#16a34a';
+        setTimeout(function() { btn.innerText = originalText; btn.style.color = ''; }, 1500);
     });
-  }
 }
 
-function enterFocusMode(sectionId) {
-  const card = document.getElementById(sectionId);
-  if (!card) return;
+function toggleSection(key) {
+    const bodyEl = $('body_' + key);
+    const dot = $('dot_' + key);
+    const arrow = $('arrow_' + key);
+    const badge = $('badge_' + key);
+    const hdr = $('hdr_' + key);
+    const copyBtn = $('copyBtn_' + key);
+    if (!bodyEl) return;
 
-  STATE.focusedSectionId = sectionId;
-  card.classList.remove('collapsed');
-  card.querySelector('.btn-collapse-toggle').textContent = '−';
-  card.classList.add('focus-mode');
-
-  // 히스토리 pushState 기록 (뒤로가기 가로채기 활성화)
-  history.pushState({ view: 'focus', sectionId: sectionId }, '', '');
-
-  const textarea = card.querySelector('.section-textarea');
-  if (textarea) textarea.focus();
-}
-
-function exitFocusMode(triggerHistoryBack = true) {
-  if (!STATE.focusedSectionId) return;
-
-  const card = document.getElementById(STATE.focusedSectionId);
-  if (card) {
-    card.classList.remove('focus-mode');
-    card.style.height = '';
-  }
-
-  STATE.focusedSectionId = null;
-
-  // JS 코드로 직접 닫았고 히스토리가 남아있는 경우 동기화
-  if (triggerHistoryBack && history.state && history.state.view === 'focus') {
-    history.back();
-  }
-}
-
-// ============================================================================
-// 5. 서브루틴: 커스텀 저장 확인 모달 (Subroutine: Custom Modal Controller)
-// ============================================================================
-let pendingExitCallback = null;
-
-function showUnsavedModal(onConfirmDiscard) {
-  const modal = document.getElementById('unsaved-modal');
-  pendingExitCallback = onConfirmDiscard;
-  modal.classList.remove('hidden');
-}
-
-function hideUnsavedModal() {
-  const modal = document.getElementById('unsaved-modal');
-  modal.classList.add('hidden');
-  pendingExitCallback = null;
-}
-
-// ============================================================================
-// 6. 서브루틴: 이벤트 리스너 통합 등록 (Subroutine: Event Dispatcher)
-// ============================================================================
-function initEventListeners() {
-  const container = document.getElementById('dynamic-sections-container');
-
-  // 집필 창 내부 클릭 이벤트 위임
-  container.addEventListener('click', (e) => {
-    const card = e.target.closest('.section-card');
-    if (!card) return;
-
-    // 1. 접기/펼치기 토글
-    if (e.target.classList.contains('btn-collapse-toggle')) {
-      e.stopPropagation();
-      const isCollapsed = card.classList.toggle('collapsed');
-      e.target.textContent = isCollapsed ? '+' : '−';
-      return;
-    }
-
-    // 2. 단독 집중 모드 진입 (소제목 또는 헤더 메타 클릭 시)
-    if (e.target.closest('.header-meta-left')) {
-      if (card.classList.contains('focus-mode')) {
-        exitFocusMode(true);
-      } else {
-        enterFocusMode(card.id);
-      }
-      return;
-    }
-
-    // 3. 복사 버튼
-    if (e.target.classList.contains('btn-copy')) {
-      const textarea = card.querySelector('.section-textarea');
-      navigator.clipboard.writeText(textarea.value).then(() => {
-        const origText = e.target.textContent;
-        e.target.textContent = '완료!';
-        setTimeout(() => e.target.textContent = origText, 1200);
-      });
-      return;
-    }
-
-    // 4. AI 수정 버튼
-    if (e.target.classList.contains('btn-ai-action')) {
-      executeAiEditPipeline();
-      return;
-    }
-  });
-
-  // 텍스트 입력 시 글자 수 계산 및 불릿 자동완성
-  container.addEventListener('input', (e) => {
-    if (e.target.classList.contains('section-textarea')) {
-      STATE.isDirty = true;
-      updateWordCount(e.target);
-      autoResizeTextarea(e.target);
-    }
-  });
-
-  // 엔터 키 입력 시 '● ' 자동 이어쓰기
-  container.addEventListener('keydown', (e) => {
-    if (e.target.classList.contains('section-textarea') && e.key === 'Enter') {
-      handleBulletAutoContinue(e, e.target);
-    }
-  });
-
-  // 메타 정보 수정 시 Dirty 마킹
-  document.getElementById('article-title-input').addEventListener('input', () => { STATE.isDirty = true; });
-  document.getElementById('article-category-input').addEventListener('input', () => { STATE.isDirty = true; });
-
-  // 상황 토글 버튼 클릭 (작성 -> 완료 -> 예정)
-  document.getElementById('btn-status-toggle').addEventListener('click', (e) => {
-    const current = e.target.dataset.status;
-    const nextIdx = (STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length;
-    const nextStatus = STATUS_CYCLE[nextIdx];
-    e.target.dataset.status = nextStatus;
-    e.target.textContent = nextStatus;
-    STATE.isDirty = true;
-  });
-
-  // 상단 헤더 저장 버튼
-  document.getElementById('btn-save').addEventListener('click', () => {
-    saveCurrentArticle();
-  });
-
-  // 상단 닫기(✕) 버튼 클릭 시
-  document.getElementById('btn-close-app').addEventListener('click', () => {
-    requestSafeExit(() => {
-      window.location.href = 'about:blank';
-    });
-  });
-
-  // 모달 버튼 핸들러
-  document.getElementById('modal-btn-cancel').addEventListener('click', () => {
-    hideUnsavedModal();
-  });
-
-  document.getElementById('modal-btn-discard').addEventListener('click', () => {
-    STATE.isDirty = false;
-    const callback = pendingExitCallback;
-    hideUnsavedModal();
-    if (callback) callback();
-  });
-
-  document.getElementById('modal-btn-save').addEventListener('click', () => {
-    saveCurrentArticle();
-    const callback = pendingExitCallback;
-    hideUnsavedModal();
-    if (callback) callback();
-  });
-
-  // 브라우저 탭 닫기/새로고침 방어
-  window.addEventListener('beforeunload', (e) => {
-    if (STATE.isDirty) {
-      e.preventDefault();
-      e.returnValue = ''; // 표준 브라우저 이탈 방지 트리거
-    }
-  });
-
-  // 분류 드롭다운 필터링
-  document.getElementById('category-filter').addEventListener('change', (e) => {
-    renderArticleList(e.target.value);
-  });
-
-  // 새 글 작성 버튼
-  document.getElementById('btn-new-article').addEventListener('click', () => {
-    requestSafeExit(() => {
-      resetEditorFields();
-      STATE.activeRowIndex = null;
-      STATE.isDirty = false;
-    });
-  });
-}
-
-// ============================================================================
-// 7. 서브루틴: 비즈니스 로직 및 헬퍼 (Subroutine: Utilities & Pipeline)
-// ============================================================================
-function requestSafeExit(onSuccess) {
-  if (STATE.isDirty) {
-    showUnsavedModal(onSuccess);
-  } else {
-    onSuccess();
-  }
-}
-
-function handleBulletAutoContinue(e, textarea) {
-  const cursor = textarea.selectionStart;
-  const textBefore = textarea.value.substring(0, cursor);
-  const currentLine = textBefore.split('\n').pop();
-
-  if (currentLine.startsWith('● ')) {
-    e.preventDefault();
-    if (currentLine.trim() === '●') {
-      // 내용 없는 불릿 줄에서 엔터 시 불릿 제거
-      const lineStart = cursor - currentLine.length;
-      textarea.value = textarea.value.substring(0, lineStart) + textarea.value.substring(cursor);
-      textarea.selectionStart = textarea.selectionEnd = lineStart;
+    const isClosed = bodyEl.style.display === 'none';
+    if (isClosed) {
+        bodyEl.style.display = (key === 'meta') ? 'block' : 'flex';
+        if (dot) dot.classList.remove('is-closed');
+        if (arrow) { arrow.innerText = '−'; arrow.classList.remove('is-closed'); }
+        if (badge) badge.classList.remove('show');
+        if (hdr) hdr.classList.remove('header-collapsed-line');
+        if (copyBtn) copyBtn.style.display = 'inline-flex';
     } else {
-      // 새로운 불릿 줄 삽입
-      const textAfter = textarea.value.substring(cursor);
-      textarea.value = textBefore + '\n● ' + textAfter;
-      textarea.selectionStart = textarea.selectionEnd = cursor + 3;
+        bodyEl.style.display = 'none';
+        if (dot) dot.classList.add('is-closed');
+        if (arrow) { arrow.innerText = '+'; arrow.classList.add('is-closed'); }
+        if (badge) badge.classList.add('show');
+        if (hdr) hdr.classList.add('header-collapsed-line');
+        if (copyBtn) copyBtn.style.display = 'none';
     }
-    updateWordCount(textarea);
-  }
 }
 
-function updateWordCount(textarea) {
-  const card = textarea.closest('.section-card');
-  const badge = card.querySelector('.word-count-badge');
-  const count = textarea.value.length;
-  const readTime = Math.ceil(count / 400); // 400자/분 기준
-  badge.textContent = `${count}자 | 예상 ${readTime}분`;
+/* ==========================================================================
+   작성 글 목록
+   ========================================================================== */
+function loadCachedPosts() {
+    const cached = localStorage.getItem(POSTS_CACHE_KEY);
+    if (cached) {
+        try {
+            postListCache = JSON.parse(cached);
+            populateCategoryFilter();
+            renderPostList();
+        } catch (e) { console.error(e); }
+    }
 }
 
-function autoResizeTextarea(textarea) {
-  if (textarea.closest('.focus-mode')) return; // 집중 모드에서는 내부 스크롤 유지
-  textarea.style.height = 'auto';
-  textarea.style.height = `${Math.max(90, textarea.scrollHeight)}px`;
+function fetchSheetPosts() {
+    const oldScript = document.getElementById('gas_jsonp_script');
+    if (oldScript) oldScript.remove();
+
+    window.handleGasResponse = function(response) {
+        if (response && response.status === "success" && response.data) {
+            postListCache = response.data;
+            localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+            populateCategoryFilter();
+            renderPostList();
+        }
+    };
+
+    const script = document.createElement('script');
+    script.id = 'gas_jsonp_script';
+    script.src = GAS_ENDPOINT + '?callback=handleGasResponse&_t=' + new Date().getTime();
+    document.body.appendChild(script);
 }
 
-function resetEditorFields() {
-  document.getElementById('article-category-input').value = '';
-  document.getElementById('article-title-input').value = '';
-  const statusBtn = document.getElementById('btn-status-toggle');
-  statusBtn.dataset.status = '작성';
-  statusBtn.textContent = '작성';
+function populateCategoryFilter() {
+    const select = $('categoryFilter');
+    const currentVal = select.value;
+    const categories = new Set();
 
-  document.querySelectorAll('.section-card').forEach(card => {
-    const ta = card.querySelector('.section-textarea');
-    ta.value = '';
-    ta.style.height = '90px';
-    card.querySelector('.word-count-badge').textContent = '0자 | 예상 0분';
-  });
-}
-
-function saveCurrentArticle() {
-  const title = document.getElementById('article-title-input').value.trim();
-  if (!title) {
-    alert('제목을 입력해 주세요.');
-    return;
-  }
-
-  const indicator = document.getElementById('sync-status');
-  indicator.textContent = '저장 중...';
-
-  // 실제 연동 시: fetch(STATE.gasEndpoint, { method: 'POST', body: JSON.stringify(payload) })
-  setTimeout(() => {
-    STATE.isDirty = false;
-    indicator.textContent = '저장 완료';
-    indicator.classList.add('synced');
-    setTimeout(() => indicator.textContent = '동기화 완료', 2000);
-  }, 600);
-}
-
-function executeAiEditPipeline() {
-  const draftCard = document.getElementById('sec-draft');
-  const requestCard = document.getElementById('sec-request');
-  const aiEditCard = document.getElementById('sec-ai-edit');
-
-  const draftText = draftCard.querySelector('.section-textarea').value.trim();
-  const requestText = requestCard.querySelector('.section-textarea').value.trim();
-  const aiTextarea = aiEditCard.querySelector('.section-textarea');
-
-  if (!draftText) {
-    alert('AI 수정을 위해 [신규 글] 내용을 입력해 주세요.');
-    return;
-  }
-
-  aiTextarea.value = 'Gemini API 호출 및 글 다듬기 진행 중...';
-  // 실제 연동 시: fetch Google Gemini API Pipeline 호출
-  setTimeout(() => {
-    aiTextarea.value = `[AI 수정 완료]\n요청 사항(${requestText || '기본 다듬기'})을 반영하여 교정된 글입니다.\n\n` + draftText;
-    updateWordCount(aiTextarea);
-    autoResizeTextarea(aiTextarea);
-    STATE.isDirty = true;
-  }, 1000);
-}
-
-// ============================================================================
-// 8. 서브루틴: 데이터 로드 및 렌더링 (Subroutine: Data Mapper)
-// ============================================================================
-function loadInitialDataMock() {
-  STATE.articles = [
-    { row: 2, category: '물리칼럼', title: '플라즈마 핵융합 시뮬레이션의 미래', status: '완료', outline: '● 서론: 플라즈마 상태의 이해\n● 본론: Fortran의 계산 효율\n● 결론: 에너지 실증', complete: '플라즈마 연구에 대한 최종 완성본입니다.', draft: '', intent: '연구의 대중화', request: '', aiEdit: '', archive: '' },
-    { row: 3, category: '수치해석', title: 'Main-Subroutine 아키텍처 철학', status: '작성', outline: '● 모듈화 필요성', complete: '', draft: '웹 아키텍처에도 단일 책임 서브루틴 분리가 필요하다.', intent: '코드 신뢰성', request: '더 명확한 어조로 수정', aiEdit: '', archive: '' },
-    { row: 4, category: '에세이', title: '연구자의 기록 보관소', status: '예정', outline: '', complete: '', draft: '', intent: '', request: '', aiEdit: '', archive: '' }
-  ];
-
-  updateCategoryFilterOptions();
-  renderArticleList('ALL');
-}
-
-function updateCategoryFilterOptions() {
-  const filter = document.getElementById('category-filter');
-  STATE.categories.clear();
-  STATE.articles.forEach(a => { if (a.category) STATE.categories.add(a.category); });
-
-  filter.innerHTML = '<option value="ALL">전체 분류</option>';
-  STATE.categories.forEach(cat => {
-    const opt = document.createElement('option');
-    opt.value = cat;
-    opt.textContent = cat;
-    filter.appendChild(opt);
-  });
-}
-
-function renderArticleList(filterCategory) {
-  const container = document.getElementById('article-list-container');
-  container.innerHTML = '';
-
-  const filtered = filterCategory === 'ALL' 
-    ? STATE.articles 
-    : STATE.articles.filter(a => a.category === filterCategory);
-
-  filtered.forEach(art => {
-    const item = document.createElement('div');
-    item.className = 'article-item';
-    if (STATE.activeRowIndex === art.row) item.classList.add('active');
-
-    item.innerHTML = `
-      <span class="item-category-tag">${art.category || '미분류'}</span>
-      <span class="item-title-text">${art.title}</span>
-      <span class="item-status-dot ${art.status}"></span>
-    `;
-
-    item.addEventListener('click', () => {
-      requestSafeExit(() => {
-        selectArticle(art);
-      });
+    postListCache.forEach(function(item) {
+        const cat = (item.분류 || item.category || '').trim();
+        if (cat) categories.add(cat);
     });
 
-    container.appendChild(item);
-  });
+    select.innerHTML = '<option value="전체">전체</option>';
+    categories.forEach(function(cat) {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.innerText = cat;
+        select.appendChild(opt);
+    });
+
+    select.value = Array.from(categories).includes(currentVal) ? currentVal : '전체';
 }
 
-function selectArticle(article) {
-  STATE.activeRowIndex = article.row;
-  document.getElementById('article-category-input').value = article.category || '';
-  document.getElementById('article-title-input').value = article.title || '';
+function handleFilterChange() {
+    currentPostId = null;
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const el = $(cfg.id);
+        if (el) {
+            el.value = '';
+            fieldState[cfg.key] = { currentSaved: '', history: [''] };
+            autoResizeTextarea(el, cfg.minH);
+        }
+    });
+    updateAllStats();
+    renderPostList();
+}
 
-  const statusBtn = document.getElementById('btn-status-toggle');
-  statusBtn.dataset.status = article.status || '작성';
-  statusBtn.textContent = article.status || '작성';
+function renderPostList() {
+    const grid = $('body_postList');
+    const statusFilter = $('statusFilter').value;
+    const categoryFilter = $('categoryFilter').value;
+    grid.innerHTML = '';
 
-  SECTION_CONFIGS.forEach(cfg => {
-    const card = document.getElementById(cfg.id);
-    const ta = card.querySelector('.section-textarea');
-    ta.value = article[cfg.key] || '';
-    updateWordCount(ta);
-    autoResizeTextarea(ta);
-  });
+    const filtered = postListCache.filter(function(item) {
+        const itemStatus = (item.상황 || item.status || '작성').trim();
+        const itemCategory = (item.분류 || item.category || '').trim();
+        const matchStatus = (statusFilter === '전체') || (itemStatus === statusFilter);
+        const matchCategory = (categoryFilter === '전체') || (itemCategory === categoryFilter);
+        return matchStatus && matchCategory;
+    });
 
-  document.querySelectorAll('.article-item').forEach(el => el.classList.remove('active'));
-  renderArticleList(document.getElementById('category-filter').value);
-  STATE.isDirty = false;
+    if (filtered.length === 0) {
+        grid.innerHTML = '<span style="font-size:0.78rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
+        return;
+    }
+
+    filtered.forEach(function(post) {
+        const postId = post.ID || post.id || '';
+        const postTitle = post.제목 || post.title || '(제목 없음)';
+        const postStatus = (post.상황 || post.status || '작성').trim();
+        const postCategory = (post.분류 || post.category || '').trim();
+
+        const row = document.createElement('div');
+        row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
+
+        const titleArea = document.createElement('div');
+        titleArea.className = 'post-row-title-area';
+
+        const categoryText = postCategory || '-';
+        titleArea.innerHTML = '<span class="post-category-tag" title="' + categoryText + '">' + categoryText + '</span>' +
+                              '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
+        titleArea.onclick = function() { selectPost(post); };
+
+        let statusClass = 'status-writing';
+        if (postStatus === '완료') statusClass = 'status-done';
+        else if (postStatus === '예정') statusClass = 'status-plan';
+
+        const statusBtn = document.createElement('button');
+        statusBtn.type = 'button';
+        statusBtn.className = 'btn-status-toggle ' + statusClass;
+        statusBtn.innerText = postStatus;
+        statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
+        statusBtn.onclick = function(e) {
+            e.stopPropagation();
+            togglePostStatus(post);
+        };
+
+        row.appendChild(titleArea);
+        row.appendChild(statusBtn);
+        grid.appendChild(row);
+    });
+}
+
+function togglePostStatus(post) {
+    const current = (post.상황 || post.status || '작성').trim();
+    let nextStatus = '작성';
+    if (current === '작성') nextStatus = '완료';
+    else if (current === '완료') nextStatus = '예정';
+    else if (current === '예정') nextStatus = '작성';
+
+    post.상황 = nextStatus;
+    post.status = nextStatus;
+
+    if (currentPostId === (post.ID || post.id)) {
+        currentPostStatus = nextStatus;
+    }
+
+    localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+    renderPostList();
+
+    fetch(GAS_ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ID: post.ID || post.id,
+            id: post.ID || post.id,
+            status: nextStatus,
+            category: post.분류 || post.category || '',
+            title: post.제목 || post.title || '',
+            outline: post.글의구성 || post['글의 구성'] || post.outline || ''
+        })
+    });
+}
+
+function selectPost(post) {
+    if (isDirty && !confirm('작성 중인 변경 사항이 있습니다. 저장하지 않고 다른 글로 전환하시겠습니까?')) {
+        return;
+    }
+
+    currentPostId = post.ID || post.id || '';
+    currentPostStatus = (post.상황 || post.status || '작성').trim();
+
+    $('essayTitleInput').value = post.제목 || post.title || '';
+    $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
+    $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
+    $('postSummary').value = post.요약 || post.summary || '';
+
+    $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
+    $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
+    $('newDraftText').value  = post.신규글 || post['신규 글'] || post['신규\n글'] || post.newDraft || '';
+    $('draftIntent').value   = post.글의의도 || post['글의 의도'] || post['글의\n의도'] || post.intent || '';
+    $('promptReqText').value = post.요청내용 || post['요청 내용'] || post['요청\n내용'] || post.promptReq || '';
+    $('aiRefinedText').value = post.AI수정글 || post['AI 수정 글'] || post['AI수정 글'] || post.aiRefined || '';
+    $('savedSnippets').value = post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || '';
+
+    initFieldStates();
+    updateAllStats();
+    resizeAllTextareas();
+    renderPostList();
+    isDirty = false;
+}
+
+function resizeAllTextareas() {
+    if (document.body.classList.contains('mode-focus')) return;
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const el = $(cfg.id);
+        if (el) autoResizeTextarea(el, cfg.minH);
+    });
+}
+
+/* ==========================================================================
+   복원(Undo) 스택 및 편집 제어
+   ========================================================================== */
+function initFieldStates() {
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const el = $(cfg.id);
+        const val = el ? el.value : '';
+        fieldState[cfg.key] = { currentSaved: val, history: [val] };
+    });
+}
+
+function handleFieldInput(key) {
+    markDirty();
+    const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+    const el = $(cfg.id);
+    if (!el) return;
+
+    const val = el.value;
+    const stack = fieldState[key].history;
+    if (stack[stack.length - 1] !== val) {
+        stack.push(val);
+        if (stack.length > 50) stack.shift();
+    }
+    autoResizeTextarea(el, cfg.minH);
+    updateStat(key, val);
+}
+
+function undoField(key) {
+    const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+    const el = $(cfg.id);
+    if (!el || !fieldState[key]) return;
+    const stack = fieldState[key].history;
+    if (stack.length > 1) {
+        stack.pop();
+        el.value = stack[stack.length - 1];
+        autoResizeTextarea(el, cfg.minH);
+        updateStat(key, el.value);
+        markDirty();
+    } else {
+        alert('되돌릴 이전 입력 내용이 없습니다.');
+    }
+}
+
+function restoreSaved(key) {
+    const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+    const el = $(cfg.id);
+    if (!el || !fieldState[key]) return;
+    const targetVal = fieldState[key].currentSaved;
+    if (el.value === targetVal) return alert('이미 최근 저장된 상태와 동일합니다.');
+    fieldState[key].history.push(targetVal);
+    el.value = targetVal;
+    autoResizeTextarea(el, cfg.minH);
+    updateStat(key, targetVal);
+    markDirty();
+}
+
+function handleBulletEnter(e, textarea) {
+    if (e.key === 'Enter') {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const currentLine = value.substring(lineStart, start);
+
+        if (currentLine.trim().startsWith('●')) {
+            e.preventDefault();
+            if (currentLine.trim() === '●') {
+                const before = value.substring(0, lineStart);
+                const after = value.substring(end);
+                textarea.value = before + after;
+                textarea.selectionStart = textarea.selectionEnd = lineStart;
+                return;
+            }
+            const bullet = '\n● ';
+            textarea.value = value.substring(0, start) + bullet + value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + bullet.length;
+            textarea.dispatchEvent(new Event('input'));
+        }
+    }
+}
+
+function updateStat(key, text) {
+    const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+    if (!cfg || !cfg.stat) return;
+    const statEl = $('stat_' + key);
+    if (!statEl) return;
+
+    const len = text.length;
+    if (cfg.readTime) {
+        const readingTime = Math.ceil(len / 400);
+        statEl.innerText = len.toLocaleString() + '자 (약 ' + readingTime + '분)';
+    } else {
+        statEl.innerText = len.toLocaleString() + '자';
+    }
+}
+
+function updateAllStats() {
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const el = $(cfg.id);
+        if (el) updateStat(cfg.key, el.value);
+    });
+}
+
+function appendDraftToCompleted() {
+    const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
+    if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
+
+    const completedEl = $('completedText');
+    completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
+    handleFieldInput('completed');
+
+    ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(function(k) {
+        const el = $(fieldMap[k]);
+        if (el) { el.value = ''; handleFieldInput(k); }
+    });
+}
+
+/* ==========================================================================
+   저장 (로컬 스토리지 + 구글 시트 C열 '분류' 포함 양방향 동기화)
+   ========================================================================== */
+async function saveWork(mode) {
+    const titleVal = $('essayTitleInput').value.trim();
+    if (!titleVal) return alert('제목을 입력해주세요.');
+
+    if (!currentPostId) currentPostId = "ID_" + new Date().getTime();
+
+    const currentCategory = $('categoryFilter').value !== '전체' ? $('categoryFilter').value : '';
+
+    const payload = {
+        ID: currentPostId,
+        id: currentPostId,
+        status: currentPostStatus || "작성",
+        category: currentCategory,
+        title: titleVal,
+        startDate: $('postStartDate').value.trim(),
+        endDate: $('postEndDate').value.trim(),
+        summary: $('postSummary').value.trim(),
+        outline: $('essayOutline').value,
+        completed: $('completedText').value,
+        newDraft: $('newDraftText').value,
+        intent: $('draftIntent').value,
+        promptReq: $('promptReqText').value,
+        aiRefined: $('aiRefinedText').value,
+        snippets: $('savedSnippets').value,
+        updatedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    SECTION_CONFIGS.forEach(function(cfg) {
+        const el = $(cfg.id);
+        if (el && fieldState[cfg.key]) fieldState[cfg.key].currentSaved = el.value;
+    });
+    isDirty = false;
+
+    try {
+        fetch(GAS_ENDPOINT, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).then(function() { fetchSheetPosts(); });
+    } catch (err) {
+        console.error("구글 시트 저장 통신 오류:", err);
+    }
+
+    if (mode === 'stay') {
+        alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
+    } else if (mode === 'exit') {
+        if (confirm('저장되었습니다. 창을 닫으시겠습니까?')) window.close();
+    }
+}
+
+function loadSavedData() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+        const data = JSON.parse(raw);
+        if (data.ID || data.id) currentPostId = data.ID || data.id;
+        if (data.status) currentPostStatus = data.status;
+        if (data.title) $('essayTitleInput').value = data.title;
+        if (data.startDate) $('postStartDate').value = data.startDate;
+        if (data.endDate) $('postEndDate').value = data.endDate;
+        if (data.summary) $('postSummary').value = data.summary;
+
+        SECTION_CONFIGS.forEach(function(cfg) {
+            if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
+        });
+        initFieldStates();
+        resizeAllTextareas();
+    } catch(e) { console.error("데이터 로드 실패", e); }
+}
+
+function cancelWork() {
+    if (isDirty) {
+        if (confirm('작성 중인 내용이 저장되지 않았습니다. 취소하고 마지막 저장 상태로 되돌리시겠습니까?')) {
+            loadSavedData();
+            isDirty = false;
+        }
+    } else {
+        alert('변경된 내용이 없습니다.');
+    }
+}
+
+function cancelAndClose() {
+    if (isDirty) {
+        if (confirm('저장되지 않은 변경사항이 있습니다. 그래도 닫으시겠습니까?')) window.close();
+    } else {
+        window.close();
+    }
+}
+
+/* ==========================================================================
+   API Key 및 Gemini AI 파이프라인
+   ========================================================================== */
+function checkApiKeyStatus() {
+    const savedKey = localStorage.getItem("GEMINI_USER_API_KEY");
+    const keyType = localStorage.getItem("GEMINI_KEY_TYPE");
+    const badge = $("apiStatusBadge");
+
+    if (savedKey) {
+        isPersonalWaitState = false;
+        $("apiKeyInput").value = savedKey;
+        $("apiDelBtn").style.display = "inline-block";
+        $("apiSaveBtn").classList.remove("api-wait-btn");
+        $("apiCancelBtn").style.display = "none";
+        $("dropdownArrow").style.display = "none";
+        $("apiSaveBtn").disabled = true;
+
+        if (keyType === "personal") {
+            $("apiSaveBtnText").innerText = "개인 키 설치완료";
+            badge.innerText = "🔒 개인 키 사용 중";
+            Object.assign(badge.style, { color: "#16a34a", background: "#dcfce7", borderColor: "#86efac" });
+        } else {
+            $("apiSaveBtnText").innerText = "공용 키 설치완료";
+            badge.innerText = "🟢 공용 키 사용 중";
+            Object.assign(badge.style, { color: "#d97706", background: "#fef3c7", borderColor: "#fde68a" });
+        }
+    } else {
+        $("apiKeyInput").value = "";
+        $("apiDelBtn").style.display = "none";
+        $("apiSaveBtn").disabled = false;
+        $("apiSaveBtn").classList.remove("api-wait-btn");
+        badge.innerText = "⚠️ 키 미설정 상태";
+        Object.assign(badge.style, { color: "#dc2626", background: "#fee2e2", borderColor: "#fca5a5" });
+
+        if (isPersonalWaitState) {
+            $("apiSaveBtnText").innerText = "개인 키 설치대기";
+            $("dropdownArrow").style.display = "none";
+            $("apiSaveBtn").classList.add("api-wait-btn");
+            $("apiCancelBtn").style.display = "inline-block";
+        } else {
+            checkKeyInputState();
+        }
+    }
+}
+
+function checkKeyInputState() {
+    if (localStorage.getItem("GEMINI_USER_API_KEY") || isPersonalWaitState) return;
+    const hasInput = $("apiKeyInput").value.trim().length > 0;
+    $("apiSaveBtnText").innerText = hasInput ? "개인 키 설치하기" : "키 설치하기";
+    $("dropdownArrow").style.display = hasInput ? "none" : "inline";
+    $("apiCancelBtn").style.display = hasInput ? "inline-block" : "none";
+}
+
+function handleSaveButtonClick() {
+    if (localStorage.getItem("GEMINI_USER_API_KEY")) return;
+    const keyVal = $("apiKeyInput").value.trim();
+    if (isPersonalWaitState || keyVal.length > 0) {
+        if (keyVal.length === 0) {
+            alert("API Key를 입력한 뒤 눌러주세요.");
+            return $("apiKeyInput").focus();
+        }
+        localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+        localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+        isPersonalWaitState = false;
+        checkApiKeyStatus();
+    } else {
+        $("apiDropdownMenu").classList.toggle("show");
+    }
+}
+
+function selectKeyChoice(type) {
+    $("apiDropdownMenu").classList.remove('show');
+    if (type === 'shared') {
+        if (PUBLIC_SHARED_KEY && !PUBLIC_SHARED_KEY.startsWith("__")) {
+            localStorage.setItem("GEMINI_USER_API_KEY", PUBLIC_SHARED_KEY);
+            localStorage.setItem("GEMINI_KEY_TYPE", "shared");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+        } else {
+            alert("공용 키가 설정되어 있지 않습니다.");
+        }
+    } else if (type === 'personal') {
+        const keyVal = $("apiKeyInput").value.trim();
+        if (keyVal.length > 0) {
+            localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
+            localStorage.setItem("GEMINI_KEY_TYPE", "personal");
+            isPersonalWaitState = false;
+            checkApiKeyStatus();
+        } else {
+            isPersonalWaitState = true;
+            checkApiKeyStatus();
+            $("apiKeyInput").focus();
+        }
+    }
+}
+
+function cancelKeyInput() {
+    isPersonalWaitState = false;
+    $("apiKeyInput").value = "";
+    checkApiKeyStatus();
+}
+
+function deleteApiKey() {
+    if (confirm("저장된 API Key를 삭제하시겠습니까?")) {
+        localStorage.removeItem("GEMINI_USER_API_KEY");
+        localStorage.removeItem("GEMINI_KEY_TYPE");
+        isPersonalWaitState = false;
+        checkApiKeyStatus();
+        $("apiKeyInput").focus();
+    }
+}
+
+async function requestAiRefine() {
+    const apiKey = localStorage.getItem("GEMINI_USER_API_KEY");
+    if (!apiKey) return alert('Gemini API Key를 먼저 설치해주세요.');
+
+    const completed = $('completedText').value.trim();
+    const newDraft = $('newDraftText').value.trim();
+    const intent = $('draftIntent').value.trim();
+    const promptReq = $('promptReqText').value.trim();
+
+    if (!newDraft) return alert('신규 글을 먼저 작성해주세요.');
+
+    const prompt = "당신은 유려한 감성과 논리적인 구조를 겸비한 전문 글쓰기 편집자이자 라이팅 코치입니다.\n" +
+        "다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.\n\n" +
+        "[이제까지 작성 완료된 글]:\n" + (completed || "(첫 단락입니다)") + "\n\n" +
+        "[신규 작성한 글]:\n" + newDraft + "\n\n" +
+        "[글의 의도]:\n" + (intent || "(별도 의도 없음)") + "\n\n" +
+        "[AI에게 바라는 구체적 요청 사항]:\n" + (promptReq || "(기본 자연스러운 흐름 퇴고 요망)") + "\n\n" +
+        "[수정 가이드]:\n" +
+        "1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.\n" +
+        "2. 사용하기로 했다면, 요청 사항에 맞춰 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.\n" +
+        "3. 출력 형식:\n- 채택 판단 코멘트(1줄)\n- [수정 완성 단락]";
+
+    const aiRefinedEl = $('aiRefinedText');
+    aiRefinedEl.value = "AI 검토 및 퇴고 중입니다...";
+
+    try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            aiRefinedEl.value = data.candidates[0].content.parts[0].text;
+            handleFieldInput('aiRefined');
+        } else {
+            aiRefinedEl.value = "수정안 생성에 실패했습니다.";
+        }
+    } catch (err) {
+        console.error(err);
+        aiRefinedEl.value = "통신 중 오류가 발생했습니다.";
+    }
 }
