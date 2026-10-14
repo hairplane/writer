@@ -1,0 +1,539 @@
+/* style.css v0.1 */
+/* ==========================================================================
+   1. 기본 리셋 및 전역 변수 (Global Tokens)
+   ========================================================================== */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-surface: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --primary-blue: #2563eb;
+  --primary-hover: #1d4ed8;
+  --danger-red: #ef4444;
+  --danger-hover: #dc2626;
+  --success-green: #10b981;
+  --status-draft-bg: #e2e8f0;
+  --status-draft-text: #475569;
+  --status-done-bg: #d1fae5;
+  --status-done-text: #065f46;
+  --status-plan-bg: #fef3c7;
+  --status-plan-text: #92400e;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ==========================================================================
+   2. 레이아웃 셸 (Layout Shell)
+   ========================================================================== */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  position: relative;
+}
+
+.app-header {
+  height: 52px;
+  min-height: 52px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.service-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: #f1f5f9;
+  color: var(--text-muted);
+}
+
+.status-indicator.synced {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.main-workspace {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  height: calc(100dvh - 52px);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   3. 좌측 사이드바: 글 목록 및 필터
+   ========================================================================== */
+.sidebar-panel {
+  width: 320px;
+  min-width: 320px;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.filter-controls {
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.article-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.article-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+  cursor: pointer;
+  background-color: var(--bg-surface);
+  border: 1px solid transparent;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.article-item:hover {
+  background-color: #f1f5f9;
+}
+
+.article-item.active {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.item-category-tag {
+  width: 62px;
+  min-width: 62px;
+  max-width: 62px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 4px;
+  background-color: #e2e8f0;
+  border-radius: var(--radius-sm);
+}
+
+.item-title-text {
+  flex: 1;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--status-draft-bg);
+}
+
+.item-status-dot.완료 { background-color: var(--success-green); }
+.item-status-dot.예정 { background-color: #f59e0b; }
+
+/* ==========================================================================
+   4. 우측 메인 에디터 및 7개 집필 창
+   ========================================================================== */
+.editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+.article-meta-bar {
+  padding: 12px 16px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-input {
+  width: 62px !important;
+  min-width: 62px !important;
+  max-width: 62px !important;
+  text-align: center;
+  font-size: 0.813rem;
+  font-weight: 600;
+}
+
+.title-input {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status-badge-btn {
+  min-width: 64px;
+  height: 34px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.status-badge-btn[data-status="작성"] { background-color: var(--status-draft-bg); color: var(--status-draft-text); }
+.status-badge-btn[data-status="완료"] { background-color: var(--status-done-bg); color: var(--status-done-text); }
+.status-badge-btn[data-status="예정"] { background-color: var(--status-plan-bg); color: var(--status-plan-text); }
+
+.dynamic-sections-flow {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 개별 집필 섹션 카드 */
+.section-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.section-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.section-card-header {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  background-color: #fafbfc;
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.header-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 데스크톱/모바일 완벽 중앙 정렬 정사각형 미니 토글 버튼 */
+.btn-collapse-toggle {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.section-title {
+  font-size: 0.938rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.section-title:hover {
+  color: var(--primary-blue);
+}
+
+.header-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.word-count-badge {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.section-card-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-textarea {
+  width: 100%;
+  min-height: 90px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-family: inherit;
+  font-size: 0.938rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.15s;
+}
+
+.section-textarea:focus {
+  border-color: var(--primary-blue);
+}
+
+/* 섹션 접힘 처리 */
+.section-card.collapsed .section-card-body {
+  display: none;
+}
+
+.section-card.collapsed .btn-copy,
+.section-card.collapsed .btn-ai-action {
+  display: none !important;
+}
+
+/* ==========================================================================
+   5. 단독 집중 모드 (Focus View 100dvh)
+   ========================================================================== */
+.section-card.focus-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 1000;
+  border-radius: 0;
+  border: none;
+  background-color: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.section-card.focus-mode .section-card-header {
+  height: 52px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 0;
+  background-color: #ffffff;
+}
+
+.section-card.focus-mode .section-card-body {
+  flex: 1;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.section-card.focus-mode .section-textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   6. 범용 폼 요소 및 버튼
+   ========================================================================== */
+.form-input, .form-select {
+  height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  background-color: #ffffff;
+  outline: none;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--primary-blue);
+}
+
+.btn {
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.btn-primary { background-color: var(--primary-blue); color: #ffffff; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-secondary { background-color: #f1f5f9; color: var(--text-main); border-color: var(--border-color); }
+.btn-secondary:hover { background-color: #e2e8f0; }
+
+.btn-outline-primary { border-color: var(--primary-blue); color: var(--primary-blue); background-color: transparent; }
+.btn-outline-primary:hover { background-color: #eff6ff; }
+
+.btn-danger { background-color: var(--danger-red); color: #ffffff; }
+.btn-danger:hover { background-color: var(--danger-hover); }
+
+.btn-icon { width: 34px; height: 34px; padding: 0; background-color: transparent; color: var(--text-muted); font-size: 1.1rem; }
+.btn-icon:hover { background-color: #f1f5f9; color: var(--text-main); }
+
+.btn-sm { height: 26px; padding: 0 8px; font-size: 0.75rem; }
+
+/* ==========================================================================
+   7. 커스텀 저장 확인 모달 (Unsaved Changes Modal)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background-color: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.hidden {
+  display: none;
+  opacity: 0;
+}
+
+.modal-card {
+  width: 90%;
+  max-width: 420px;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: modalPop 0.2s ease-out;
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-body {
+  padding: 20px;
+  font-size: 0.938rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.modal-footer {
+  padding: 12px 20px;
+  background-color: #fafbfc;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   8. 반응형 미디어 쿼리 (Mobile & Tablet)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .main-workspace {
+    flex-direction: column;
+  }
+  .sidebar-panel {
+    width: 100%;
+    min-width: 100%;
+    height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .editor-panel {
+    height: calc(100% - 180px);
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .modal-footer .btn {
+    width: 100%;
+  }
+}
