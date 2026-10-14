@@ -1,9 +1,9 @@
-<!-- v1.1: 글 선택 시 전체 집필창 시트데이터 자동연동, 소제목 클릭 시 단독집중모드(Focus View) 토글, PC 토글버튼 마이너스 기호 중앙정렬 보정 -->
+<!-- v1.2: 단독집중모드 화면 100% 꽉 채우기(100dvh/VisualViewport), 글자수 초과 시 내부 스크롤 전환, 모바일 가상키보드 대응 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>글쓰기 스튜디오</title>
     <style>
         :root {
@@ -14,9 +14,11 @@
             --border-light: #e2e8f0;
             --text-main: #0f172a;
             --text-sub: #64748b;
+            --app-height: 100dvh;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
             background-color: var(--bg-color);
@@ -24,6 +26,14 @@
             line-height: 1.45;
             word-break: keep-all;
             padding: 10px 12px 30px;
+            min-height: var(--app-height);
+        }
+
+        /* 단독 집중 모드 시 body와 container를 뷰포트 고정형으로 전환 */
+        body.mode-focus {
+            padding: 6px 10px;
+            overflow: hidden;
+            height: var(--app-height);
         }
 
         .container {
@@ -32,6 +42,12 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            min-height: 100%;
+        }
+
+        body.mode-focus .container {
+            height: 100%;
+            gap: 6px;
         }
 
         /* 1. 스퀘어 모서리 2단 헤더 */
@@ -42,6 +58,7 @@
             border: 1px solid #cbd5e1;
             border-bottom: 2px solid #94a3b8;
             user-select: none;
+            flex-shrink: 0;
         }
 
         .header-top-row {
@@ -151,7 +168,7 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.6);
         }
 
-        /* 2. 공통 헤더 정사각형 [−]/[+] 토글 버튼 (PC 중앙정렬 완벽 보정) */
+        /* 2. 공통 헤더 정사각형 [−]/[+] 토글 버튼 */
         .btn-section-toggle {
             width: 18px;
             height: 18px;
@@ -199,6 +216,7 @@
             align-items: center;
             gap: 6px;
             padding: 0 2px;
+            flex-shrink: 0;
         }
 
         .btn {
@@ -243,6 +261,7 @@
             border-bottom: 1px solid var(--border-light);
             flex-wrap: wrap;
             gap: 6px;
+            flex-shrink: 0;
         }
 
         .post-list-title-wrap { display: flex; align-items: center; gap: 8px; }
@@ -268,6 +287,17 @@
             border-radius: 3px;
             background: #ffffff;
             padding-bottom: 2px;
+        }
+
+        /* 목록 단독 집중 모드 시 리스트가 화면을 꽉 채움 */
+        body.mode-focus .post-list-box {
+            flex: 1;
+            height: 100%;
+        }
+        body.mode-focus .post-list-rows {
+            flex: 1;
+            max-height: none;
+            height: 100%;
         }
 
         .post-row-item {
@@ -297,7 +327,6 @@
             overflow: hidden;
         }
 
-        /* 슬림 텍스트 열 형태의 분류 */
         .post-category-tag {
             display: inline-block;
             width: 62px;
@@ -321,7 +350,6 @@
         .post-row-title:hover { text-decoration: underline; }
         .post-row-item.active .post-row-title { color: var(--primary); font-weight: 700; }
 
-        /* 상황 3종 순환 버튼 스타일 */
         .btn-status-toggle {
             flex-shrink: 0;
             padding: 1px 5px;
@@ -343,7 +371,7 @@
 
         /* 메타정보 표 모듈 */
         .meta-table-box { display: flex; flex-direction: column; gap: 4px; }
-        .meta-table-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 3px; border-bottom: 1px solid var(--border-light); }
+        .meta-table-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 3px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
         .meta-table-title { font-size: 0.86rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 5px; }
 
         .meta-grid-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: #ffffff; border: 1px solid var(--border-color); border-radius: 3px; }
@@ -354,7 +382,7 @@
 
         /* API 키 관리 박스 */
         .api-box { display: flex; flex-direction: column; gap: 4px; }
-        .api-box-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 3px; border-bottom: 1px solid var(--border-light); }
+        .api-box-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 3px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
         .api-header-left { display: flex; align-items: center; gap: 5px; }
         .api-section-title { font-size: 0.86rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 5px; }
         .api-status-badge { font-size: 0.74rem; font-weight: 700; color: #d97706; background: #fef3c7; padding: 2px 6px; border-radius: 3px; border: 1px solid #fde68a; }
@@ -375,7 +403,7 @@
 
         /* 동적 집필 영역 공통 스타일 */
         .editor-section { display: flex; flex-direction: column; gap: 3px; }
-        .section-header-line { display: flex; justify-content: space-between; align-items: center; padding-bottom: 2px; border-bottom: 1px solid var(--border-light); }
+        .section-header-line { display: flex; justify-content: space-between; align-items: center; padding-bottom: 2px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
         .section-header-left { display: flex; align-items: center; gap: 5px; }
 
         /* 소제목 단독 집중 모드(Focus View) 클릭 가능 스타일 */
@@ -425,6 +453,7 @@
             padding: 1px 2px;
             flex-wrap: wrap;
             gap: 4px;
+            flex-shrink: 0;
         }
         .stat-info { font-weight: 500; }
         .restore-group { display: flex; gap: 3px; margin-left: auto; }
@@ -448,6 +477,38 @@
         .btn-append-header { background: #0284c7; color: #ffffff; border: none; padding: 2px 7px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
         .btn-append-header:hover { background: #0369a1; }
 
+        /* ==========================================================================
+           단독 집중 모드(Focus View) 100% 꽉 채우기 및 내부 스크롤 전환 CSS
+           ========================================================================== */
+        body.mode-focus #editor-container {
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body.mode-focus .editor-section.is-focused-section {
+            flex: 1;
+            height: 100%;
+            display: flex !important;
+            flex-direction: column;
+        }
+
+        body.mode-focus .editor-section.is-focused-section .editor-content-wrap {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        body.mode-focus .editor-section.is-focused-section textarea.flat-textarea {
+            flex: 1;
+            height: 100% !important;
+            min-height: 0 !important;
+            overflow-y: auto !important; /* 화면보다 길어지면 내부 스크롤로 전환 */
+            resize: none;
+        }
+
         @media (max-width: 640px) {
             body { padding: 6px 8px 24px; }
             .container { gap: 8px; }
@@ -464,7 +525,7 @@
         <div class="header-top-row">
             <div class="header-title-wrap">
                 <h1>✍️ 글쓰기 스튜디오</h1>
-                <span class="version-tag">v1.1</span>
+                <span class="version-tag">v1.2</span>
             </div>
             <button type="button" class="btn-close-app" onclick="cancelAndClose()" title="창 닫기">✕</button>
         </div>
@@ -499,7 +560,7 @@
             <div class="post-list-title-wrap">
                 <div class="post-list-title">
                     <button type="button" id="arrow_postList" class="btn-section-toggle" onclick="toggleSection('postList')" title="열림/숨김">−</button>
-                    <span class="section-title" onclick="toggleFocusView('postList')" title="클릭 시 단독 집중 모드">작성 글 목록</span>
+                    <span class="section-title" id="title_postList" onclick="toggleFocusView('postList')" title="클릭 시 단독 집중 모드">작성 글 목록</span>
                     <span id="badge_postList" class="badge-collapsed">숨김</span>
                 </div>
                 <div>
@@ -530,7 +591,7 @@
         <div id="hdr_meta" class="meta-table-header">
             <span class="meta-table-title">
                 <button type="button" id="arrow_meta" class="btn-section-toggle" onclick="toggleSection('meta')" title="열림/숨김">−</button>
-                <span class="section-title" onclick="toggleFocusView('meta')" title="클릭 시 단독 집중 모드">작성 글 정보</span>
+                <span class="section-title" id="title_meta" onclick="toggleFocusView('meta')" title="클릭 시 단독 집중 모드">작성 글 정보</span>
                 <span id="badge_meta" class="badge-collapsed">숨김</span>
             </span>
         </div>
@@ -567,7 +628,7 @@
             <div class="api-header-left">
                 <button type="button" id="arrow_api" class="btn-section-toggle" onclick="toggleSection('api')" title="열림/숨김">−</button>
                 <span class="api-section-title">
-                    <span class="section-title" onclick="toggleFocusView('api')" title="클릭 시 단독 집중 모드">API 설정</span>
+                    <span class="section-title" id="title_api" onclick="toggleFocusView('api')" title="클릭 시 단독 집중 모드">API 설정</span>
                 </span>
                 <span id="badge_api" class="badge-collapsed">숨김</span>
                 <span id="apiStatusBadge" class="api-status-badge">⚠️ 키 미설정 상태</span>
@@ -608,10 +669,29 @@
     let currentPostId = null;
     let currentPostStatus = "작성";
     let postListCache = [];
-    let currentFocusedKey = null; // 단독 집중 모드(Focus View) 상태 추적
+    let currentFocusedKey = null;
 
     /* ==========================================================================
-       데이터 주도 렌더링 설정 (포트란의 DO 루프 대상 파라미터 테이블)
+       모바일 가상 키보드 및 뷰포트 높이 실시간 보정 (Visual Viewport API)
+       ========================================================================== */
+    function updateAppHeight() {
+        if (window.visualViewport) {
+            document.documentElement.style.setProperty('--app-height', `${window.visualViewport.height}px`);
+        } else {
+            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+        }
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateAppHeight);
+        window.visualViewport.addEventListener('scroll', updateAppHeight);
+    } else {
+        window.addEventListener('resize', updateAppHeight);
+    }
+    updateAppHeight();
+
+    /* ==========================================================================
+       데이터 주도 렌더링 설정
        ========================================================================== */
     const SECTION_CONFIGS = [
         { key: 'outline',   id: 'essayOutline',   title: '글의 구성',      minH: 70,  stat: false, readTime: false, bullet: true },
@@ -690,27 +770,41 @@
     }
 
     /* ==========================================================================
-       소제목 클릭 시 '단독 집중 모드 (Focus View)' 토글 엔진
+       소제목 클릭 시 '단독 집중 모드 (Focus View)' 토글 엔진 (화면 꽉 채우기)
        ========================================================================== */
     function toggleFocusView(key) {
         if (currentFocusedKey === key) {
-            // 이미 집중된 창을 다시 누르면: 전체 복원
-            ALL_SECTION_KEYS.forEach(function(k) {
-                const sec = $('sec_' + k);
-                if (sec) sec.style.display = (k === 'meta' || k === 'postList') ? 'flex' : 'flex';
-                const titleEl = $('title_' + k);
-                if (titleEl) titleEl.classList.remove('is-focused');
-            });
-            const actionToolbar = $('mainActionToolbar');
-            if (actionToolbar) actionToolbar.style.display = 'flex';
-            currentFocusedKey = null;
-            resizeAllTextareas();
-        } else {
-            // 특정 창만 화면에 단독 표시
+            // 이미 집중된 창을 다시 누르면: 일반 모드로 전체 복원
+            document.body.classList.remove('mode-focus');
             ALL_SECTION_KEYS.forEach(function(k) {
                 const sec = $('sec_' + k);
                 if (sec) {
-                    sec.style.display = (k === key) ? 'flex' : 'none';
+                    sec.style.display = (k === 'meta' || k === 'postList') ? 'flex' : 'flex';
+                    sec.classList.remove('is-focused-section');
+                }
+                const titleEl = $('title_' + k);
+                if (titleEl) titleEl.classList.remove('is-focused');
+            });
+
+            const actionToolbar = $('mainActionToolbar');
+            if (actionToolbar) actionToolbar.style.display = 'flex';
+            currentFocusedKey = null;
+
+            // 일반 모드로 돌아오면 내용 길이에 맞춘 자동 높이로 재계산
+            resizeAllTextareas();
+        } else {
+            // 특정 창만 화면 100% 단독 표시 모드로 진입
+            document.body.classList.add('mode-focus');
+            ALL_SECTION_KEYS.forEach(function(k) {
+                const sec = $('sec_' + k);
+                if (sec) {
+                    if (k === key) {
+                        sec.style.display = 'flex';
+                        sec.classList.add('is-focused-section');
+                    } else {
+                        sec.style.display = 'none';
+                        sec.classList.remove('is-focused-section');
+                    }
                 }
                 const titleEl = $('title_' + k);
                 if (titleEl) {
@@ -718,14 +812,23 @@
                     else titleEl.classList.remove('is-focused');
                 }
             });
+
             currentFocusedKey = key;
 
-            // 선택된 창이 접혀있었다면 자동으로 펼침
+            // 만약 접혀있던 창이면 펼치기
             const bodyEl = $('body_' + key);
             if (bodyEl && bodyEl.style.display === 'none') {
                 toggleSection(key);
             }
-            resizeAllTextareas();
+
+            // 집중 모드인 텍스트 입력창은 인라인 style.height를 비워 CSS Flex 100%가 적용되게 함
+            const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+            if (cfg) {
+                const targetArea = $(cfg.id);
+                if (targetArea) {
+                    targetArea.style.height = '';
+                }
+            }
         }
     }
 
@@ -754,6 +857,8 @@
 
     function autoResizeTextarea(textarea, minH) {
         if (!textarea) return;
+        // 단독 집중 모드일 때는 화면 꽉 채우기 위해 autoResize를 생략함
+        if (document.body.classList.contains('mode-focus')) return;
         const baseH = minH || 50;
         textarea.style.height = 'auto';
         textarea.style.height = Math.max(textarea.scrollHeight, baseH) + 'px';
@@ -798,7 +903,7 @@
     }
 
     /* ==========================================================================
-       작성 글 목록 (test.html v1.4 완전 통합)
+       작성 글 목록
        ========================================================================== */
     function loadCachedPosts() {
         const cached = localStorage.getItem(POSTS_CACHE_KEY);
@@ -853,7 +958,6 @@
 
     function handleFilterChange() {
         currentPostId = null;
-        // 필터 변경 시 전체 집필창 초기화
         SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             if (el) {
@@ -954,7 +1058,6 @@
         });
     }
 
-    // 1. 글 선택 시 시트 전체 내용 모든 창에 자동 매핑 (완성글, 신규글, 의도 등 전 필드)
     function selectPost(post) {
         if (isDirty && !confirm('작성 중인 변경 사항이 있습니다. 저장하지 않고 다른 글로 전환하시겠습니까?')) {
             return;
@@ -963,13 +1066,11 @@
         currentPostId = post.ID || post.id || '';
         currentPostStatus = (post.상황 || post.status || '작성').trim();
 
-        // 메타 정보
         $('essayTitleInput').value = post.제목 || post.title || '';
         $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
         $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
         $('postSummary').value = post.요약 || post.summary || '';
 
-        // 7개 집필 영역 다각도 헤더 키 안전 매핑
         $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
         $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
         $('newDraftText').value  = post.신규글 || post['신규 글'] || post['신규\n글'] || post.newDraft || '';
@@ -986,6 +1087,7 @@
     }
 
     function resizeAllTextareas() {
+        if (document.body.classList.contains('mode-focus')) return;
         SECTION_CONFIGS.forEach(function(cfg) {
             const el = $(cfg.id);
             if (el) autoResizeTextarea(el, cfg.minH);
