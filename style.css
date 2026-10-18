@@ -1,5 +1,6 @@
 /* ==========================================================================
-   style.css v1.0: 디자인 테마 & UI 커스텀 스타일시트
+   [BOM] index(v3.2) / core.js(v1.0) / sheet.js(v1.0) / api.js(v1.0) / app.js(v1.1) / core.css(v1.0) / style.css(v1.1)
+   - style.css: #btn-toggle-all (ON/OFF 버튼) 호버/클릭 스타일 추가 (v1.0 -> v1.1)
    ========================================================================== */
 
 :root {
@@ -94,11 +95,26 @@ header.mac-window-header {
   flex-wrap: wrap;
 }
 
-.toggle-guide-label {
+/* ON/OFF 마스터 토글 버튼 스타일 */
+.btn-toggle-all {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  color: #475569;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #64748b;
-  margin-right: 2px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+.btn-toggle-all:hover {
+  background: #f1f5f9;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.btn-toggle-all:active {
+  background: #e2e8f0;
 }
 
 .traffic-group {
