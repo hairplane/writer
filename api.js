@@ -1,6 +1,9 @@
 /* ==========================================================================
-   api.js v1.0: Google Gemini API 관리 및 AI 퇴고 파이프라인 모듈
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
+   - api.js: 자체 버전 식별 전역 변수(_V_API) 선언 및 v1.1 갱신
    ========================================================================== */
+
+window._V_API = "v1.1";
 
 const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
 let isPersonalWaitState = false;
