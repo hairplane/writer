@@ -1,10 +1,10 @@
 /* ==========================================================================
-   - style.css: 소제목 가로 구분선을 상단(border-top)으로 이동 및 v1.3 갱신
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.3)
+   - style.css: 모든 섹션 소제목 줄 높이(min-height: 28px) 및 여백 통일 (v1.3 -> v1.4)
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.4)
    ========================================================================== */
 
 :root {
-  --v-style-css: "v1.3";
+  --v-style-css: "v1.4";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -317,6 +317,7 @@ header.mac-window-header {
   align-items: center;
   gap: 2px;
   transition: all 0.15s ease;
+  line-height: 1.2;
 }
 .btn-copy:hover {
   background: #f1f5f9;
@@ -328,25 +329,26 @@ header.mac-window-header {
 .post-list-box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .post-list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 6px;
-  padding-bottom: 2px;
+  min-height: 28px;
+  padding: 3px 0 2px;
   border-top: 1px solid var(--border-light);
   flex-wrap: wrap;
   gap: 6px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .post-list-title-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .filter-group {
@@ -361,17 +363,20 @@ header.mac-window-header {
   display: flex;
   align-items: center;
   gap: 3px;
+  line-height: 1;
 }
 
 .select-filter {
-  padding: 2px 4px;
-  font-size: 0.76rem;
+  padding: 1px 3px;
+  height: 22px;
+  font-size: 0.74rem;
   border: 1px solid var(--border-color);
   border-radius: 3px;
   outline: none;
   background: #fff;
   color: #334155;
   font-weight: 600;
+  line-height: 1;
 }
 
 .post-list-rows {
@@ -452,17 +457,18 @@ header.mac-window-header {
 .meta-table-box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .meta-table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 6px;
-  padding-bottom: 2px;
+  min-height: 28px;
+  padding: 3px 0 2px;
   border-top: 1px solid var(--border-light);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .meta-grid-table {
@@ -507,16 +513,17 @@ header.mac-window-header {
 .api-box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .api-box-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 6px;
-  padding-bottom: 2px;
+  min-height: 28px;
+  padding: 3px 0 2px;
   border-top: 1px solid var(--border-light);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 .api-header-left {
   display: flex;
@@ -528,18 +535,20 @@ header.mac-window-header {
   font-weight: 700;
   color: #d97706;
   background: #fef3c7;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid #fde68a;
+  line-height: 1.2;
 }
 .btn-key-compact {
   background: #ffffff;
   color: #d97706;
   border: 1px solid #fde68a;
   border-radius: 3px;
-  padding: 1px 5px;
+  padding: 0 4px;
   font-size: 0.78rem;
   text-decoration: none;
+  line-height: 1.2;
 }
 .api-content-wrap {
   background: #fffdf5;
@@ -642,15 +651,16 @@ header.mac-window-header {
   gap: 3px;
 }
 
-/* 섹션 헤더 가로선: 소제목 상단(border-top) 배치 */
+/* 모든 섹션 헤더 가로줄 규격 완벽 통일 */
 .section-header-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 6px;
-  padding-bottom: 2px;
+  min-height: 28px;
+  padding: 3px 0 2px;
   border-top: 1px solid var(--border-light);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 .section-header-left {
   display: flex;
@@ -665,6 +675,7 @@ header.mac-window-header {
   padding: 1px 4px;
   border-radius: 3px;
   transition: all 0.15s ease;
+  line-height: 1.2;
 }
 .section-title:hover {
   color: var(--primary);
@@ -738,6 +749,7 @@ textarea.flat-textarea:focus {
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+  line-height: 1.2;
 }
 .btn-ai-req:hover { background: #4338ca; }
 .btn-append-header {
@@ -749,6 +761,7 @@ textarea.flat-textarea:focus {
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+  line-height: 1.2;
 }
 .btn-append-header:hover { background: #0369a1; }
 
