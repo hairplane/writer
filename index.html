@@ -1,5 +1,5 @@
-<!-- [BOM] index(v3.2) / core.js(v1.0) / sheet.js(v1.0) / api.js(v1.0) / app.js(v1.1) / core.css(v1.0) / style.css(v1.1) -->
-<!-- - index.html: '열고 닫기:' 텍스트 라벨을 전체 토글 버튼 #btn-toggle-all (ON/OFF)로 변경 및 v3.2 갱신 -->
+<!-- - index.html: BOM 명세 팝오버 컨테이너(#versionPopover) 추가 및 v3.3 갱신 -->
+<!-- [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -19,12 +19,15 @@
       <div class="header-top-row">
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
-          <span class="version-tag">v3.2</span>
+          <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
+          <span class="version-tag" title="모듈 로드 중...">v3.3</span>
+          <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
+          <div id="versionPopover" class="version-popover"></div>
         </div>
         <button type="button" class="btn-close-app" id="btn-header-close" title="닫기">✕</button>
       </div>
       <div class="header-toggle-row">
-        <!-- '열고 닫기:' 라벨을 ON/OFF 마스터 토글 버튼으로 변경 -->
+        <!-- 전체 창 일괄 토글 버튼 -->
         <button type="button" id="btn-toggle-all" class="btn-toggle-all" title="전체 창 열기 / 닫기">ON/OFF</button>
         <div class="traffic-group">
           <button type="button" id="dot_postList" class="traffic-btn tb-postList" title="작성 글 목록 토글"></button>
