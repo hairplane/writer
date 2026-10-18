@@ -1,9 +1,9 @@
 /* ==========================================================================
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
-   - core.js: 자체 버전 식별 전역 변수(_V_CORE) 선언 및 v1.1 갱신
+   - core.js: 리마크 순서 규약 적용 및 최신 BOM 동기화 (v1.1 -> v1.2)
+   [BOM] index(v3.5) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.2) / style.css(v1.7)
    ========================================================================== */
 
-window._V_CORE = "v1.1";
+window._V_CORE = "v1.2";
 
 // 1. 단축 선택자 유틸리티
 function $(id) {
@@ -36,17 +36,24 @@ function executeToggleSection(key) {
   const hdr = $('hdr_' + key);
 
   if (!body) return;
+
   const isHidden = body.style.display === 'none';
 
   if (isHidden) {
     body.style.display = '';
-    if (arrow) { arrow.innerText = '−'; arrow.classList.remove('is-closed'); }
+    if (arrow) {
+      arrow.innerText = '−';
+      arrow.classList.remove('is-closed');
+    }
     if (dot) dot.classList.remove('is-closed');
     if (badge) badge.classList.remove('show');
     if (hdr) hdr.classList.remove('header-collapsed-line');
   } else {
     body.style.display = 'none';
-    if (arrow) { arrow.innerText = '+'; arrow.classList.add('is-closed'); }
+    if (arrow) {
+      arrow.innerText = '+';
+      arrow.classList.add('is-closed');
+    }
     if (dot) dot.classList.add('is-closed');
     if (badge) badge.classList.add('show');
     if (hdr) hdr.classList.add('header-collapsed-line');
@@ -68,9 +75,7 @@ function executeToggleFocusView(key, allKeys, sectionConfigs, currentFocusedKey,
       }
       if (title) title.classList.remove('is-focused');
     });
-
     if (onExitFocus) onExitFocus();
-
     if (manageHistory && window.history.state && window.history.state.focused) {
       window.history.back();
     }
@@ -96,9 +101,7 @@ function executeToggleFocusView(key, allKeys, sectionConfigs, currentFocusedKey,
         if (title) title.classList.remove('is-focused');
       }
     });
-
     if (onEnterFocus) onEnterFocus(key);
-
     if (manageHistory) {
       window.history.pushState({ focused: key }, '');
     }
@@ -136,15 +139,18 @@ function copyContent(elemId, btnElem) {
   const target = $(elemId);
   if (!target) return;
   const originalText = btnElem.innerText;
-  navigator.clipboard.writeText(target.value || target.innerText || '').then(() => {
-    btnElem.innerText = '✓ 복사완료';
-    btnElem.style.color = '#16a34a';
-    setTimeout(() => {
-      btnElem.innerText = originalText;
-      btnElem.style.color = '';
-    }, 1500);
-  }).catch(err => {
-    console.error('복사 실패:', err);
-    alert('클립보드 복사에 실패했습니다.');
-  });
+
+  navigator.clipboard.writeText(target.value || target.innerText || '')
+    .then(() => {
+      btnElem.innerText = '✓ 복사완료';
+      btnElem.style.color = '#16a34a';
+      setTimeout(() => {
+        btnElem.innerText = originalText;
+        btnElem.style.color = '';
+      }, 1500);
+    })
+    .catch(err => {
+      console.error('복사 실패:', err);
+      alert('클립보드 복사에 실패했습니다.');
+    });
 }
