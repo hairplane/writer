@@ -1,9 +1,9 @@
 /* ==========================================================================
-   - app.js: 7개 동적 집필창 생성 로직에서 '숨김' 뱃지 DOM 요소 제거 및 v1.4 갱신
-   [BOM] index(v3.4) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.1) / style.css(v1.5)
+   - filename: app.js (버전 명세서 외부 영역 클릭 시 자동 닫힘 기능 보강, v1.4 -> v1.5)
+   [BOM] index(v3.5) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v1.9)
    ========================================================================== */
 
-window._V_APP = "v1.4";
+window._V_APP = "v1.5";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 
@@ -28,7 +28,7 @@ const fieldMap = {};
 const fieldState = {};
 SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
 
-// 0. 실시간 7개 모듈 버전 감지 (호버 툴팁 + 클릭 팝오버) - 안전한 문자열 결합 처리
+// 0. 실시간 7개 모듈 버전 감지 (호버 툴팁 + 클릭 팝오버)
 function initBOMVersionDisplay() {
   const versionTag = document.querySelector('.version-tag');
   const popover = $('versionPopover');
@@ -94,7 +94,6 @@ function buildEditorSections() {
         '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
     }
 
-    // 숨김 뱃지(<span id="badge_..." class="badge-collapsed">숨김</span>) 제거됨
     hdr.innerHTML = '<div class="section-header-left">' +
       '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
       '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
@@ -435,7 +434,7 @@ function initModalHandlers() {
   }
 }
 
-// 5. 초기 이벤트 연결
+// 5. 초기 이벤트 연결 및 외부 영역 클릭 감지 보강
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
@@ -497,20 +496,20 @@ window.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
-  ['essayTitleInput', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
-    const el = $(id);
-    if (el) el.addEventListener('input', markDirty);
-  });
-
-  window.onclick = function(e) {
+  // 빈 공간 클릭 시 드롭다운 메뉴 및 팝업 닫기 (전역 클릭 감지)
+  window.addEventListener('click', function(e) {
+    // API 설정 드롭다운 닫기
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
         el.classList.remove('show');
       });
     }
-    if (!e.target.closest('.version-tag') && !e.target.closest('#versionPopover')) {
+    // 버전 명세서(BOM) 팝업 닫기
+    if (!e.target.closest('.version-tag') && !e.target.closest('.version-popover')) {
       const pop = $('versionPopover');
-      if (pop) pop.classList.remove('show');
+      if (pop && pop.classList.contains('show')) {
+        pop.classList.remove('show');
+      }
     }
-  };
+  });
 });
