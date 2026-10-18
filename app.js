@@ -1,9 +1,9 @@
 /* ==========================================================================
-   - app.js: 실시간 BOM 감지 엔진(호버 툴팁+클릭 팝오버) 구현 및 v1.2 갱신
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
+   - app.js: initBOMVersionDisplay 템플릿 리터럴 문법 안전화 및 v1.3 갱신
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.2)
    ========================================================================== */
 
-window._V_APP = "v1.2";
+window._V_APP = "v1.3";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 
@@ -28,7 +28,7 @@ const fieldMap = {};
 const fieldState = {};
 SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
 
-// 0. 실시간 7개 모듈 버전 감지 (호버 툴팁 + 클릭 팝오버)
+// 0. 실시간 7개 모듈 버전 감지 (호버 툴팁 + 클릭 팝오버) - 안전한 문자열 결합 처리
 function initBOMVersionDisplay() {
   const versionTag = document.querySelector('.version-tag');
   const popover = $('versionPopover');
@@ -44,28 +44,26 @@ function initBOMVersionDisplay() {
   const coreCssVer = (rootStyle.getPropertyValue('--v-core-css') || '').replace(/['"]/g, '').trim() || '미적용';
   const styleCssVer = (rootStyle.getPropertyValue('--v-style-css') || '').replace(/['"]/g, '').trim() || '미적용';
 
-  const tooltipText = `[실시간 로드 BOM]\n` +
-    `• HTML: ${htmlVer}\n` +
-    `• core.js: ${coreJsVer} | sheet.js: ${sheetJsVer}\n` +
-    `• api.js: ${apiJsVer} | app.js: ${appJsVer}\n` +
-    `• core.css: ${coreCssVer} | style.css: ${styleCssVer}`;
+  const tooltipText = "[실시간 로드 BOM]\n" +
+    "• HTML: " + htmlVer + "\n" +
+    "• core.js: " + coreJsVer + " | sheet.js: " + sheetJsVer + "\n" +
+    "• api.js: " + apiJsVer + " | app.js: " + appJsVer + "\n" +
+    "• core.css: " + coreCssVer + " | style.css: " + styleCssVer;
   versionTag.title = tooltipText;
 
   if (popover) {
-    popover.innerHTML = `
-      <div class="version-popover-title">
-        <span>📦 모듈 버전 명세서 (BOM)</span>
-      </div>
-      <ul>
-        <li><span class="bom-name">index.html</span><span class="bom-val">${htmlVer}</span></li>
-        <li><span class="bom-name">core.js</span><span class="bom-val">${coreJsVer}</span></li>
-        <li><span class="bom-name">sheet.js</span><span class="bom-val">${sheetJsVer}</span></li>
-        <li><span class="bom-name">api.js</span><span class="bom-val">${apiJsVer}</span></li>
-        <li><span class="bom-name">app.js</span><span class="bom-val">${appJsVer}</span></li>
-        <li><span class="bom-name">core.css</span><span class="bom-val">${coreCssVer}</span></li>
-        <li><span class="bom-name">style.css</span><span class="bom-val">${styleCssVer}</span></li>
-      </ul>
-    `;
+    popover.innerHTML = '<div class="version-popover-title">' +
+      '<span>📦 모듈 버전 명세서 (BOM)</span>' +
+      '</div>' +
+      '<ul>' +
+      '<li><span class="bom-name">index.html</span><span class="bom-val">' + htmlVer + '</span></li>' +
+      '<li><span class="bom-name">core.js</span><span class="bom-val">' + coreJsVer + '</span></li>' +
+      '<li><span class="bom-name">sheet.js</span><span class="bom-val">' + sheetJsVer + '</span></li>' +
+      '<li><span class="bom-name">api.js</span><span class="bom-val">' + apiJsVer + '</span></li>' +
+      '<li><span class="bom-name">app.js</span><span class="bom-val">' + appJsVer + '</span></li>' +
+      '<li><span class="bom-name">core.css</span><span class="bom-val">' + coreCssVer + '</span></li>' +
+      '<li><span class="bom-name">style.css</span><span class="bom-val">' + styleCssVer + '</span></li>' +
+      '</ul>';
 
     versionTag.onclick = function(e) {
       e.stopPropagation();
@@ -137,7 +135,7 @@ function toggleSection(key) {
   executeToggleSection(key);
 }
 
-// 전체 창 마스터 토글 (하나라도 열려있으면 모두 닫고, 모두 닫혀있으면 모두 열기)
+// 전체 창 마스터 토글
 function toggleAllSections() {
   if (document.body.classList.contains('mode-focus')) {
     if (currentFocusedKey) toggleFocusView(currentFocusedKey);
@@ -261,7 +259,7 @@ function updateAllStats() {
 }
 
 function appendDraftToCompleted() {
-  const textToAppend = $('aiRefinedText').value.trim() \vert{}\vert{}$('newDraftText').value.trim();
+  const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
   if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
   const completedEl = $('completedText');
   completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
@@ -447,9 +445,8 @@ window.addEventListener('DOMContentLoaded', function() {
   loadCachedPosts();
   fetchSheetPosts();
   initModalHandlers();
-  initBOMVersionDisplay(); // 실시간 BOM 감지 및 툴팁/팝오버 바인딩
+  initBOMVersionDisplay();
 
-  // ON/OFF 마스터 토글 버튼 이벤트 연동
   const btnToggleAll = $('btn-toggle-all');
   if (btnToggleAll) btnToggleAll.onclick = toggleAllSections;
 
@@ -505,7 +502,6 @@ window.addEventListener('DOMContentLoaded', function() {
     if (el) el.addEventListener('input', markDirty);
   });
 
-  // 외부 클릭 시 드롭다운 및 버전 팝오버 닫기
   window.onclick = function(e) {
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
