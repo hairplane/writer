@@ -1,9 +1,10 @@
 /* ==========================================================================
-   [BOM] index(v3.2) / core.js(v1.0) / sheet.js(v1.0) / api.js(v1.0) / app.js(v1.1) / core.css(v1.0) / style.css(v1.1)
-   - style.css: #btn-toggle-all (ON/OFF 버튼) 호버/클릭 스타일 추가 (v1.0 -> v1.1)
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
+   - style.css: 누락 컴포넌트 복원, 실시간 CSS 변수(--v-style-css) 및 BOM 팝오버 스타일 추가 (v1.1 -> v1.2)
    ========================================================================== */
 
 :root {
+  --v-style-css: "v1.2";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -54,6 +55,7 @@ header.mac-window-header {
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
 }
 
 .header-title-wrap h1 {
@@ -65,7 +67,8 @@ header.mac-window-header {
   gap: 5px;
 }
 
-.header-title-wrap .version-tag {
+/* 버전 뱃지 (커서 및 클릭 반응) */
+.version-tag {
   font-size: 0.7rem;
   color: var(--primary);
   font-weight: 700;
@@ -73,6 +76,62 @@ header.mac-window-header {
   padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid #bfdbfe;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+.version-tag:hover {
+  background: #eff6ff;
+  border-color: var(--primary);
+}
+
+/* 버전 클릭 미니 팝오버 카드 */
+.version-popover {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 5px;
+  padding: 8px 10px;
+  z-index: 100;
+  min-width: 210px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #334155;
+}
+.version-popover.show {
+  display: block;
+}
+.version-popover-title {
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 3px;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+.version-popover ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.version-popover li {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 0;
+}
+.version-popover .bom-name {
+  color: #64748b;
+}
+.version-popover .bom-val {
+  font-weight: 600;
+  color: var(--primary);
+  font-family: monospace;
 }
 
 .btn-close-app {
@@ -95,7 +154,7 @@ header.mac-window-header {
   flex-wrap: wrap;
 }
 
-/* ON/OFF 마스터 토글 버튼 스타일 */
+/* ON/OFF 마스터 토글 버튼 */
 .btn-toggle-all {
   background: #ffffff;
   border: 1px solid var(--border-color);
