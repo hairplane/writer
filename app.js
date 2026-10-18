@@ -1,9 +1,9 @@
 /* ==========================================================================
-   - app.js: initBOMVersionDisplay 템플릿 리터럴 문법 안전화 및 v1.3 갱신
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.2)
+   - app.js: 7개 동적 집필창 생성 로직에서 '숨김' 뱃지 DOM 요소 제거 및 v1.4 갱신
+   [BOM] index(v3.4) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.1) / style.css(v1.5)
    ========================================================================== */
 
-window._V_APP = "v1.3";
+window._V_APP = "v1.4";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 
@@ -94,10 +94,10 @@ function buildEditorSections() {
         '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
     }
 
+    // 숨김 뱃지(<span id="badge_..." class="badge-collapsed">숨김</span>) 제거됨
     hdr.innerHTML = '<div class="section-header-left">' +
       '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
       '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
-      '<span id="badge_' + cfg.key + '" class="badge-collapsed">숨김</span>' +
       '</div>' +
       '<div style="display:flex; align-items:center; gap:4px;">' +
       '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
