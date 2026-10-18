@@ -1,10 +1,10 @@
 /* ==========================================================================
-   - style.css: 태그 기본여백 강제 초기화 및 overflow:hidden으로 10개 줄 완벽 동기화 (v1.5 -> v1.6)
-   [BOM] index(v3.4) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.1) / style.css(v1.6)
+   - style.css: core.css의 숨겨진 ID 여백 강제 제압 및 10개 줄 절대 높이 동기화 (v1.6 -> v1.7)
+   [BOM] index(v3.5) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.2) / style.css(v1.7)
    ========================================================================== */
 
 :root {
-  --v-style-css: "v1.6";
+  --v-style-css: "v1.7";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -15,26 +15,8 @@
   --app-height: 100dvh;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  line-height: 1.45;
-  word-break: keep-all;
-  padding: 10px 12px 30px;
-  min-height: var(--app-height);
-}
-
-.container {
-  max-width: 920px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-height: 100%;
-}
-
-#editor-container { display: flex; flex-direction: column; gap: 3px; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif; background-color: var(--bg-color); color: var(--text-main); line-height: 1.45; word-break: keep-all; padding: 10px 12px 30px; min-height: var(--app-height); }
+.container { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 3px; min-height: 100%; }
 
 /* 1. Mac 모서리 2단 헤더 */
 header.mac-window-header { display: flex; flex-direction: column; background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; margin-bottom: 3px; }
@@ -60,11 +42,9 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .tb-postList { background-color: #0284c7; } .tb-meta { background-color: #0d9488; } .tb-outline { background-color: #10b981; } .tb-completed { background-color: #3b82f6; } .tb-newDraft { background-color: #8b5cf6; } .tb-intent { background-color: #6366f1; } .tb-api { background-color: #f59e0b; } .tb-promptReq { background-color: #ec4899; } .tb-aiRefined { background-color: #06b6d4; } .tb-snippets { background-color: #64748b; }
 .traffic-btn.is-closed { filter: grayscale(0.5) brightness(0.85); opacity: 0.7; }
 
-/* 2. 공통 소제목 줄 높이 완벽 통일 엔진 (28px 고정 & 브라우저 기본여백 차단) */
-.post-list-header,
-.meta-table-header,
-.api-box-header,
-.section-header-line {
+/* 🚀 2. 공통 소제목 줄 높이 완벽 통일 엔진 (ID 타겟팅 절대 우위 제압) */
+#hdr_postList, #hdr_meta, #hdr_api,
+.post-list-header, .meta-table-header, .api-box-header, .section-header-line {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
@@ -76,27 +56,38 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
   border-top: 1px solid var(--border-light) !important;
   box-sizing: border-box !important;
   flex-shrink: 0 !important;
-  overflow: hidden !important; /* 내부 요소가 미세하게 커져도 28px로 강제 절단 */
+  overflow: hidden !important; 
+  line-height: 28px !important;
+}
+
+/* 🚀 박스 래퍼 여백 원천 차단 (ID 타겟팅 절대 우위 제압) */
+#sec_postList, #sec_meta, #sec_api, #editor-container,
+.post-list-box, .meta-table-box, .api-box, .editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  min-height: 0 !important;
+  background: transparent !important;
 }
 
 .header-collapsed-line { border-top: 1px dashed #cbd5e1 !important; }
-.section-header-left, .post-list-title-wrap, .api-header-left { display: flex !important; align-items: center !important; gap: 5px !important; height: 100% !important; }
-.btn-section-toggle { width: 18px; height: 18px; background: #ffffff; border: 1px solid var(--border-color); color: #334155; font-size: 0.78rem; font-weight: 700; cursor: pointer; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.section-header-left, .post-list-title-wrap, .api-header-left { display: flex !important; align-items: center !important; gap: 5px !important; height: 100% !important; margin: 0 !important; padding: 0 !important; }
+.btn-section-toggle { width: 18px; height: 18px; background: #ffffff; border: 1px solid var(--border-color); color: #334155; font-size: 0.78rem; font-weight: 700; cursor: pointer; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; margin: 0 !important; padding: 0 !important; }
 .btn-section-toggle.is-closed { background: #fef3c7; color: #b45309; }
-.section-title { font-size: 0.86rem; font-weight: 700; color: #334155; cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; }
+.section-title { font-size: 0.86rem; font-weight: 700; color: #334155; cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; margin: 0 !important; }
 .section-title:hover { color: var(--primary); text-decoration: underline; }
 .section-title.is-focused { color: var(--primary); background: #dbeafe; }
 
-/* 3. 우측 컨트롤 요소 높이 균일화 */
-.filter-group { display: flex; align-items: center; gap: 6px; height: 100%; }
-.filter-label { font-size: 0.76rem; color: #64748b; display: flex; align-items: center; gap: 2px; }
-.select-filter { height: 20px; padding: 0 2px; font-size: 0.74rem; border: 1px solid var(--border-color); border-radius: 3px; background: #fff; }
-.btn-copy { background: #ffffff; border: 1px solid var(--border-light); color: #475569; font-size: 0.72rem; font-weight: 600; height: 20px; padding: 0 5px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; }
-.btn-ai-req, .btn-append-header { color: #fff; border: none; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
-.btn-ai-req { background: #4f46e5; }
-.btn-ai-req:hover { background: #4338ca; }
-.btn-append-header { background: #0284c7; }
-.btn-append-header:hover { background: #0369a1; }
+/* 3. 우측 컨트롤 요소 높이 균일화 및 여백 차단 */
+.filter-group { display: flex; align-items: center; gap: 6px; height: 100%; margin: 0 !important; padding: 0 !important; }
+.filter-label { font-size: 0.76rem; color: #64748b; display: flex; align-items: center; gap: 2px; margin: 0 !important; padding: 0 !important; }
+.select-filter { height: 20px !important; padding: 0 2px !important; font-size: 0.74rem; border: 1px solid var(--border-color); border-radius: 3px; background: #fff; margin: 0 !important; box-sizing: border-box !important; }
+.btn-copy { background: #ffffff; border: 1px solid var(--border-light); color: #475569; font-size: 0.72rem; font-weight: 600; height: 20px; padding: 0 5px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; margin: 0 !important; }
+.btn-ai-req, .btn-append-header { color: #fff; border: none; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; cursor: pointer; margin: 0 !important; }
+.btn-ai-req { background: #4f46e5; } .btn-ai-req:hover { background: #4338ca; } .btn-append-header { background: #0284c7; } .btn-append-header:hover { background: #0369a1; }
 
 /* 4. 액션 툴바 */
 .action-toolbar-clean { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 2px; }
@@ -105,14 +96,7 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .btn-primary { background: var(--primary); border: none; color: #fff; }
 .btn-danger { background: #fff; border: 1px solid #fca5a5; color: #dc2626; }
 
-/* 5. 각 영역별 바디 묶음 상자 (브라우저 기본 여백 차단) */
-.post-list-box, .meta-table-box, .api-box, .editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0 !important;
-  padding: 0 !important;
-}
+/* 5. 콘텐츠 영역 */
 .post-list-rows { max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); background: #fff; }
 .post-row-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 8px; min-height: 26px; border-bottom: 1px solid #e2e8f0; }
 .post-row-item:nth-child(even) { background-color: #eef2f6; }
