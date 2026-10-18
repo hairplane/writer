@@ -1,10 +1,10 @@
 /* ==========================================================================
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
-   - core.css: 버전 실시간 감지용 CSS 변수(--v-core-css) 추가 및 v1.1 갱신
+   [BOM] index(v3.5) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.2) / style.css(v1.7)
+   - core.css: 10개 창 소제목 줄 높이(28px) 및 레이아웃 뼈대 엔진 편입 (v1.1 -> v1.2)
    ========================================================================== */
 
 :root {
-  --v-core-css: "v1.1";
+  --v-core-css: "v1.2";
 }
 
 /* 1. 박스 사이징 기본 초기화 */
@@ -35,9 +35,7 @@ body.mode-focus {
   height: var(--app-height);
   padding: 6px 10px;
 }
-body.mode-focus .container {
-  height: 100%;
-}
+body.mode-focus .container { height: 100%; }
 body.mode-focus #editor-container {
   flex: 1;
   height: 100%;
@@ -60,25 +58,16 @@ body.mode-focus .editor-section.is-focused-section textarea.flat-textarea {
   flex: 1;
   height: 100% !important;
   min-height: 0 !important;
-  overflow-y: auto !important; /* 포커스 모드에서만 내부 스크롤 활성화 */
+  overflow-y: auto !important;
   resize: none;
 }
 
 /* 5. 목록 단독 집중 모드 엔진 */
-body.mode-focus .post-list-box {
-  flex: 1;
-  height: 100%;
-}
-body.mode-focus .post-list-rows {
-  flex: 1;
-  max-height: none;
-  height: 100%;
-}
+body.mode-focus .post-list-box { flex: 1; height: 100%; }
+body.mode-focus .post-list-rows { flex: 1; max-height: none; height: 100%; }
 
 /* 6. 신호등 도트 좌표 기준점 및 접힘 사선(/) 엔진 */
-.traffic-btn {
-  position: relative;
-}
+.traffic-btn { position: relative; }
 .traffic-btn.is-closed::after {
   content: '/';
   position: absolute;
@@ -113,4 +102,31 @@ body.mode-focus .post-list-rows {
 .post-row-title {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 9. 10개 창 소제목 높이 및 레이아웃 강제 동기화 (뼈대 구조 편입) */
+.post-list-header,
+.meta-table-header,
+.api-box-header,
+.section-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.section-header-left,
+.post-list-title-wrap,
+.api-header-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
 }
