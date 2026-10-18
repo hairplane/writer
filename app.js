@@ -1,734 +1,466 @@
 /* ==========================================================================
    [BOM] index(v3.2) / core.js(v1.0) / sheet.js(v1.0) / api.js(v1.0) / app.js(v1.1) / core.css(v1.0) / style.css(v1.1)
-   - style.css: #btn-toggle-all (ON/OFF 버튼) 호버/클릭 스타일 추가 (v1.0 -> v1.1)
+   - app.js: 10개 전체 창 일괄 열기/닫기 마스터 토글 함수(toggleAllSections) 및 #btn-toggle-all 연동 (v1.0 -> v1.1)
    ========================================================================== */
 
-:root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --bg-color: #f8fafc;
-  --border-color: #cbd5e1;
-  --border-light: #e2e8f0;
-  --text-main: #0f172a;
-  --text-sub: #64748b;
-  --app-height: 100dvh;
+const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
+
+let isDirty = false;
+let currentPostId = null;
+let currentPostStatus = "작성";
+let currentFocusedKey = null;
+let pendingModalAction = null;
+
+const SECTION_CONFIGS = [
+  { key: 'outline',   id: 'essayOutline',   title: '글의 구성',      minH: 70,  stat: false, readTime: false, bullet: true },
+  { key: 'completed', id: 'completedText',  title: '완성 글',        minH: 120, stat: true,  readTime: true,  bullet: false },
+  { key: 'newDraft',  id: 'newDraftText',   title: '신규 글',        minH: 80,  stat: true,  readTime: true,  bullet: false },
+  { key: 'intent',    id: 'draftIntent',    title: '글의 의도',      minH: 50,  stat: true,  readTime: false, bullet: false },
+  { key: 'promptReq', id: 'promptReqText',  title: '요청 내용 (to AI)', minH: 50, stat: true,  readTime: false, bullet: false },
+  { key: 'aiRefined', id: 'aiRefinedText',  title: 'AI 수정 글',     minH: 90,  stat: true,  readTime: true,  bullet: false, isAi: true },
+  { key: 'snippets',  id: 'savedSnippets',  title: '보관 글',        minH: 60,  stat: true,  readTime: false, bullet: true }
+];
+
+const ALL_SECTION_KEYS = ['postList', 'meta', 'outline', 'completed', 'newDraft', 'intent', 'api', 'promptReq', 'aiRefined', 'snippets'];
+const fieldMap = {};
+const fieldState = {};
+SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
+
+// 1. 집필 섹션 동적 DOM 생성
+function buildEditorSections() {
+  const container = $('editor-container');
+  const apiBox = $('sec_api');
+  if (!container) return;
+  container.innerHTML = '';
+
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const sec = document.createElement('div');
+    sec.id = 'sec_' + cfg.key;
+    sec.className = 'editor-section';
+
+    const hdr = document.createElement('div');
+    hdr.id = 'hdr_' + cfg.key;
+    hdr.className = 'section-header-line';
+
+    let extraAiButtons = '';
+    if (cfg.isAi) {
+      extraAiButtons = '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
+        '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
+    }
+
+    hdr.innerHTML = '<div class="section-header-left">' +
+      '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
+      '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
+      '<span id="badge_' + cfg.key + '" class="badge-collapsed">숨김</span>' +
+      '</div>' +
+      '<div style="display:flex; align-items:center; gap:4px;">' +
+      '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
+      extraAiButtons +
+      '</div>';
+
+    const body = document.createElement('div');
+    body.id = 'body_' + cfg.key;
+    body.className = 'editor-content-wrap';
+
+    const bgStyle = cfg.isAi ? 'background-color: #f8fafc;' : '';
+    const bulletAttr = cfg.bullet ? 'onkeydown="handleBulletEnter(event, this)"' : '';
+    const statHtml = cfg.stat ? '<span class="stat-info" id="stat_' + cfg.key + '">0자</span>' : '<span></span>';
+
+    body.innerHTML = '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
+      '<div class="editor-bottom-toolbar">' +
+      statHtml +
+      '<div class="restore-group">' +
+      '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
+      '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
+      '</div>' +
+      '</div>';
+
+    sec.appendChild(hdr);
+    sec.appendChild(body);
+    container.appendChild(sec);
+
+    if (cfg.key === 'intent' && apiBox) {
+      container.appendChild(apiBox);
+    }
+  });
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  line-height: 1.45;
-  word-break: keep-all;
-  padding: 10px 12px 30px;
-  min-height: var(--app-height);
+function toggleSection(key) {
+  executeToggleSection(key);
 }
 
-.container {
-  max-width: 920px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 100%;
+// 전체 창 마스터 토글 (하나라도 열려있으면 모두 닫고, 모두 닫혀있으면 모두 열기)
+function toggleAllSections() {
+  if (document.body.classList.contains('mode-focus')) {
+    if (currentFocusedKey) toggleFocusView(currentFocusedKey);
+  }
+
+  const anyOpen = ALL_SECTION_KEYS.some(function(k) {
+    const el = $('body_' + k);
+    return el && el.style.display !== 'none';
+  });
+
+  ALL_SECTION_KEYS.forEach(function(k) {
+    const el = $('body_' + k);
+    if (!el) return;
+    const isCurrentlyClosed = el.style.display === 'none';
+    if (anyOpen && !isCurrentlyClosed) {
+      executeToggleSection(k); // 열린 것을 닫음
+    } else if (!anyOpen && isCurrentlyClosed) {
+      executeToggleSection(k); // 닫힌 것을 엶
+    }
+  });
+
+  if (!anyOpen) {
+    resizeAllTextareas();
+  }
 }
 
-/* 1. Mac 모서리 2단 헤더 */
-header.mac-window-header {
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  border: 1px solid #cbd5e1;
-  border-bottom: 2px solid #94a3b8;
+function toggleFocusView(key, manageHistory = true) {
+  currentFocusedKey = executeToggleFocusView(
+    key, ALL_SECTION_KEYS, SECTION_CONFIGS, currentFocusedKey, manageHistory,
+    function() { resizeAllTextareas(); },
+    null
+  );
 }
 
-.header-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  border-bottom: 1px solid #e2e8f0;
+window.addEventListener('popstate', function() {
+  if (currentFocusedKey) toggleFocusView(currentFocusedKey, false);
+});
+
+function markDirty() { isDirty = true; }
+
+function resizeAllTextareas() {
+  if (document.body.classList.contains('mode-focus')) return;
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el) autoResizeTextarea(el, cfg.minH);
+  });
 }
 
-.header-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+// 2. Undo/Redo & 글자 수 통계
+function initFieldStates() {
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    const val = el ? el.value : '';
+    fieldState[cfg.key] = { currentSaved: val, history: [val] };
+  });
 }
 
-.header-title-wrap h1 {
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+function handleFieldInput(key) {
+  markDirty();
+  const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+  const el = $(cfg.id);
+  if (!el) return;
+  const val = el.value;
+  const stack = fieldState[key].history;
+  if (stack[stack.length - 1] !== val) {
+    stack.push(val);
+    if (stack.length > 50) stack.shift();
+  }
+  autoResizeTextarea(el, cfg.minH);
+  updateStat(key, val);
 }
 
-.header-title-wrap .version-tag {
-  font-size: 0.7rem;
-  color: var(--primary);
-  font-weight: 700;
-  background: #ffffff;
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid #bfdbfe;
+function undoField(key) {
+  const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+  const el = $(cfg.id);
+  if (!el || !fieldState[key]) return;
+  const stack = fieldState[key].history;
+  if (stack.length > 1) {
+    stack.pop();
+    el.value = stack[stack.length - 1];
+    autoResizeTextarea(el, cfg.minH);
+    updateStat(key, el.value);
+    markDirty();
+  } else {
+    alert('되돌릴 이전 입력 내용이 없습니다.');
+  }
 }
 
-.btn-close-app {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 2px 4px;
-  cursor: pointer;
-}
-.btn-close-app:hover { color: #dc2626; }
-
-.header-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 10px;
-  background: #fafafa;
-  flex-wrap: wrap;
+function restoreSaved(key) {
+  const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+  const el = $(cfg.id);
+  if (!el || !fieldState[key]) return;
+  const targetVal = fieldState[key].currentSaved;
+  if (el.value === targetVal) return alert('이미 최근 저장된 상태와 동일합니다.');
+  fieldState[key].history.push(targetVal);
+  el.value = targetVal;
+  autoResizeTextarea(el, cfg.minH);
+  updateStat(key, targetVal);
+  markDirty();
 }
 
-/* ON/OFF 마스터 토글 버튼 스타일 */
-.btn-toggle-all {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  color: #475569;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.2;
-}
-.btn-toggle-all:hover {
-  background: #f1f5f9;
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.btn-toggle-all:active {
-  background: #e2e8f0;
+function updateStat(key, text) {
+  const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+  if (!cfg || !cfg.stat) return;
+  const statEl = $('stat_' + key);
+  if (!statEl) return;
+  const len = text.length;
+  if (cfg.readTime) {
+    const readingTime = Math.ceil(len / 400);
+    statEl.innerText = len.toLocaleString() + '자 (약 ' + readingTime + '분)';
+  } else {
+    statEl.innerText = len.toLocaleString() + '자';
+  }
 }
 
-.traffic-group {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
+function updateAllStats() {
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el) updateStat(cfg.key, el.value);
+  });
 }
 
-.traffic-btn {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 0.5px solid rgba(0, 0, 0, 0.15);
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-.traffic-btn:hover {
-  transform: scale(1.15);
-  opacity: 0.9;
+function appendDraftToCompleted() {
+  const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
+  if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
+  const completedEl = $('completedText');
+  completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
+  handleFieldInput('completed');
+  ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(function(k) {
+    const el = $(fieldMap[k]);
+    if (el) {
+      el.value = '';
+      handleFieldInput(k);
+    }
+  });
 }
 
-.tb-postList { background-color: #0284c7; }
-.tb-meta { background-color: #0d9488; }
-.tb-outline { background-color: #10b981; }
-.tb-completed { background-color: #3b82f6; }
-.tb-newDraft { background-color: #8b5cf6; }
-.tb-intent { background-color: #6366f1; }
-.tb-api { background-color: #f59e0b; }
-.tb-promptReq { background-color: #ec4899; }
-.tb-aiRefined { background-color: #06b6d4; }
-.tb-snippets { background-color: #64748b; }
+// 3. 작업 선택 및 저장 루틴
+function selectPost(post) {
+  currentPostId = post.ID || post.id || '';
+  currentPostStatus = (post.상황 || post.status || '작성').trim();
+  $('essayTitleInput').value = post.제목 || post.title || '';
+  $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
+  $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
+  $('postSummary').value = post.요약 || post.summary || '';
+  $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
+  $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
+  $('newDraftText').value  = post.신규글 || post['신규 글'] || post['신규\n글'] || post.newDraft || '';
+  $('draftIntent').value   = post.글의의도 || post['글의 의도'] || post['글의\n의도'] || post.intent || '';
+  $('promptReqText').value = post.요청내용 || post['요청 내용'] || post['요청\n내용'] || post.promptReq || '';
+  $('aiRefinedText').value = post.AI수정글 || post['AI 수정 글'] || post['AI수정 글'] || post.aiRefined || '';
+  $('savedSnippets').value = post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || '';
 
-.traffic-btn.is-closed {
-  filter: grayscale(0.5) brightness(0.85);
-  opacity: 0.7;
-}
-
-/* 2. 스퀘어 토글 버튼 및 접힘 뱃지 */
-.btn-section-toggle {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  min-height: 18px;
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  color: #334155;
-  font-size: 0.78rem;
-  font-weight: 700;
-  font-family: system-ui, -apple-system, sans-serif;
-  cursor: pointer;
-  border-radius: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  transition: all 0.15s ease;
-}
-.btn-section-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.btn-section-toggle.is-closed {
-  background: #fef3c7;
-  border-color: #fde68a;
-  color: #b45309;
+  initFieldStates();
+  updateAllStats();
+  resizeAllTextareas();
+  renderPostList();
+  isDirty = false;
 }
 
-.badge-collapsed {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #b45309;
-  background: #fef3c7;
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid #fde68a;
-  margin-left: 4px;
+function handleFilterChange() {
+  currentPostId = null;
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el) {
+      el.value = '';
+      fieldState[cfg.key] = { currentSaved: '', history: [''] };
+      autoResizeTextarea(el, cfg.minH);
+    }
+  });
+  updateAllStats();
+  renderPostList();
 }
 
-.header-collapsed-line {
-  border-bottom: 1px dashed #cbd5e1 !important;
+function saveWork(mode) {
+  const titleVal = $('essayTitleInput').value.trim();
+  if (!titleVal) return alert('제목을 입력해주세요.');
+
+  if (!currentPostId) currentPostId = "ID_" + new Date().getTime();
+  const catFilterEl = $('categoryFilter');
+  const currentCategory = (catFilterEl && catFilterEl.value !== '전체') ? catFilterEl.value : '';
+
+  const payload = {
+    ID: currentPostId,
+    id: currentPostId,
+    status: currentPostStatus || "작성",
+    category: currentCategory,
+    title: titleVal,
+    startDate: $('postStartDate').value.trim(),
+    endDate: $('postEndDate').value.trim(),
+    summary: $('postSummary').value.trim(),
+    outline: $('essayOutline').value,
+    completed: $('completedText').value,
+    newDraft: $('newDraftText').value,
+    intent: $('draftIntent').value,
+    promptReq: $('promptReqText').value,
+    aiRefined: $('aiRefinedText').value,
+    snippets: $('savedSnippets').value,
+    updatedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el && fieldState[cfg.key]) fieldState[cfg.key].currentSaved = el.value;
+  });
+  isDirty = false;
+
+  syncPostToSheet(payload);
+
+  if (mode === 'stay') alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
+  else if (mode === 'exit') window.close();
 }
 
-/* 3. 액션 툴바 & 버튼 */
-.action-toolbar-clean {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px;
-  padding: 0 2px;
-  flex-shrink: 0;
+function loadSavedData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (data.ID || data.id) currentPostId = data.ID || data.id;
+    if (data.status) currentPostStatus = data.status;
+    if (data.title) $('essayTitleInput').value = data.title;
+    if (data.startDate) $('postStartDate').value = data.startDate;
+    if (data.endDate) $('postEndDate').value = data.endDate;
+    if (data.summary) $('postSummary').value = data.summary;
+    SECTION_CONFIGS.forEach(function(cfg) {
+      if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
+    });
+    initFieldStates();
+    resizeAllTextareas();
+  } catch(e) {
+    console.error("[app.js] 데이터 로드 실패:", e);
+  }
 }
 
-.btn {
-  padding: 5px 10px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
+function cancelWork() {
+  if (isDirty) {
+    showUnsavedModal(
+      function() { saveWork('stay'); },
+      function() { loadSavedData(); isDirty = false; }
+    );
+  } else {
+    alert('변경된 내용이 없습니다.');
+  }
 }
 
-.btn-default {
-  background: #ffffff;
-  border-color: var(--border-color);
-  color: var(--text-main);
-}
-.btn-default:hover { background-color: #f1f5f9; }
-
-.btn-primary {
-  background: var(--primary);
-  color: #ffffff;
-}
-.btn-primary:hover { background-color: var(--primary-hover); }
-
-.btn-danger {
-  background: #ffffff;
-  border-color: #fca5a5;
-  color: #dc2626;
-}
-.btn-danger:hover { background-color: #fef2f2; }
-
-.btn-copy {
-  background: #ffffff;
-  border: 1px solid var(--border-light);
-  color: #475569;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  transition: all 0.15s ease;
-}
-.btn-copy:hover {
-  background: #f1f5f9;
-  color: var(--primary);
-  border-color: var(--border-color);
+function cancelAndClose() {
+  if (isDirty) {
+    showUnsavedModal(
+      function() { saveWork('exit'); },
+      function() { window.close(); }
+    );
+  } else {
+    window.close();
+  }
 }
 
-/* 4. 작성 글 목록 */
-.post-list-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+// 4. 저장 확인 모달
+function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
+  const modal = $('unsaved-modal');
+  if (!modal) {
+    if (confirm('저장되지 않은 변경사항이 있습니다. 저장하고 진행하시겠습니까?')) {
+      if (onSaveAndExit) onSaveAndExit();
+    } else {
+      if (onDiscardAndExit) onDiscardAndExit();
+    }
+    return;
+  }
+  pendingModalAction = { save: onSaveAndExit, discard: onDiscardAndExit };
+  modal.classList.remove('hidden');
 }
 
-.post-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
-  flex-wrap: wrap;
-  gap: 6px;
-  flex-shrink: 0;
+function hideUnsavedModal() {
+  const modal = $('unsaved-modal');
+  if (modal) modal.classList.add('hidden');
+  pendingModalAction = null;
 }
 
-.post-list-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+function initModalHandlers() {
+  const btnCancel = $('modal-btn-cancel');
+  const btnDiscard = $('modal-btn-discard');
+  const btnSave = $('modal-btn-save');
+  if (btnCancel) btnCancel.onclick = hideUnsavedModal;
+  if (btnDiscard) {
+    btnDiscard.onclick = function() {
+      const act = pendingModalAction;
+      hideUnsavedModal();
+      if (act && act.discard) act.discard();
+    };
+  }
+  if (btnSave) {
+    btnSave.onclick = function() {
+      const act = pendingModalAction;
+      hideUnsavedModal();
+      if (act && act.save) act.save();
+    };
+  }
 }
 
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+// 5. 초기 이벤트 연결
+window.addEventListener('DOMContentLoaded', function() {
+  buildEditorSections();
+  initFieldStates();
+  loadSavedData();
+  checkApiKeyStatus();
+  updateAllStats();
+  loadCachedPosts();
+  fetchSheetPosts();
+  initModalHandlers();
 
-.filter-label {
-  font-size: 0.76rem;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
+  // ON/OFF 마스터 토글 버튼 이벤트 연동
+  const btnToggleAll = $('btn-toggle-all');
+  if (btnToggleAll) btnToggleAll.onclick = toggleAllSections;
 
-.select-filter {
-  padding: 2px 4px;
-  font-size: 0.76rem;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  outline: none;
-  background: #fff;
-  color: #334155;
-  font-weight: 600;
-}
+  const btnHeaderClose = $('btn-header-close');
+  if (btnHeaderClose) btnHeaderClose.onclick = cancelAndClose;
+  const btnSaveStay = $('btn-save-stay');
+  if (btnSaveStay) btnSaveStay.onclick = function() { saveWork('stay'); };
+  const btnSaveExit = $('btn-save-exit');
+  if (btnSaveExit) btnSaveExit.onclick = function() { saveWork('exit'); };
+  const btnCancel = $('btn-cancel-work');
+  if (btnCancel) btnCancel.onclick = cancelWork;
 
-.post-list-rows {
-  display: flex;
-  flex-direction: column;
-  max-height: 220px;
-  overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  background: #ffffff;
-  padding-bottom: 2px;
-}
+  const statusFilter = $('statusFilter');
+  if (statusFilter) statusFilter.onchange = renderPostList;
+  const catFilter = $('categoryFilter');
+  if (catFilter) catFilter.onchange = handleFilterChange;
 
-.post-row-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 3px 8px;
-  min-height: 26px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  transition: background-color 0.1s ease;
-}
-.post-row-item:last-child { border-bottom: none; }
-.post-row-item:nth-child(even) { background-color: #eef2f6; }
-.post-row-item:hover { background-color: #e2e8f0 !important; }
-.post-row-item.active { background-color: #dbeafe !important; }
+  ALL_SECTION_KEYS.forEach(function(k) {
+    const dot = $('dot_' + k);
+    if (dot) dot.onclick = function() { toggleSection(k); };
+  });
 
-.post-row-title-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  color: #334155;
-  flex: 1;
-}
+  const arrowMeta = $('arrow_meta');
+  if (arrowMeta) arrowMeta.onclick = function() { toggleSection('meta'); };
+  const titleMeta = $('title_meta');
+  if (titleMeta) titleMeta.onclick = function() { toggleFocusView('meta'); };
 
-.post-category-tag {
-  display: inline-block;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: #64748b;
-  text-align: left;
-}
-.post-row-item.active .post-category-tag {
-  color: var(--primary);
-  font-weight: 700;
-}
+  const arrowPostList = $('arrow_postList');
+  if (arrowPostList) arrowPostList.onclick = function() { toggleSection('postList'); };
+  const titlePostList = $('title_postList');
+  if (titlePostList) titlePostList.onclick = function() { toggleFocusView('postList'); };
 
-.post-row-title { font-weight: 500; }
-.post-row-title:hover { text-decoration: underline; }
-.post-row-item.active .post-row-title {
-  color: var(--primary);
-  font-weight: 700;
-}
+  const arrowApi = $('arrow_api');
+  if (arrowApi) arrowApi.onclick = function() { toggleSection('api'); };
+  const titleApi = $('title_api');
+  if (titleApi) titleApi.onclick = function() { toggleFocusView('api'); };
 
-.btn-status-toggle {
-  flex-shrink: 0;
-  padding: 1px 5px;
-  font-size: 0.68rem;
-  font-weight: 600;
-  border-radius: 3px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.1s ease;
-  margin-left: 6px;
-}
-.btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.btn-status-toggle.status-writing:hover { background: #bae6fd; }
-.btn-status-toggle.status-done { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.btn-status-toggle.status-done:hover { background: #bbf7d0; }
-.btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; border-color: #fde68a; }
-.btn-status-toggle.status-plan:hover { background: #fde68a; }
+  const apiSaveBtn = $('apiSaveBtn');
+  if (apiSaveBtn) apiSaveBtn.onclick = handleSaveButtonClick;
+  const apiCancelBtn = $('apiCancelBtn');
+  if (apiCancelBtn) apiCancelBtn.onclick = cancelKeyInput;
+  const apiDelBtn = $('apiDelBtn');
+  if (apiDelBtn) apiDelBtn.onclick = deleteApiKey;
+  const btnApiShared = $('btn-api-shared');
+  if (btnApiShared) btnApiShared.onclick = function() { selectKeyChoice('shared'); };
+  const btnApiPersonal = $('btn-api-personal');
+  if (btnApiPersonal) btnApiPersonal.onclick = function() { selectKeyChoice('personal'); };
+  const apiKeyInput = $('apiKeyInput');
+  if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
-/* 5. 메타 표 */
-.meta-table-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+  ['essayTitleInput', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
+    const el = $(id);
+    if (el) el.addEventListener('input', markDirty);
+  });
 
-.meta-table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-}
-
-.meta-grid-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-}
-.meta-grid-table th {
-  width: 80px;
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 600;
-  padding: 4px 6px;
-  text-align: center;
-  border: 1px solid var(--border-light);
-  white-space: nowrap;
-}
-.meta-grid-table td {
-  padding: 3px 6px;
-  border: 1px solid var(--border-light);
-  background: #ffffff;
-}
-.meta-grid-table input,
-.meta-grid-table textarea {
-  width: 100%;
-  border: none;
-  outline: none;
-  font-size: 0.82rem;
-  font-family: inherit;
-  background: transparent;
-  color: #0f172a;
-}
-.meta-grid-table input:focus,
-.meta-grid-table textarea:focus {
-  background: #f0f7ff;
-}
-
-/* 6. API 설정 */
-.api-box {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.api-box-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-}
-.api-header-left {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.api-status-badge {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: #d97706;
-  background: #fef3c7;
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid #fde68a;
-}
-.btn-key-compact {
-  background: #ffffff;
-  color: #d97706;
-  border: 1px solid #fde68a;
-  border-radius: 3px;
-  padding: 1px 5px;
-  font-size: 0.78rem;
-  text-decoration: none;
-}
-.api-content-wrap {
-  background: #fffdf5;
-  border: 1px solid #fde68a;
-  padding: 6px 8px;
-  border-radius: 4px;
-}
-.api-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  position: relative;
-  flex-wrap: wrap;
-}
-.api-row input {
-  flex: 1;
-  min-width: 160px;
-  padding: 5px 8px;
-  font-size: 0.8rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 3px;
-  outline: none;
-  background: #fff;
-}
-.api-btn-group {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-.dropdown {
-  position: relative;
-  display: inline-block;
-}
-.api-save-btn {
-  background: #f57c00;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 3px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.api-save-btn:disabled {
-  background: #cbd5e1;
-  color: #64748b;
-  cursor: not-allowed;
-}
-.api-wait-btn { background: #e67e22 !important; }
-.api-cancel-btn {
-  background: #64748b;
-  color: white;
-  border: none;
-  padding: 5px 8px;
-  border-radius: 3px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.dropdown-content {
-  right: 0;
-  top: 110%;
-  background-color: #ffffff;
-  min-width: 140px;
-  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-  border: 1px solid #e2e8f0;
-  border-radius: 3px;
-  z-index: 50;
-}
-.dropdown-content button {
-  color: #334155;
-  padding: 6px 10px;
-  text-align: left;
-  background: none;
-  border: none;
-  width: 100%;
-  cursor: pointer;
-  font-size: 0.76rem;
-  font-weight: 600;
-  display: block;
-}
-.api-del-btn {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 5px 8px;
-  border-radius: 3px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* 7. 집필 영역 공통 */
-.editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.section-header-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-}
-.section-header-left {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.section-title {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: #334155;
-  cursor: pointer;
-  padding: 1px 4px;
-  border-radius: 3px;
-  transition: all 0.15s ease;
-}
-.section-title:hover {
-  color: var(--primary);
-  background: #eff6ff;
-  text-decoration: underline;
-}
-.section-title.is-focused {
-  color: var(--primary);
-  background: #dbeafe;
-}
-.editor-content-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-textarea.flat-textarea {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: #ffffff;
-  outline: none;
-  font-family: inherit;
-}
-textarea.flat-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary);
-}
-.editor-bottom-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.72rem;
-  color: var(--text-sub);
-  padding: 1px 2px;
-  flex-wrap: wrap;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.stat-info { font-weight: 500; }
-.restore-group {
-  display: flex;
-  gap: 3px;
-  margin-left: auto;
-}
-.btn-restore-icon {
-  background: #ffffff;
-  border: 1px solid var(--border-light);
-  color: #475569;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.btn-restore-icon:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-}
-.btn-ai-req {
-  background: #4f46e5;
-  color: #ffffff;
-  border: none;
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.btn-ai-req:hover { background: #4338ca; }
-.btn-append-header {
-  background: #0284c7;
-  color: #ffffff;
-  border: none;
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.btn-append-header:hover { background: #0369a1; }
-
-/* 8. 커스텀 모달 오버레이 */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(2px);
-}
-.modal-card {
-  background: #ffffff;
-  border-radius: 6px;
-  padding: 16px 18px;
-  max-width: 340px;
-  width: 90%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  border: 1px solid var(--border-color);
-}
-.modal-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 6px;
-}
-.modal-desc {
-  font-size: 0.82rem;
-  color: #475569;
-  margin-bottom: 14px;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-/* 9. 모바일 미디어 쿼리 */
-@media (max-width: 640px) {
-  body { padding: 6px 8px 24px; }
-  .container { gap: 8px; }
-  .meta-grid-table th { width: 70px; font-size: 0.75rem; }
-  .meta-grid-table td { font-size: 0.78rem; }
-  .header-toggle-row { gap: 6px; }
-  .traffic-group { gap: 5px; }
-}
+  window.onclick = function(e) {
+    if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
+      document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
+        el.classList.remove('show');
+      });
+    }
+  };
+});
