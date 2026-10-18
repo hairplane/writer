@@ -1,5 +1,5 @@
-<!-- - index.html: BOM 명세 팝오버 컨테이너(#versionPopover) 추가 및 v3.3 갱신 -->
-<!-- [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2) -->
+<!-- - index.html: 고정 섹션(작성 글 목록, 작성 글 정보, API 설정)의 '숨김' 뱃지 제거 및 v3.4 갱신 -->
+<!-- [BOM] index(v3.4) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.5) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -20,7 +20,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v3.3</span>
+          <span class="version-tag" title="모듈 로드 중...">v3.4</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -57,7 +57,7 @@
         <div class="post-list-title-wrap">
           <button type="button" id="arrow_postList" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_postList" title="클릭 시 단독 집중 모드">작성 글 목록</span>
-          <span id="badge_postList" class="badge-collapsed">숨김</span>
+          <!-- 숨김 뱃지 삭제됨 -->
         </div>
         <div class="filter-group">
           <label class="filter-label">분류:
@@ -84,7 +84,7 @@
         <div class="section-header-left">
           <button type="button" id="arrow_meta" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_meta" title="클릭 시 단독 집중 모드">작성 글 정보</span>
-          <span id="badge_meta" class="badge-collapsed">숨김</span>
+          <!-- 숨김 뱃지 삭제됨 -->
         </div>
       </div>
       <div class="meta-content-wrap" id="body_meta">
@@ -115,7 +115,7 @@
         <div class="api-header-left">
           <button type="button" id="arrow_api" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_api" title="클릭 시 단독 집중 모드">API 설정</span>
-          <span id="badge_api" class="badge-collapsed">숨김</span>
+          <!-- 숨김 뱃지 삭제됨 -->
           <span class="api-status-badge" id="apiStatusBadge">⚠️ 키 미설정 상태</span>
           <a href="https://aistudio.google.com/app/apikey" target="_blank" class="btn-key-compact" title="Gemini 키 발급받기">🔑</a>
         </div>
