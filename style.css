@@ -1,10 +1,10 @@
 /* ==========================================================================
-   - style.css: 컨테이너 여백(gap) 불일치로 인한 1px 착시 현상 완벽 제거 및 마진 단일화 (v1.7 -> v1.8)
-   [BOM] index(v3.5) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.2) / style.css(v1.8)
+   - filename: style.css (!important 강제 여백 제거 및 순수 디자인 속성 최적화, v1.8 -> v1.9)
+   [BOM] index(v3.5) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.2) / style.css(v1.9)
    ========================================================================== */
 
 :root {
-  --v-style-css: "v1.8";
+  --v-style-css: "v1.9";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -17,12 +17,12 @@
 
 body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif; background-color: var(--bg-color); color: var(--text-main); line-height: 1.45; word-break: keep-all; padding: 10px 12px 30px; min-height: var(--app-height); }
 
-/* 🚀 1. 컨테이너 기본 gap을 0으로 강제 초기화하여 이중 간섭 제거 */
-.container { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 0 !important; min-height: 100%; }
-#editor-container { gap: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important; }
+/* 1. 컨테이너 뼈대 (flex gap을 활용한 자연스러운 3px 간격 통일) */
+.container { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 3px; min-height: 100%; }
+#editor-container { display: flex; flex-direction: column; gap: 3px; }
 
 /* 2. Mac 모서리 2단 헤더 */
-header.mac-window-header { display: flex; flex-direction: column; background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; margin-bottom: 3px !important; }
+header.mac-window-header { display: flex; flex-direction: column; background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; }
 .header-top-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
 .header-title-wrap { display: flex; align-items: center; gap: 6px; position: relative; }
 .header-title-wrap h1 { font-size: 0.98rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 5px; }
@@ -45,64 +45,35 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .tb-postList { background-color: #0284c7; } .tb-meta { background-color: #0d9488; } .tb-outline { background-color: #10b981; } .tb-completed { background-color: #3b82f6; } .tb-newDraft { background-color: #8b5cf6; } .tb-intent { background-color: #6366f1; } .tb-api { background-color: #f59e0b; } .tb-promptReq { background-color: #ec4899; } .tb-aiRefined { background-color: #06b6d4; } .tb-snippets { background-color: #64748b; }
 .traffic-btn.is-closed { filter: grayscale(0.5) brightness(0.85); opacity: 0.7; }
 
-/* 🚀 3. 모든 창(10개)에 대해 정확히 '하단 마진 3px'만 단일 적용하여 간격 완벽 통일 */
-#sec_postList, #sec_meta, #sec_api, .editor-section,
-.post-list-box, .meta-table-box, .api-box {
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 3px 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  min-height: 0 !important;
-  background: transparent !important;
-}
-
-/* 🚀 4. 공통 소제목 줄 높이(28px) 절대 우위 제압 */
-#hdr_postList, #hdr_meta, #hdr_api,
-.post-list-header, .meta-table-header, .api-box-header, .section-header-line {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  max-height: 28px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border-top: 1px solid var(--border-light) !important;
-  box-sizing: border-box !important;
-  flex-shrink: 0 !important;
-  overflow: hidden !important; 
-  line-height: 28px !important;
-}
-
-.header-collapsed-line { border-top: 1px dashed #cbd5e1 !important; }
-.section-header-left, .post-list-title-wrap, .api-header-left { display: flex !important; align-items: center !important; gap: 5px !important; height: 100% !important; margin: 0 !important; padding: 0 !important; }
-.btn-section-toggle { width: 18px; height: 18px; background: #ffffff; border: 1px solid var(--border-color); color: #334155; font-size: 0.78rem; font-weight: 700; cursor: pointer; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; margin: 0 !important; padding: 0 !important; }
+/* 3. 소제목 헤더 및 토글 버튼 (core.css 위임 외 순수 디자인 속성) */
+.post-list-header, .meta-table-header, .api-box-header, .section-header-line { border-top: 1px solid var(--border-light); }
+.header-collapsed-line { border-top: 1px dashed #cbd5e1; }
+.btn-section-toggle { width: 18px; height: 18px; background: #ffffff; border: 1px solid var(--border-color); color: #334155; font-size: 0.78rem; font-weight: 700; cursor: pointer; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .btn-section-toggle.is-closed { background: #fef3c7; color: #b45309; }
-.section-title { font-size: 0.86rem; font-weight: 700; color: #334155; cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1 !important; margin: 0 !important; }
+.section-title { font-size: 0.86rem; font-weight: 700; color: #334155; cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1; }
 .section-title:hover { color: var(--primary); text-decoration: underline; }
 .section-title.is-focused { color: var(--primary); background: #dbeafe; }
 
-/* 5. 우측 컨트롤 요소 높이 균일화 및 여백 차단 */
-.filter-group { display: flex; align-items: center; gap: 6px; height: 100%; margin: 0 !important; padding: 0 !important; }
-.filter-label { font-size: 0.76rem; color: #64748b; display: flex; align-items: center; gap: 2px; margin: 0 !important; padding: 0 !important; }
-.select-filter { height: 20px !important; padding: 0 2px !important; font-size: 0.74rem; border: 1px solid var(--border-color); border-radius: 3px; background: #fff; margin: 0 !important; box-sizing: border-box !important; }
-.btn-copy { background: #ffffff; border: 1px solid var(--border-light); color: #475569; font-size: 0.72rem; font-weight: 600; height: 20px; padding: 0 5px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; margin: 0 !important; }
-.btn-ai-req, .btn-append-header { color: #fff; border: none; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; cursor: pointer; margin: 0 !important; }
+/* 4. 우측 컨트롤 요소 및 액션 툴바 */
+.filter-group { display: flex; align-items: center; gap: 6px; height: 100%; }
+.filter-label { font-size: 0.76rem; color: #64748b; display: flex; align-items: center; gap: 2px; }
+.select-filter { height: 20px; padding: 0 2px; font-size: 0.74rem; border: 1px solid var(--border-color); border-radius: 3px; background: #fff; }
+.btn-copy { background: #ffffff; border: 1px solid var(--border-light); color: #475569; font-size: 0.72rem; font-weight: 600; height: 20px; padding: 0 5px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; }
+.btn-ai-req, .btn-append-header { color: #fff; border: none; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
 .btn-ai-req { background: #4f46e5; } .btn-ai-req:hover { background: #4338ca; } .btn-append-header { background: #0284c7; } .btn-append-header:hover { background: #0369a1; }
 
-/* 6. 액션 툴바 (리듬 유지를 위해 하단 마진 3px 통일) */
-.action-toolbar-clean { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 3px 0 !important; }
+.action-toolbar-clean { display: flex; justify-content: flex-end; gap: 6px; }
 .btn { padding: 5px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px; cursor: pointer; }
 .btn-default { background: #fff; border: 1px solid var(--border-color); color: var(--text-main); }
 .btn-primary { background: var(--primary); border: none; color: #fff; }
 .btn-danger { background: #fff; border: 1px solid #fca5a5; color: #dc2626; }
 
-/* 7. 콘텐츠 영역 */
+/* 5. 영역 내부 콘텐츠 뼈대 */
+.post-list-box, .meta-table-box, .api-box, .editor-section { display: flex; flex-direction: column; gap: 2px; }
 .post-list-rows { max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); background: #fff; }
 .post-row-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 8px; min-height: 26px; border-bottom: 1px solid #e2e8f0; }
 .post-row-item:nth-child(even) { background-color: #eef2f6; }
-.post-row-item.active { background-color: #dbeafe !important; }
+.post-row-item.active { background-color: #dbeafe; }
 .post-row-title-area { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.82rem; flex: 1; }
 .post-category-tag { font-size: 0.74rem; font-weight: 600; color: #64748b; }
 .btn-status-toggle { padding: 1px 5px; font-size: 0.68rem; font-weight: 600; border-radius: 3px; border: 1px solid transparent; cursor: pointer; }
@@ -115,6 +86,7 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .meta-grid-table td { padding: 3px 6px; border: 1px solid var(--border-light); }
 .meta-grid-table input, .meta-grid-table textarea { width: 100%; border: none; outline: none; font-size: 0.82rem; background: transparent; }
 
+/* 6. API 메뉴 및 공통 모달 */
 .api-status-badge { font-size: 0.74rem; font-weight: 700; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 3px; border: 1px solid #fde68a; line-height: 1.2; }
 .btn-key-compact { background: #fff; color: #d97706; border: 1px solid #fde68a; border-radius: 3px; padding: 0 4px; font-size: 0.78rem; text-decoration: none; }
 .api-content-wrap { background: #fffdf5; border: 1px solid #fde68a; padding: 6px 8px; border-radius: 4px; }
@@ -122,10 +94,11 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .api-row input { flex: 1; padding: 5px 8px; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 3px; outline: none; }
 .api-save-btn { background: #f57c00; color: white; border: none; padding: 5px 10px; border-radius: 3px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; }
 .api-save-btn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
-.api-wait-btn { background: #e67e22 !important; }
+.api-wait-btn { background: #e67e22; }
 .api-cancel-btn, .api-del-btn { color: white; border: none; padding: 5px 8px; border-radius: 3px; font-size: 0.76rem; font-weight: 700; cursor: pointer; }
 .api-cancel-btn { background: #64748b; }
 .api-del-btn { background: #ef4444; }
+
 .dropdown-content { right: 0; top: 110%; background-color: #ffffff; min-width: 140px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; border-radius: 3px; z-index: 50; }
 .dropdown-content button { color: #334155; padding: 6px 10px; text-align: left; background: none; border: none; width: 100%; cursor: pointer; font-size: 0.76rem; font-weight: 600; display: block; }
 
