@@ -1,10 +1,10 @@
 /* ==========================================================================
-   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
-   - style.css: 누락 컴포넌트 복원, 실시간 CSS 변수(--v-style-css) 및 BOM 팝오버 스타일 추가 (v1.1 -> v1.2)
+   - style.css: 소제목 가로 구분선을 상단(border-top)으로 이동 및 v1.3 갱신
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.3) / core.css(v1.1) / style.css(v1.3)
    ========================================================================== */
 
 :root {
-  --v-style-css: "v1.2";
+  --v-style-css: "v1.3";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -259,8 +259,9 @@ header.mac-window-header {
   margin-left: 4px;
 }
 
+/* 접힘 상태 점선 (소제목 상단 위치) */
 .header-collapsed-line {
-  border-bottom: 1px dashed #cbd5e1 !important;
+  border-top: 1px dashed #cbd5e1 !important;
 }
 
 /* 3. 액션 툴바 & 버튼 */
@@ -334,8 +335,9 @@ header.mac-window-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
+  padding-top: 6px;
+  padding-bottom: 2px;
+  border-top: 1px solid var(--border-light);
   flex-wrap: wrap;
   gap: 6px;
   flex-shrink: 0;
@@ -457,8 +459,9 @@ header.mac-window-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
+  padding-top: 6px;
+  padding-bottom: 2px;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -510,8 +513,9 @@ header.mac-window-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--border-light);
+  padding-top: 6px;
+  padding-bottom: 2px;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 .api-header-left {
@@ -637,12 +641,15 @@ header.mac-window-header {
   flex-direction: column;
   gap: 3px;
 }
+
+/* 섹션 헤더 가로선: 소제목 상단(border-top) 배치 */
 .section-header-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 6px;
   padding-bottom: 2px;
-  border-bottom: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 .section-header-left {
