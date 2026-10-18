@@ -1,17 +1,12 @@
 /* ==========================================================================
-   app.js v1.0: 글쓰기 스튜디오 비즈니스 로직 및 외부 통신
+   app.js v1.0: 집필 스튜디오 UI 오케스트레이터 및 메인 이벤트
    ========================================================================== */
 
-const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
-const PUBLIC_SHARED_KEY = "__GEMINI_API_KEY__";
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
-const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 
 let isDirty = false;
-let isPersonalWaitState = false;
 let currentPostId = null;
 let currentPostStatus = "작성";
-let postListCache = [];
 let currentFocusedKey = null;
 let pendingModalAction = null;
 
@@ -30,7 +25,7 @@ const fieldMap = {};
 const fieldState = {};
 SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
 
-// 1. 7개 집필 창 동적 생성 루프
+// 1. 집필 섹션 동적 DOM 생성
 function buildEditorSections() {
   const container = $('editor-container');
   const apiBox = $('sec_api');
@@ -101,15 +96,11 @@ function toggleFocusView(key, manageHistory = true) {
   );
 }
 
-window.addEventListener('popstate', function(e) {
-  if (currentFocusedKey) {
-    toggleFocusView(currentFocusedKey, false);
-  }
+window.addEventListener('popstate', function() {
+  if (currentFocusedKey) toggleFocusView(currentFocusedKey, false);
 });
 
-function markDirty() {
-  isDirty = true;
-}
+function markDirty() { isDirty = true; }
 
 function resizeAllTextareas() {
   if (document.body.classList.contains('mode-focus')) return;
@@ -119,7 +110,7 @@ function resizeAllTextareas() {
   });
 }
 
-// 2. Undo/Redo 및 통계 엔진
+// 2. Undo/Redo & 글자 수 통계
 function initFieldStates() {
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
@@ -208,168 +199,7 @@ function appendDraftToCompleted() {
   });
 }
 
-// 3. 구글 시트 연동 및 글 목록 제어
-function loadCachedPosts() {
-  const cached = localStorage.getItem(POSTS_CACHE_KEY);
-  if (cached) {
-    try {
-      postListCache = JSON.parse(cached);
-      populateCategoryFilter();
-      renderPostList();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-}
-
-function fetchSheetPosts() {
-  const oldScript = document.getElementById('gas_jsonp_script');
-  if (oldScript) oldScript.remove();
-  window.handleGasResponse = function(response) {
-    if (response && response.status === "success" && response.data) {
-      postListCache = response.data;
-      localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
-      populateCategoryFilter();
-      renderPostList();
-    }
-  };
-  const script = document.createElement('script');
-  script.id = 'gas_jsonp_script';
-  script.src = GAS_ENDPOINT + '?callback=handleGasResponse&_t=' + new Date().getTime();
-  document.body.appendChild(script);
-}
-
-function populateCategoryFilter() {
-  const select = $('categoryFilter');
-  if (!select) return;
-  const currentVal = select.value;
-  const categories = new Set();
-  postListCache.forEach(function(item) {
-    const cat = (item.분류 || item.category || '').trim();
-    if (cat) categories.add(cat);
-  });
-  select.innerHTML = '<option value="전체">전체</option>';
-  categories.forEach(function(cat) {
-    const opt = document.createElement('option');
-    opt.value = cat;
-    opt.innerText = cat;
-    select.appendChild(opt);
-  });
-  select.value = Array.from(categories).includes(currentVal) ? currentVal : '전체';
-}
-
-function handleFilterChange() {
-  currentPostId = null;
-  SECTION_CONFIGS.forEach(function(cfg) {
-    const el = $(cfg.id);
-    if (el) {
-      el.value = '';
-      fieldState[cfg.key] = { currentSaved: '', history: [''] };
-      autoResizeTextarea(el, cfg.minH);
-    }
-  });
-  updateAllStats();
-  renderPostList();
-}
-
-function renderPostList() {
-  const grid = $('body_postList');
-  if (!grid) return;
-  const statusFilterEl = $('statusFilter');
-  const catFilterEl = $('categoryFilter');
-  const statusFilter = statusFilterEl ? statusFilterEl.value : '전체';
-  const categoryFilter = catFilterEl ? catFilterEl.value : '전체';
-
-  grid.innerHTML = '';
-  const filtered = postListCache.filter(function(item) {
-    const itemStatus = (item.상황 || item.status || '작성').trim();
-    const itemCategory = (item.분류 || item.category || '').trim();
-    const matchStatus = (statusFilter === '전체') || (itemStatus === statusFilter);
-    const matchCategory = (categoryFilter === '전체') || (itemCategory === categoryFilter);
-    return matchStatus && matchCategory;
-  });
-
-  if (filtered.length === 0) {
-    grid.innerHTML = '<span style="font-size:0.78rem; color:#64748b; padding:4px 6px;">해당 조건의 글이 없습니다.</span>';
-    return;
-  }
-
-  filtered.forEach(function(post) {
-    const postId = post.ID || post.id || '';
-    const postTitle = post.제목 || post.title || '(제목 없음)';
-    const postStatus = (post.상황 || post.status || '작성').trim();
-    const postCategory = (post.분류 || post.category || '').trim();
-
-    const row = document.createElement('div');
-    row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
-
-    const titleArea = document.createElement('div');
-    titleArea.className = 'post-row-title-area';
-    const categoryText = postCategory || '-';
-    titleArea.innerHTML = '<span class="post-category-tag" title="' + categoryText + '">' + categoryText + '</span>' +
-      '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
-
-    titleArea.onclick = function() {
-      if (isDirty) {
-        showUnsavedModal(
-          function() { saveWork('stay'); selectPost(post); },
-          function() { selectPost(post); }
-        );
-      } else {
-        selectPost(post);
-      }
-    };
-
-    let statusClass = 'status-writing';
-    if (postStatus === '완료') statusClass = 'status-done';
-    else if (postStatus === '예정') statusClass = 'status-plan';
-
-    const statusBtn = document.createElement('button');
-    statusBtn.type = 'button';
-    statusBtn.className = 'btn-status-toggle ' + statusClass;
-    statusBtn.innerText = postStatus;
-    statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
-    statusBtn.onclick = function(e) {
-      e.stopPropagation();
-      togglePostStatus(post);
-    };
-
-    row.appendChild(titleArea);
-    row.appendChild(statusBtn);
-    grid.appendChild(row);
-  });
-}
-
-function togglePostStatus(post) {
-  const current = (post.상황 || post.status || '작성').trim();
-  let nextStatus = '작성';
-  if (current === '작성') nextStatus = '완료';
-  else if (current === '완료') nextStatus = '예정';
-  else if (current === '예정') nextStatus = '작성';
-
-  post.상황 = nextStatus;
-  post.status = nextStatus;
-  if (currentPostId === (post.ID || post.id)) {
-    currentPostStatus = nextStatus;
-  }
-  localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
-  renderPostList();
-
-  fetch(GAS_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ID: post.ID || post.id,
-      id: post.ID || post.id,
-      status: nextStatus,
-      category: post.분류 || post.category || '',
-      title: post.제목 || post.title || '',
-      outline: post.글의구성 || post['글의 구성'] || post.outline || ''
-    })
-  });
-}
-
+// 3. 작업 선택 및 저장 루틴
 function selectPost(post) {
   currentPostId = post.ID || post.id || '';
   currentPostStatus = (post.상황 || post.status || '작성').trim();
@@ -392,8 +222,21 @@ function selectPost(post) {
   isDirty = false;
 }
 
-// 4. 저장 및 데이터 복원
-async function saveWork(mode) {
+function handleFilterChange() {
+  currentPostId = null;
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el) {
+      el.value = '';
+      fieldState[cfg.key] = { currentSaved: '', history: [''] };
+      autoResizeTextarea(el, cfg.minH);
+    }
+  });
+  updateAllStats();
+  renderPostList();
+}
+
+function saveWork(mode) {
   const titleVal = $('essayTitleInput').value.trim();
   if (!titleVal) return alert('제목을 입력해주세요.');
 
@@ -427,24 +270,10 @@ async function saveWork(mode) {
   });
   isDirty = false;
 
-  try {
-    fetch(GAS_ENDPOINT, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }).then(function() {
-      fetchSheetPosts();
-    });
-  } catch (err) {
-    console.error("구글 시트 저장 통신 오류:", err);
-  }
+  syncPostToSheet(payload);
 
-  if (mode === 'stay') {
-    alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
-  } else if (mode === 'exit') {
-    window.close();
-  }
+  if (mode === 'stay') alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
+  else if (mode === 'exit') window.close();
 }
 
 function loadSavedData() {
@@ -464,7 +293,7 @@ function loadSavedData() {
     initFieldStates();
     resizeAllTextareas();
   } catch(e) {
-    console.error("데이터 로드 실패", e);
+    console.error("[app.js] 데이터 로드 실패:", e);
   }
 }
 
@@ -490,7 +319,7 @@ function cancelAndClose() {
   }
 }
 
-// 5. 커스텀 모달
+// 4. 저장 확인 모달
 function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
   const modal = $('unsaved-modal');
   if (!modal) {
@@ -515,7 +344,7 @@ function initModalHandlers() {
   const btnCancel = $('modal-btn-cancel');
   const btnDiscard = $('modal-btn-discard');
   const btnSave = $('modal-btn-save');
-  if (btnCancel) btnCancel.onclick = function() { hideUnsavedModal(); };
+  if (btnCancel) btnCancel.onclick = hideUnsavedModal;
   if (btnDiscard) {
     btnDiscard.onclick = function() {
       const act = pendingModalAction;
@@ -532,163 +361,7 @@ function initModalHandlers() {
   }
 }
 
-// 6. Gemini API 키 서브루틴
-function checkApiKeyStatus() {
-  const savedKey = localStorage.getItem("GEMINI_USER_API_KEY");
-  const keyType = localStorage.getItem("GEMINI_KEY_TYPE");
-  const badge = $("apiStatusBadge");
-  if (!badge) return;
-
-  if (savedKey) {
-    isPersonalWaitState = false;
-    $("apiKeyInput").value = savedKey;
-    $("apiDelBtn").style.display = "inline-block";
-    $("apiSaveBtn").classList.remove("api-wait-btn");
-    $("apiCancelBtn").style.display = "none";
-    $("dropdownArrow").style.display = "none";
-    $("apiSaveBtn").disabled = true;
-
-    if (keyType === "personal") {
-      $("apiSaveBtnText").innerText = "개인 키 설치완료";
-      badge.innerText = "🔒 개인 키 사용 중";
-      Object.assign(badge.style, { color: "#16a34a", background: "#dcfce7", borderColor: "#86efac" });
-    } else {
-      $("apiSaveBtnText").innerText = "공용 키 설치완료";
-      badge.innerText = "🟢 공용 키 사용 중";
-      Object.assign(badge.style, { color: "#d97706", background: "#fef3c7", borderColor: "#fde68a" });
-    }
-  } else {
-    $("apiKeyInput").value = "";
-    $("apiDelBtn").style.display = "none";
-    $("apiSaveBtn").disabled = false;
-    $("apiSaveBtn").classList.remove("api-wait-btn");
-    badge.innerText = "⚠️ 키 미설정 상태";
-    Object.assign(badge.style, { color: "#dc2626", background: "#fee2e2", borderColor: "#fca5a5" });
-
-    if (isPersonalWaitState) {
-      $("apiSaveBtnText").innerText = "개인 키 설치대기";
-      $("dropdownArrow").style.display = "none";
-      $("apiSaveBtn").classList.add("api-wait-btn");
-      $("apiCancelBtn").style.display = "inline-block";
-    } else {
-      checkKeyInputState();
-    }
-  }
-}
-
-function checkKeyInputState() {
-  if (localStorage.getItem("GEMINI_USER_API_KEY") || isPersonalWaitState) return;
-  const hasInput = $("apiKeyInput").value.trim().length > 0;
-  $("apiSaveBtnText").innerText = hasInput ? "개인 키 설치하기" : "키 설치하기";
-  $("dropdownArrow").style.display = hasInput ? "none" : "inline";
-  $("apiCancelBtn").style.display = hasInput ? "inline-block" : "none";
-}
-
-function handleSaveButtonClick() {
-  if (localStorage.getItem("GEMINI_USER_API_KEY")) return;
-  const keyVal = $("apiKeyInput").value.trim();
-  if (isPersonalWaitState || keyVal.length > 0) {
-    if (keyVal.length === 0) {
-      alert("API Key를 입력한 뒤 눌러주세요.");
-      return $("apiKeyInput").focus();
-    }
-    localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
-    localStorage.setItem("GEMINI_KEY_TYPE", "personal");
-    isPersonalWaitState = false;
-    checkApiKeyStatus();
-  } else {
-    $("apiDropdownMenu").classList.toggle("show");
-  }
-}
-
-function selectKeyChoice(type) {
-  $("apiDropdownMenu").classList.remove('show');
-  if (type === 'shared') {
-    if (PUBLIC_SHARED_KEY && !PUBLIC_SHARED_KEY.startsWith("__")) {
-      localStorage.setItem("GEMINI_USER_API_KEY", PUBLIC_SHARED_KEY);
-      localStorage.setItem("GEMINI_KEY_TYPE", "shared");
-      isPersonalWaitState = false;
-      checkApiKeyStatus();
-    } else {
-      alert("공용 키가 설정되어 있지 않습니다.");
-    }
-  } else if (type === 'personal') {
-    const keyVal = $("apiKeyInput").value.trim();
-    if (keyVal.length > 0) {
-      localStorage.setItem("GEMINI_USER_API_KEY", keyVal);
-      localStorage.setItem("GEMINI_KEY_TYPE", "personal");
-      isPersonalWaitState = false;
-      checkApiKeyStatus();
-    } else {
-      isPersonalWaitState = true;
-      checkApiKeyStatus();
-      $("apiKeyInput").focus();
-    }
-  }
-}
-
-function cancelKeyInput() {
-  isPersonalWaitState = false;
-  $("apiKeyInput").value = "";
-  checkApiKeyStatus();
-}
-
-function deleteApiKey() {
-  if (confirm("저장된 API Key를 삭제하시겠습니까?")) {
-    localStorage.removeItem("GEMINI_USER_API_KEY");
-    localStorage.removeItem("GEMINI_KEY_TYPE");
-    isPersonalWaitState = false;
-    checkApiKeyStatus();
-    $("apiKeyInput").focus();
-  }
-}
-
-// 7. Gemini API 통신 파이프라인
-async function requestAiRefine() {
-  const apiKey = localStorage.getItem("GEMINI_USER_API_KEY");
-  if (!apiKey) return alert('Gemini API Key를 먼저 설치해주세요.');
-
-  const completed = $('completedText').value.trim();
-  const newDraft = $('newDraftText').value.trim();
-  const intent = $('draftIntent').value.trim();
-  const promptReq = $('promptReqText').value.trim();
-
-  if (!newDraft) return alert('신규 글을 먼저 작성해주세요.');
-
-  const prompt = "당신은 유려한 감성과 논리적인 구조를 겸비한 전문 글쓰기 편집자이자 라이팅 코치입니다.\n" +
-    "다음 정보들을 분석하여 신규 글을 검토하고 퇴고안을 작성해주세요.\n\n" +
-    "[이제까지 작성 완료된 글]:\n" + (completed || "(첫 단락입니다)") + "\n\n" +
-    "[신규 작성한 글]:\n" + newDraft + "\n\n" +
-    "[글의 의도]:\n" + (intent || "(별도 의도 없음)") + "\n\n" +
-    "[AI에게 바라는 구체적 요청 사항]:\n" + (promptReq || "(기본 자연스러운 흐름 퇴고 요망)") + "\n\n" +
-    "[수정 가이드]:\n" +
-    "1. 신규 글의 의도와 구체적인 요청 사항을 충실히 반영하여, 이제까지 작성 완료된 글의 흐름에 이 글이 자연스러운지 채택 여부를 먼저 판단하세요.\n" +
-    "2. 사용하기로 했다면, 요청 사항에 맞춰 유려하고 정돈된 문체로 수정 완성 단락을 작성해 주세요.\n" +
-    "3. 출력 형식:\n- 채택 판단 코멘트(1줄)\n- [수정 완성 단락]";
-
-  const aiRefinedEl = $('aiRefinedText');
-  aiRefinedEl.value = "AI 검토 및 퇴고 중입니다...";
-
-  try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await response.json();
-    if (data.candidates && data.candidates[0].content.parts[0].text) {
-      aiRefinedEl.value = data.candidates[0].content.parts[0].text;
-      handleFieldInput('aiRefined');
-    } else {
-      aiRefinedEl.value = "수정안 생성에 실패했습니다.";
-    }
-  } catch (err) {
-    console.error(err);
-    aiRefinedEl.value = "통신 중 오류가 발생했습니다.";
-  }
-}
-
-// 8. 초기 이벤트 바인딩
+// 5. 초기 이벤트 연결
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
