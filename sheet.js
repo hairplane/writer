@@ -1,6 +1,9 @@
 /* ==========================================================================
-   sheet.js v1.0: 구글 시트(GAS) 연동, 캐싱 및 글 목록 관리 모듈
+   [BOM] index(v3.3) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.2) / core.css(v1.1) / style.css(v1.2)
+   - sheet.js: 자체 버전 식별 전역 변수(_V_SHEET) 선언 및 v1.1 갱신
    ========================================================================== */
+
+window._V_SHEET = "v1.1";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
