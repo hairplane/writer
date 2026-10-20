@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.5): 제목 영역 분류 태그 제거 (순수 제목만 표시) 및 BOM 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.5) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
+- sheet.js (v2.6): 별표 버튼 클래스 분기(star-yellow, star-empty) 및 BOM 동기화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.6) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.3)
 ========================================================================== */
 
-window._V_SHEET = "v2.5";
+window._V_SHEET = "v2.6";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -179,10 +179,10 @@ function renderPostList() {
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
 
-    // [1] 중요 별표 토글 버튼 (⭐ / ☆)
+    // [1] 중요 별표 토글 버튼 (⭐ / ☆ - 크기 일치를 위한 전용 클래스 분기)
     const starBtn = document.createElement('button');
     starBtn.type = 'button';
-    starBtn.className = 'btn-star-toggle' + (isImportant ? ' is-important' : '');
+    starBtn.className = 'btn-star-toggle ' + (isImportant ? 'star-yellow is-important' : 'star-empty');
     starBtn.innerText = isImportant ? '⭐' : '☆';
     starBtn.title = isImportant ? '중요 해제' : '중요 글로 지정';
     starBtn.onclick = function(e) {
