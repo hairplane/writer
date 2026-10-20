@@ -1,15 +1,15 @@
 /* ==========================================================================
-   - app.js (v2.0): 1줄 콤팩트 필터바 이벤트 연결, 분류1/2 및 중요/숨김 메타 데이터 바인딩 구현
-   [BOM] index(v4.0) / core.js(v1.2) / sheet.js(v2.0) / api.js(v1.1) / app.js(v2.0) / core.css(v1.2) / style.css(v2.0)
+   - app.js (v2.1): 상황 기본값 4단계(구상중/대기중/작성중/완료) 지원 및 최신 BOM 동기화
+   [BOM] index(v4.1) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.1) / core.css(v1.2) / style.css(v2.1)
    ========================================================================== */
 
-window._V_APP = "v2.0";
+window._V_APP = "v2.1";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 
 let isDirty = false;
 let currentPostId = null;
-let currentPostStatus = "작성";
+let currentPostStatus = "작성중";
 let currentFocusedKey = null;
 let pendingModalAction = null;
 
@@ -134,7 +134,6 @@ function toggleSection(key) {
   executeToggleSection(key);
 }
 
-// 전체 창 마스터 토글
 function toggleAllSections() {
   if (document.body.classList.contains('mode-focus')) {
     if (currentFocusedKey) toggleFocusView(currentFocusedKey);
@@ -183,7 +182,6 @@ function resizeAllTextareas() {
   });
 }
 
-// 2. Undo/Redo & 글자 수 통계
 function initFieldStates() {
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
@@ -272,17 +270,15 @@ function appendDraftToCompleted() {
   });
 }
 
-// 3. 작업 선택 및 저장 루틴 (C/D/E/F열 데이터 매핑)
 function selectPost(post) {
   currentPostId = post.ID || post.id || '';
-  currentPostStatus = (post.상황 || post.status || '작성').trim();
+  currentPostStatus = (post.상황 || post.status || '작성중').trim();
 
   $('essayTitleInput').value = post.제목 || post.title || '';
   $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
   $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
   $('postSummary').value = post.요약 || post.summary || '';
 
-  // 신규 열 바인딩 (분류1, 분류2, 중요, 숨김)
   const cat1Input = $('postCategory1');
   if (cat1Input) cat1Input.value = post.분류1 || post.category1 || post.분류 || post.category || '';
   const cat2Input = $('postCategory2');
@@ -322,12 +318,12 @@ function saveWork(mode) {
   const payload = {
     ID: currentPostId,
     id: currentPostId,
-    status: currentPostStatus || "작성",
+    status: currentPostStatus || "작성중",
     important: isImp,
     hidden: isHid,
     category1: c1Val,
     category2: c2Val,
-    category: c1Val, // 이전 버전 호환 필드
+    category: c1Val,
     title: titleVal,
     startDate: $('postStartDate').value.trim(),
     endDate: $('postEndDate').value.trim(),
@@ -412,7 +408,6 @@ function cancelAndClose() {
   }
 }
 
-// 4. 저장 확인 모달
 function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
   const modal = $('unsaved-modal');
   if (!modal) {
@@ -454,7 +449,6 @@ function initModalHandlers() {
   }
 }
 
-// 5. 초기 이벤트 연결 및 1줄 콤팩트 필터 핸들러
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
@@ -478,7 +472,6 @@ window.addEventListener('DOMContentLoaded', function() {
   const btnCancel = $('btn-cancel-work');
   if (btnCancel) btnCancel.onclick = cancelWork;
 
-  // 1줄 콤팩트 필터 바 이벤트 바인딩
   const statusFilter = $('statusFilter');
   if (statusFilter) statusFilter.onchange = renderPostList;
 
@@ -511,7 +504,6 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 메타 테이블 입력 시 dirty 상태 기록
   ['essayTitleInput', 'postCategory1', 'postCategory2', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
     const el = $(id);
     if (el) el.oninput = markDirty;
@@ -554,7 +546,6 @@ window.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
-  // 빈 공간 클릭 시 드롭다운 및 팝오버 닫기
   window.addEventListener('click', function(e) {
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
