@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.2): 선글라스 필터 시 숨김 글 포함(전체 노출) 로직 개선 및 BOM 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.2) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+- sheet.js (v2.3): 메타데이터 업데이트 시 본문 데이터 전체 보존 전송 및 BOM 동기화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.3) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
 ========================================================================== */
 
-window._V_SHEET = "v2.2";
+window._V_SHEET = "v2.3";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -391,7 +391,7 @@ function togglePostHidden(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
+// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송 (기존 본문 필드 전체 보존)
 function sendPostMetaUpdate(post) {
   fetch(GAS_ENDPOINT, {
     method: "POST",
@@ -407,7 +407,16 @@ function sendPostMetaUpdate(post) {
       category1: post.분류1 || post.category1 || "",
       category2: post.분류2 || post.category2 || "",
       title: post.제목 || post.title || "",
-      outline: post.글의구성 || post['글의 구성'] || post.outline || ""
+      startDate: post.작성시작일 || post['작성 시작일'] || post.startDate || "",
+      endDate: post.작성완료일 || post['작성 완료일'] || post.endDate || "",
+      summary: post.요약 || post.summary || "",
+      outline: post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || "",
+      completed: post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || "",
+      newDraft: post.신규글 || post['신규 글'] || post['신규\n글'] || post.newDraft || "",
+      intent: post.글의의도 || post['글의 의도'] || post['글의\n의도'] || post.intent || "",
+      promptReq: post.요청내용 || post['요청 내용'] || post['요청\n내용'] || post.promptReq || "",
+      aiRefined: post.AI수정글 || post['AI 수정 글'] || post['AI수정 글'] || post.aiRefined || "",
+      snippets: post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || ""
     })
   }).catch(function(err) {
     console.warn("[sheet.js] 메타 백그라운드 동기화 실패:", err);
