@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.4): 드래그 핸들 우측 배치, 터치/에뮬레이터 드래그 지원 및 본문 데이터 보존
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.4) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
+- sheet.js (v2.5): 제목 영역 분류 태그 제거 (순수 제목만 표시) 및 BOM 동기화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.5) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
 ========================================================================== */
 
-window._V_SHEET = "v2.4";
+window._V_SHEET = "v2.5";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -175,13 +175,6 @@ function renderPostList() {
     const isImportant = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y';
     const isHidden = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
 
-    const cat1 = (post.분류1 || post.category1 || post.분류 || post.category || '').trim();
-    const cat2 = (post.분류2 || post.category2 || '').trim();
-    let displayTag = '-';
-    if (cat1 && cat2) displayTag = cat1 + '/' + cat2;
-    else if (cat1) displayTag = cat1;
-    else if (cat2) displayTag = cat2;
-
     const row = document.createElement('div');
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
@@ -213,12 +206,10 @@ function renderPostList() {
       togglePostStatus(post);
     };
 
-    // [3] 제목 텍스트 영역 (분류 태그 고정폭으로 제목 수직 시작선 일치)
+    // [3] 제목 텍스트 영역 (분류 태그 없이 순수 제목만 표시)
     const titleArea = document.createElement('div');
     titleArea.className = 'post-row-title-area';
-    titleArea.innerHTML = 
-      '<span class="post-category-tag" title="' + displayTag + '">' + displayTag + '</span>' +
-      '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
+    titleArea.innerHTML = '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
 
     titleArea.onclick = function() {
       if (isDirty) {
@@ -346,7 +337,7 @@ function renderPostList() {
       touchCurrentTargetRow = null;
     });
 
-    // DOM 결합: 1줄 순서 확정안 [⭐/☆] [상황] [제목] [🕶️/👓] [⠿]
+    // DOM 결합: 1줄 순서 확정안 [⭐/☆] [상황] [순수제목] [🕶️/👓] [⠿]
     row.appendChild(starBtn);
     row.appendChild(statusBtn);
     row.appendChild(titleArea);
