@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.3): 메타데이터 업데이트 시 본문 데이터 전체 보존 전송 및 BOM 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.3) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+- sheet.js (v2.4): 드래그 핸들 우측 배치, 터치/에뮬레이터 드래그 지원 및 본문 데이터 보존
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.4) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
 ========================================================================== */
 
-window._V_SHEET = "v2.3";
+window._V_SHEET = "v2.4";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -14,6 +14,12 @@ let filterOnlyHidden = false; // 선글라스 버튼: 꺼짐(공개글만), 켜�
 
 // 드래그 앤 드롭 상태 관리 변수
 let draggedPostId = null;
+
+// 터치 드래그용 상태 추적 변수
+let touchActiveRow = null;
+let touchStartY = 0;
+let touchCurrentTargetRow = null;
+let touchInsertBefore = false;
 
 // 1. 로컬 캐시 불러오기
 function loadCachedPosts() {
@@ -118,7 +124,7 @@ function updateCategory2Options(targetValue) {
   cat2Select.value = cat2Set.has(preferredVal) ? preferredVal : '전체';
 }
 
-// 4. 작성 글 목록 DOM 렌더링 (순서: [⠿] [⭐/☆] [상황버튼] [제목] [🕶️/👓])
+// 4. 작성 글 목록 DOM 렌더링 (순서: [⭐/☆] [상황버튼] [제목] [🕶️/👓] [⠿])
 function renderPostList() {
   const grid = $('list_postRows') || $('body_postList');
   if (!grid) return;
@@ -180,14 +186,70 @@ function renderPostList() {
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
 
-    // [1] 드래그 핸들 (⠿)
+    // [1] 중요 별표 토글 버튼 (⭐ / ☆)
+    const starBtn = document.createElement('button');
+    starBtn.type = 'button';
+    starBtn.className = 'btn-star-toggle' + (isImportant ? ' is-important' : '');
+    starBtn.innerText = isImportant ? '⭐' : '☆';
+    starBtn.title = isImportant ? '중요 해제' : '중요 글로 지정';
+    starBtn.onclick = function(e) {
+      e.stopPropagation();
+      togglePostImportant(post);
+    };
+
+    // [2] 상황 뱃지 버튼 (구상중 -> 대기중 -> 작성중 -> 완료)
+    let statusClass = 'status-writing';
+    if (postStatus === '완료') statusClass = 'status-done';
+    else if (postStatus === '구상중') statusClass = 'status-plan';
+    else if (postStatus === '대기중') statusClass = 'status-pending';
+
+    const statusBtn = document.createElement('button');
+    statusBtn.type = 'button';
+    statusBtn.className = 'btn-status-toggle ' + statusClass;
+    statusBtn.innerText = postStatus;
+    statusBtn.title = "클릭 시 상황 변경";
+    statusBtn.onclick = function(e) {
+      e.stopPropagation();
+      togglePostStatus(post);
+    };
+
+    // [3] 제목 텍스트 영역 (분류 태그 고정폭으로 제목 수직 시작선 일치)
+    const titleArea = document.createElement('div');
+    titleArea.className = 'post-row-title-area';
+    titleArea.innerHTML = 
+      '<span class="post-category-tag" title="' + displayTag + '">' + displayTag + '</span>' +
+      '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
+
+    titleArea.onclick = function() {
+      if (isDirty) {
+        showUnsavedModal(
+          function() { saveWork('stay'); selectPost(post); },
+          function() { selectPost(post); }
+        );
+      } else {
+        selectPost(post);
+      }
+    };
+
+    // [4] 숨김 토글 버튼 (🕶️ / 👓 - 상시 노출)
+    const hiddenBtn = document.createElement('button');
+    hiddenBtn.type = 'button';
+    hiddenBtn.className = 'btn-hidden-toggle' + (isHidden ? ' is-hidden' : '');
+    hiddenBtn.innerText = isHidden ? '🕶️' : '👓';
+    hiddenBtn.title = isHidden ? '숨김 해제 (공개)' : '숨김 글로 설정';
+    hiddenBtn.onclick = function(e) {
+      e.stopPropagation();
+      togglePostHidden(post);
+    };
+
+    // [5] 드래그 핸들 (⠿) - 라인의 맨 오른쪽 끝 배치
     const dragHandle = document.createElement('span');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⠿';
     dragHandle.title = '끌어서 순서 이동';
     dragHandle.setAttribute('draggable', 'true');
 
-    // 드래그 이벤트 바인딩
+    // 데스크톱 HTML5 드래그 이벤트
     dragHandle.addEventListener('dragstart', function(e) {
       draggedPostId = postId;
       row.classList.add('is-dragging');
@@ -232,68 +294,64 @@ function renderPostList() {
       handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
     });
 
-    // [2] 중요 별표 토글 버튼 (⭐ / ☆)
-    const starBtn = document.createElement('button');
-    starBtn.type = 'button';
-    starBtn.className = 'btn-star-toggle' + (isImportant ? ' is-important' : '');
-    starBtn.innerText = isImportant ? '⭐' : '☆';
-    starBtn.title = isImportant ? '중요 해제' : '중요 글로 지정';
-    starBtn.onclick = function(e) {
-      e.stopPropagation();
-      togglePostImportant(post);
-    };
+    // 모바일 및 PC 브라우저 에뮬레이터 터치 드래그 이벤트 바인딩
+    dragHandle.addEventListener('touchstart', function(e) {
+      const touch = e.touches[0];
+      draggedPostId = postId;
+      touchActiveRow = row;
+      touchStartY = touch.clientY;
+      row.classList.add('is-dragging');
+    }, { passive: true });
 
-    // [3] 상황 뱃지 버튼 (구상중 -> 대기중 -> 작성중 -> 완료)
-    let statusClass = 'status-writing';
-    if (postStatus === '완료') statusClass = 'status-done';
-    else if (postStatus === '구상중') statusClass = 'status-plan';
-    else if (postStatus === '대기중') statusClass = 'status-pending';
+    dragHandle.addEventListener('touchmove', function(e) {
+      if (!draggedPostId || !touchActiveRow) return;
+      const touch = e.touches[0];
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = targetEl ? targetEl.closest('.post-row-item') : null;
 
-    const statusBtn = document.createElement('button');
-    statusBtn.type = 'button';
-    statusBtn.className = 'btn-status-toggle ' + statusClass;
-    statusBtn.innerText = postStatus;
-    statusBtn.title = "클릭 시 상황 변경";
-    statusBtn.onclick = function(e) {
-      e.stopPropagation();
-      togglePostStatus(post);
-    };
+      document.querySelectorAll('.post-row-item').forEach(function(el) {
+        if (el !== touchActiveRow) el.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
 
-    // [4] 제목 텍스트 영역 (클릭 시 집필 창 로드)
-    const titleArea = document.createElement('div');
-    titleArea.className = 'post-row-title-area';
-    titleArea.innerHTML = 
-      '<span class="post-category-tag" title="' + displayTag + '">' + displayTag + '</span>' +
-      '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
-
-    titleArea.onclick = function() {
-      if (isDirty) {
-        showUnsavedModal(
-          function() { saveWork('stay'); selectPost(post); },
-          function() { selectPost(post); }
-        );
+      if (targetRow && targetRow !== touchActiveRow) {
+        const rect = targetRow.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        touchInsertBefore = touch.clientY < mid;
+        touchCurrentTargetRow = targetRow;
+        if (touchInsertBefore) {
+          targetRow.classList.add('drag-over-top');
+        } else {
+          targetRow.classList.add('drag-over-bottom');
+        }
       } else {
-        selectPost(post);
+        touchCurrentTargetRow = null;
       }
-    };
+    }, { passive: false });
 
-    // [5] 숨김 토글 버튼 (🕶️ / 👓 - 상시 노출)
-    const hiddenBtn = document.createElement('button');
-    hiddenBtn.type = 'button';
-    hiddenBtn.className = 'btn-hidden-toggle' + (isHidden ? ' is-hidden' : '');
-    hiddenBtn.innerText = isHidden ? '🕶️' : '👓';
-    hiddenBtn.title = isHidden ? '숨김 해제 (공개)' : '숨김 글로 설정';
-    hiddenBtn.onclick = function(e) {
-      e.stopPropagation();
-      togglePostHidden(post);
-    };
+    dragHandle.addEventListener('touchend', function() {
+      if (touchActiveRow) touchActiveRow.classList.remove('is-dragging');
+      document.querySelectorAll('.post-row-item').forEach(function(el) {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
 
-    // DOM 결합 (가로 순서)
-    row.appendChild(dragHandle);
+      if (draggedPostId && touchCurrentTargetRow) {
+        const targetId = touchCurrentTargetRow.getAttribute('data-id');
+        if (targetId && targetId !== draggedPostId) {
+          handlePostReorder(draggedPostId, targetId, touchInsertBefore, filtered);
+        }
+      }
+
+      draggedPostId = null;
+      touchActiveRow = null;
+      touchCurrentTargetRow = null;
+    });
+
+    // DOM 결합: 1줄 순서 확정안 [⭐/☆] [상황] [제목] [🕶️/👓] [⠿]
     row.appendChild(starBtn);
     row.appendChild(statusBtn);
     row.appendChild(titleArea);
     row.appendChild(hiddenBtn);
+    row.appendChild(dragHandle);
 
     grid.appendChild(row);
   });
