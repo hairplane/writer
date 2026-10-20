@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.2): 목록 항목 정렬 일치, 4면 활성 테두리 및 안전 간격 최적화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.4) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
+- style.css (v2.3): 별표(⭐/☆) 크기·중심선 일치 및 순수 제목 정렬 최적화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.6) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.3)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.2";
+  --v-style-css: "v2.3";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -414,7 +414,7 @@ header.mac-window-header {
   padding: 3px 6px;
   min-height: 30px;
   border-bottom: 1px solid #e2e8f0;
-  border: 1px solid transparent; /* 4면 테두리 기준점 */
+  border: 1px solid transparent;
   transition: background-color 0.12s ease, border-color 0.12s ease;
   user-select: none;
   box-sizing: border-box;
@@ -428,7 +428,7 @@ header.mac-window-header {
   background-color: #dbeafe;
 }
 
-/* 선택 및 드래그 시 4면 테두리 전체 활성화 (요청 3번) */
+/* 선택 및 드래그 시 4면 테두리 전체 활성화 */
 .post-row-item.is-dragging {
   opacity: 0.65;
   background-color: #fef3c7 !important;
@@ -448,33 +448,41 @@ header.mac-window-header {
   border-radius: 4px;
 }
 
-/* 6-1. 중요 별표 토글 버튼 (크기 동일화 - 요청 4번) */
+/* 6-1. 중요 별표 토글 버튼 (노란 별/빈 별 크기 및 중심선 일치) */
 .btn-star-toggle {
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  width: 18px;
-  height: 18px;
-  font-size: 0.95rem;
+  width: 20px;
+  height: 20px;
   line-height: 1;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #cbd5e1;
-  font-weight: 700;
+  user-select: none;
 }
 
-.btn-star-toggle.is-important {
+/* 노란색 이모지 별 (⭐) */
+.btn-star-toggle.star-yellow {
+  font-size: 0.88rem;
   color: #f59e0b;
+}
+
+/* 빈 텍스트 별 (☆) - 이모지와 동일한 체감 크기로 확대 및 두께/중심선 보정 */
+.btn-star-toggle.star-empty {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #94a3b8;
+  transform: translateY(-0.5px);
 }
 
 .btn-star-toggle:hover {
   transform: scale(1.15);
 }
 
-/* 6-2. 상황 뱃지 버튼 (좌측 수직 정렬 및 완료 규격/가운데 정렬 - 요청 5번) */
+/* 6-2. 상황 뱃지 버튼 (좌측 수직 정렬 및 완료 규격/가운데 정렬) */
 .btn-status-toggle {
   width: 44px;
   height: 20px;
@@ -497,27 +505,14 @@ header.mac-window-header {
 .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; }
 .btn-status-toggle.status-pending { background: #ede9fe; color: #6d28d9; }
 
-/* 6-3. 제목 텍스트 영역 (분류 태그 너비 고정으로 제목 수직 시작선 일치 - 요청 6번) */
+/* 6-3. 제목 텍스트 영역 (순수 제목 좌측 수직 시작선 일치) */
 .post-row-title-area {
   display: flex;
   align-items: center;
-  gap: 6px;
   cursor: pointer;
   font-size: 0.82rem;
   flex: 1;
   min-width: 0;
-}
-
-.post-category-tag {
-  width: 78px;
-  max-width: 78px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-  flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .post-row-title {
@@ -555,11 +550,11 @@ header.mac-window-header {
   transform: scale(1.15);
 }
 
-/* 6-5. 맨 오른쪽 드래그 핸들 (안전 간격 확보 - 요청 2번, 7번) */
+/* 6-5. 맨 오른쪽 드래그 핸들 (안전 간격 확보) */
 .drag-handle {
   width: 22px;
   height: 22px;
-  margin-left: 8px; /* 썬글라스와의 충분한 안전 간격 */
+  margin-left: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -568,7 +563,7 @@ header.mac-window-header {
   font-size: 1.05rem;
   line-height: 1;
   flex-shrink: 0;
-  touch-action: none; /* 모바일/에뮬레이터 터치 간섭 방지 */
+  touch-action: none;
 }
 
 .drag-handle:hover {
