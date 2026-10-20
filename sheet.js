@@ -1,16 +1,16 @@
 /* ==========================================================================
-- sheet.js (v2.1): 드래그 순서 재배치(원칙 B 슬롯 맞교환), 중요/숨김 상시 토글 및 신규 B열 매핑
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+- sheet.js (v2.2): 선글라스 필터 시 숨김 글 포함(전체 노출) 로직 개선 및 BOM 동기화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.2) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
 ========================================================================== */
 
-window._V_SHEET = "v2.1";
+window._V_SHEET = "v2.2";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 
 let postListCache = [];
 let filterOnlyImportant = false;
-let filterOnlyHidden = false; // 숨김 글만 단독 보기 토글 플래그
+let filterOnlyHidden = false; // 선글라스 버튼: 꺼짐(공개글만), 켜짐(숨김글도 포함하여 전체 표시)
 
 // 드래그 앤 드롭 상태 관리 변수
 let draggedPostId = null;
@@ -146,14 +146,12 @@ function renderPostList() {
     if (cat1Filter !== '전체' && itemCat1 !== cat1Filter) return false;
     // 3) 분류2 필터
     if (cat2Filter !== '전체' && itemCat2 !== cat2Filter) return false;
-    // 4) 중요 필터
+    // 4) 중요 필터 (별표 켜졌을 때 중요 글만)
     if (filterOnlyImportant && !itemImportant) return false;
 
-    // 5) 숨김 필터 (선글라스 필터가 켜져 있으면 숨김 글만 단독 노출, 꺼져 있으면 숨김 글 제외)
-    if (filterOnlyHidden) {
-      if (!itemHidden) return false;
-    } else {
-      if (itemHidden) return false;
+    // 5) 숨김 필터: 선글라스 버튼이 꺼져 있을 때만 숨김 글 제외, 켜져 있으면 숨김 글도 포함(전체 표시)
+    if (!filterOnlyHidden && itemHidden) {
+      return false;
     }
 
     return true;
@@ -290,7 +288,7 @@ function renderPostList() {
       togglePostHidden(post);
     };
 
-    // DOM 결합 (지정된 가로 순서)
+    // DOM 결합 (가로 순서)
     row.appendChild(dragHandle);
     row.appendChild(starBtn);
     row.appendChild(statusBtn);
