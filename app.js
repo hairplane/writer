@@ -1,9 +1,9 @@
 /* ==========================================================================
-   - filename: app.js (버전 명세서 외부 영역 클릭 시 자동 닫힘 기능 보강, v1.4 -> v1.5)
-   [BOM] index(v3.5) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v1.9)
+   - app.js (v2.0): 1줄 콤팩트 필터바 이벤트 연결, 분류1/2 및 중요/숨김 메타 데이터 바인딩 구현
+   [BOM] index(v4.0) / core.js(v1.2) / sheet.js(v2.0) / api.js(v1.1) / app.js(v2.0) / core.css(v1.2) / style.css(v2.0)
    ========================================================================== */
 
-window._V_APP = "v1.5";
+window._V_APP = "v2.0";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 
@@ -272,14 +272,27 @@ function appendDraftToCompleted() {
   });
 }
 
-// 3. 작업 선택 및 저장 루틴
+// 3. 작업 선택 및 저장 루틴 (C/D/E/F열 데이터 매핑)
 function selectPost(post) {
   currentPostId = post.ID || post.id || '';
   currentPostStatus = (post.상황 || post.status || '작성').trim();
+
   $('essayTitleInput').value = post.제목 || post.title || '';
   $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
   $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
   $('postSummary').value = post.요약 || post.summary || '';
+
+  // 신규 열 바인딩 (분류1, 분류2, 중요, 숨김)
+  const cat1Input = $('postCategory1');
+  if (cat1Input) cat1Input.value = post.분류1 || post.category1 || post.분류 || post.category || '';
+  const cat2Input = $('postCategory2');
+  if (cat2Input) cat2Input.value = post.분류2 || post.category2 || '';
+
+  const importantCheck = $('postImportant');
+  if (importantCheck) importantCheck.checked = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y';
+  const hiddenCheck = $('postHidden');
+  if (hiddenCheck) hiddenCheck.checked = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
+
   $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
   $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
   $('newDraftText').value  = post.신규글 || post['신규 글'] || post['신규\n글'] || post.newDraft || '';
@@ -295,33 +308,26 @@ function selectPost(post) {
   isDirty = false;
 }
 
-function handleFilterChange() {
-  currentPostId = null;
-  SECTION_CONFIGS.forEach(function(cfg) {
-    const el = $(cfg.id);
-    if (el) {
-      el.value = '';
-      fieldState[cfg.key] = { currentSaved: '', history: [''] };
-      autoResizeTextarea(el, cfg.minH);
-    }
-  });
-  updateAllStats();
-  renderPostList();
-}
-
 function saveWork(mode) {
   const titleVal = $('essayTitleInput').value.trim();
   if (!titleVal) return alert('제목을 입력해주세요.');
 
   if (!currentPostId) currentPostId = "ID_" + new Date().getTime();
-  const catFilterEl = $('categoryFilter');
-  const currentCategory = (catFilterEl && catFilterEl.value !== '전체') ? catFilterEl.value : '';
+
+  const c1Val = $('postCategory1') ? $('postCategory1').value.trim() : '';
+  const c2Val = $('postCategory2') ? $('postCategory2').value.trim() : '';
+  const isImp = ($('postImportant') && $('postImportant').checked) ? 'Y' : 'N';
+  const isHid = ($('postHidden') && $('postHidden').checked) ? 'Y' : 'N';
 
   const payload = {
     ID: currentPostId,
     id: currentPostId,
     status: currentPostStatus || "작성",
-    category: currentCategory,
+    important: isImp,
+    hidden: isHid,
+    category1: c1Val,
+    category2: c2Val,
+    category: c1Val, // 이전 버전 호환 필드
     title: titleVal,
     startDate: $('postStartDate').value.trim(),
     endDate: $('postEndDate').value.trim(),
@@ -360,6 +366,20 @@ function loadSavedData() {
     if (data.startDate) $('postStartDate').value = data.startDate;
     if (data.endDate) $('postEndDate').value = data.endDate;
     if (data.summary) $('postSummary').value = data.summary;
+
+    if ($('postCategory1') && (data.category1 || data.category)) {
+      $('postCategory1').value = data.category1 || data.category;
+    }
+    if ($('postCategory2') && data.category2) {
+      $('postCategory2').value = data.category2;
+    }
+    if ($('postImportant') && data.important) {
+      $('postImportant').checked = String(data.important).toUpperCase() === 'Y';
+    }
+    if ($('postHidden') && data.hidden) {
+      $('postHidden').checked = String(data.hidden).toUpperCase() === 'Y';
+    }
+
     SECTION_CONFIGS.forEach(function(cfg) {
       if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
     });
@@ -434,7 +454,7 @@ function initModalHandlers() {
   }
 }
 
-// 5. 초기 이벤트 연결 및 외부 영역 클릭 감지 보강
+// 5. 초기 이벤트 연결 및 1줄 콤팩트 필터 핸들러
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
@@ -458,10 +478,48 @@ window.addEventListener('DOMContentLoaded', function() {
   const btnCancel = $('btn-cancel-work');
   if (btnCancel) btnCancel.onclick = cancelWork;
 
+  // 1줄 콤팩트 필터 바 이벤트 바인딩
   const statusFilter = $('statusFilter');
   if (statusFilter) statusFilter.onchange = renderPostList;
-  const catFilter = $('categoryFilter');
-  if (catFilter) catFilter.onchange = handleFilterChange;
+
+  const cat1Filter = $('category1Filter');
+  if (cat1Filter) {
+    cat1Filter.onchange = function() {
+      if (typeof updateCategory2Options === 'function') updateCategory2Options('전체');
+      renderPostList();
+    };
+  }
+
+  const cat2Filter = $('category2Filter');
+  if (cat2Filter) cat2Filter.onchange = renderPostList;
+
+  const btnFilterImportant = $('btnFilterImportant');
+  if (btnFilterImportant) {
+    btnFilterImportant.onclick = function() {
+      filterOnlyImportant = !filterOnlyImportant;
+      btnFilterImportant.classList.toggle('active-star', filterOnlyImportant);
+      renderPostList();
+    };
+  }
+
+  const btnFilterHidden = $('btnFilterHidden');
+  if (btnFilterHidden) {
+    btnFilterHidden.onclick = function() {
+      filterIncludeHidden = !filterIncludeHidden;
+      btnFilterHidden.classList.toggle('active-hidden', filterIncludeHidden);
+      renderPostList();
+    };
+  }
+
+  // 메타 테이블 입력 시 dirty 상태 기록
+  ['essayTitleInput', 'postCategory1', 'postCategory2', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
+    const el = $(id);
+    if (el) el.oninput = markDirty;
+  });
+  ['postImportant', 'postHidden'].forEach(function(id) {
+    const el = $(id);
+    if (el) el.onchange = markDirty;
+  });
 
   ALL_SECTION_KEYS.forEach(function(k) {
     const dot = $('dot_' + k);
@@ -496,15 +554,13 @@ window.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
-  // 빈 공간 클릭 시 드롭다운 메뉴 및 팝업 닫기 (전역 클릭 감지)
+  // 빈 공간 클릭 시 드롭다운 및 팝오버 닫기
   window.addEventListener('click', function(e) {
-    // API 설정 드롭다운 닫기
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
         el.classList.remove('show');
       });
     }
-    // 버전 명세서(BOM) 팝업 닫기
     if (!e.target.closest('.version-tag') && !e.target.closest('.version-popover')) {
       const pop = $('versionPopover');
       if (pop && pop.classList.contains('show')) {
