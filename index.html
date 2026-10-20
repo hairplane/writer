@@ -1,5 +1,5 @@
-<!-- - index.html (v4.0): 1줄 모바일 콤팩트 필터바 신설 및 메타 테이블 C/D/E/F열 확장 반영 -->
-<!-- [BOM] index(v4.0) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v1.9) -->
+<!-- - index.html (v4.1): 상황 4단계(구상중/대기중/작성중/완료) 셀렉트 옵션 반영 및 BOM 동기화 -->
+<!-- [BOM] index(v4.1) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.1) / core.css(v1.2) / style.css(v2.1) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -20,7 +20,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v4.0</span>
+          <span class="version-tag" title="모듈 로드 중...">v4.1</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -64,9 +64,10 @@
         <div class="post-filter-bar-compact">
           <select id="statusFilter" class="select-filter-compact" title="상황 필터">
             <option value="전체">상황:전체</option>
-            <option value="작성">작성</option>
+            <option value="구상중">구상중</option>
+            <option value="대기중">대기중</option>
+            <option value="작성중">작성중</option>
             <option value="완료">완료</option>
-            <option value="예정">예정</option>
           </select>
           <select id="category1Filter" class="select-filter-compact" title="분류1 필터">
             <option value="전체">분류1:전체</option>
