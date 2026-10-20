@@ -1,14 +1,14 @@
 /* ==========================================================================
-   - app.js (v2.1): 상황 기본값 4단계(구상중/대기중/작성중/완료) 지원 및 최신 BOM 동기화
-   [BOM] index(v4.1) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.1) / core.css(v1.2) / style.css(v2.1)
-   ========================================================================== */
+- app.js (v2.2): 선글라스 단독 필터(filterOnlyHidden) 및 순서(B열) 데이터 동기화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+========================================================================== */
 
-window._V_APP = "v2.1";
+window._V_APP = "v2.2";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
-
 let isDirty = false;
 let currentPostId = null;
+let currentPostOrder = "";
 let currentPostStatus = "작성중";
 let currentFocusedKey = null;
 let pendingModalAction = null;
@@ -24,9 +24,12 @@ const SECTION_CONFIGS = [
 ];
 
 const ALL_SECTION_KEYS = ['postList', 'meta', 'outline', 'completed', 'newDraft', 'intent', 'api', 'promptReq', 'aiRefined', 'snippets'];
+
 const fieldMap = {};
 const fieldState = {};
-SECTION_CONFIGS.forEach(function(c) { fieldMap[c.key] = c.id; });
+SECTION_CONFIGS.forEach(function(c) {
+  fieldMap[c.key] = c.id;
+});
 
 // 0. 실시간 7개 모듈 버전 감지 (호버 툴팁 + 클릭 팝오버)
 function initBOMVersionDisplay() {
@@ -49,20 +52,22 @@ function initBOMVersionDisplay() {
     "• core.js: " + coreJsVer + " | sheet.js: " + sheetJsVer + "\n" +
     "• api.js: " + apiJsVer + " | app.js: " + appJsVer + "\n" +
     "• core.css: " + coreCssVer + " | style.css: " + styleCssVer;
+
   versionTag.title = tooltipText;
 
   if (popover) {
-    popover.innerHTML = '<div class="version-popover-title">' +
-      '<span>📦 모듈 버전 명세서 (BOM)</span>' +
+    popover.innerHTML = 
+      '<div class="version-popover-title">' +
+        '<span>📦 모듈 버전 명세서 (BOM)</span>' +
       '</div>' +
       '<ul>' +
-      '<li><span class="bom-name">index.html</span><span class="bom-val">' + htmlVer + '</span></li>' +
-      '<li><span class="bom-name">core.js</span><span class="bom-val">' + coreJsVer + '</span></li>' +
-      '<li><span class="bom-name">sheet.js</span><span class="bom-val">' + sheetJsVer + '</span></li>' +
-      '<li><span class="bom-name">api.js</span><span class="bom-val">' + apiJsVer + '</span></li>' +
-      '<li><span class="bom-name">app.js</span><span class="bom-val">' + appJsVer + '</span></li>' +
-      '<li><span class="bom-name">core.css</span><span class="bom-val">' + coreCssVer + '</span></li>' +
-      '<li><span class="bom-name">style.css</span><span class="bom-val">' + styleCssVer + '</span></li>' +
+        '<li><span class="bom-name">index.html</span><span class="bom-val">' + htmlVer + '</span></li>' +
+        '<li><span class="bom-name">core.js</span><span class="bom-val">' + coreJsVer + '</span></li>' +
+        '<li><span class="bom-name">sheet.js</span><span class="bom-val">' + sheetJsVer + '</span></li>' +
+        '<li><span class="bom-name">api.js</span><span class="bom-val">' + apiJsVer + '</span></li>' +
+        '<li><span class="bom-name">app.js</span><span class="bom-val">' + appJsVer + '</span></li>' +
+        '<li><span class="bom-name">core.css</span><span class="bom-val">' + coreCssVer + '</span></li>' +
+        '<li><span class="bom-name">style.css</span><span class="bom-val">' + styleCssVer + '</span></li>' +
       '</ul>';
 
     versionTag.onclick = function(e) {
@@ -77,6 +82,7 @@ function buildEditorSections() {
   const container = $('editor-container');
   const apiBox = $('sec_api');
   if (!container) return;
+
   container.innerHTML = '';
 
   SECTION_CONFIGS.forEach(function(cfg) {
@@ -90,17 +96,19 @@ function buildEditorSections() {
 
     let extraAiButtons = '';
     if (cfg.isAi) {
-      extraAiButtons = '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
+      extraAiButtons = 
+        '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
         '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
     }
 
-    hdr.innerHTML = '<div class="section-header-left">' +
-      '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
-      '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
+    hdr.innerHTML = 
+      '<div class="section-header-left">' +
+        '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
+        '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
       '</div>' +
       '<div style="display:flex; align-items:center; gap:4px;">' +
-      '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
-      extraAiButtons +
+        '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
+        extraAiButtons +
       '</div>';
 
     const body = document.createElement('div');
@@ -111,13 +119,14 @@ function buildEditorSections() {
     const bulletAttr = cfg.bullet ? 'onkeydown="handleBulletEnter(event, this)"' : '';
     const statHtml = cfg.stat ? '<span class="stat-info" id="stat_' + cfg.key + '">0자</span>' : '<span></span>';
 
-    body.innerHTML = '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
+    body.innerHTML = 
+      '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
       '<div class="editor-bottom-toolbar">' +
-      statHtml +
-      '<div class="restore-group">' +
-      '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
-      '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
-      '</div>' +
+        statHtml +
+        '<div class="restore-group">' +
+          '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
+          '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
+        '</div>' +
       '</div>';
 
     sec.appendChild(hdr);
@@ -162,7 +171,11 @@ function toggleAllSections() {
 
 function toggleFocusView(key, manageHistory = true) {
   currentFocusedKey = executeToggleFocusView(
-    key, ALL_SECTION_KEYS, SECTION_CONFIGS, currentFocusedKey, manageHistory,
+    key,
+    ALL_SECTION_KEYS,
+    SECTION_CONFIGS,
+    currentFocusedKey,
+    manageHistory,
     function() { resizeAllTextareas(); },
     null
   );
@@ -172,7 +185,9 @@ window.addEventListener('popstate', function() {
   if (currentFocusedKey) toggleFocusView(currentFocusedKey, false);
 });
 
-function markDirty() { isDirty = true; }
+function markDirty() {
+  isDirty = true;
+}
 
 function resizeAllTextareas() {
   if (document.body.classList.contains('mode-focus')) return;
@@ -195,12 +210,14 @@ function handleFieldInput(key) {
   const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
   const el = $(cfg.id);
   if (!el) return;
+
   const val = el.value;
   const stack = fieldState[key].history;
   if (stack[stack.length - 1] !== val) {
     stack.push(val);
     if (stack.length > 50) stack.shift();
   }
+
   autoResizeTextarea(el, cfg.minH);
   updateStat(key, val);
 }
@@ -209,6 +226,7 @@ function undoField(key) {
   const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
   const el = $(cfg.id);
   if (!el || !fieldState[key]) return;
+
   const stack = fieldState[key].history;
   if (stack.length > 1) {
     stack.pop();
@@ -225,8 +243,10 @@ function restoreSaved(key) {
   const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
   const el = $(cfg.id);
   if (!el || !fieldState[key]) return;
+
   const targetVal = fieldState[key].currentSaved;
   if (el.value === targetVal) return alert('이미 최근 저장된 상태와 동일합니다.');
+
   fieldState[key].history.push(targetVal);
   el.value = targetVal;
   autoResizeTextarea(el, cfg.minH);
@@ -239,6 +259,7 @@ function updateStat(key, text) {
   if (!cfg || !cfg.stat) return;
   const statEl = $('stat_' + key);
   if (!statEl) return;
+
   const len = text.length;
   if (cfg.readTime) {
     const readingTime = Math.ceil(len / 400);
@@ -258,9 +279,11 @@ function updateAllStats() {
 function appendDraftToCompleted() {
   const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
   if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
+
   const completedEl = $('completedText');
   completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
   handleFieldInput('completed');
+
   ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(function(k) {
     const el = $(fieldMap[k]);
     if (el) {
@@ -272,6 +295,7 @@ function appendDraftToCompleted() {
 
 function selectPost(post) {
   currentPostId = post.ID || post.id || '';
+  currentPostOrder = post.순서 !== undefined ? post.순서 : '';
   currentPostStatus = (post.상황 || post.status || '작성중').trim();
 
   $('essayTitleInput').value = post.제목 || post.title || '';
@@ -281,11 +305,13 @@ function selectPost(post) {
 
   const cat1Input = $('postCategory1');
   if (cat1Input) cat1Input.value = post.분류1 || post.category1 || post.분류 || post.category || '';
+
   const cat2Input = $('postCategory2');
   if (cat2Input) cat2Input.value = post.분류2 || post.category2 || '';
 
   const importantCheck = $('postImportant');
   if (importantCheck) importantCheck.checked = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y';
+
   const hiddenCheck = $('postHidden');
   if (hiddenCheck) hiddenCheck.checked = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
 
@@ -318,6 +344,7 @@ function saveWork(mode) {
   const payload = {
     ID: currentPostId,
     id: currentPostId,
+    순서: currentPostOrder !== undefined ? currentPostOrder : "",
     status: currentPostStatus || "작성중",
     important: isImp,
     hidden: isHid,
@@ -354,9 +381,11 @@ function saveWork(mode) {
 function loadSavedData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
+
   try {
     const data = JSON.parse(raw);
     if (data.ID || data.id) currentPostId = data.ID || data.id;
+    if (data.순서 !== undefined) currentPostOrder = data.순서;
     if (data.status) currentPostStatus = data.status;
     if (data.title) $('essayTitleInput').value = data.title;
     if (data.startDate) $('postStartDate').value = data.startDate;
@@ -379,6 +408,7 @@ function loadSavedData() {
     SECTION_CONFIGS.forEach(function(cfg) {
       if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
     });
+
     initFieldStates();
     resizeAllTextareas();
   } catch(e) {
@@ -432,6 +462,7 @@ function initModalHandlers() {
   const btnCancel = $('modal-btn-cancel');
   const btnDiscard = $('modal-btn-discard');
   const btnSave = $('modal-btn-save');
+
   if (btnCancel) btnCancel.onclick = hideUnsavedModal;
   if (btnDiscard) {
     btnDiscard.onclick = function() {
@@ -465,10 +496,13 @@ window.addEventListener('DOMContentLoaded', function() {
 
   const btnHeaderClose = $('btn-header-close');
   if (btnHeaderClose) btnHeaderClose.onclick = cancelAndClose;
+
   const btnSaveStay = $('btn-save-stay');
   if (btnSaveStay) btnSaveStay.onclick = function() { saveWork('stay'); };
+
   const btnSaveExit = $('btn-save-exit');
   if (btnSaveExit) btnSaveExit.onclick = function() { saveWork('exit'); };
+
   const btnCancel = $('btn-cancel-work');
   if (btnCancel) btnCancel.onclick = cancelWork;
 
@@ -498,8 +532,8 @@ window.addEventListener('DOMContentLoaded', function() {
   const btnFilterHidden = $('btnFilterHidden');
   if (btnFilterHidden) {
     btnFilterHidden.onclick = function() {
-      filterIncludeHidden = !filterIncludeHidden;
-      btnFilterHidden.classList.toggle('active-hidden', filterIncludeHidden);
+      filterOnlyHidden = !filterOnlyHidden;
+      btnFilterHidden.classList.toggle('active-hidden', filterOnlyHidden);
       renderPostList();
     };
   }
@@ -508,6 +542,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const el = $(id);
     if (el) el.oninput = markDirty;
   });
+
   ['postImportant', 'postHidden'].forEach(function(id) {
     const el = $(id);
     if (el) el.onchange = markDirty;
@@ -539,10 +574,12 @@ window.addEventListener('DOMContentLoaded', function() {
   if (apiCancelBtn) apiCancelBtn.onclick = cancelKeyInput;
   const apiDelBtn = $('apiDelBtn');
   if (apiDelBtn) apiDelBtn.onclick = deleteApiKey;
+
   const btnApiShared = $('btn-api-shared');
   if (btnApiShared) btnApiShared.onclick = function() { selectKeyChoice('shared'); };
   const btnApiPersonal = $('btn-api-personal');
   if (btnApiPersonal) btnApiPersonal.onclick = function() { selectKeyChoice('personal'); };
+
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
