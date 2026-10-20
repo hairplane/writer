@@ -1,10 +1,10 @@
 /* ==========================================================================
-   - style.css (v2.0): 1줄 모바일 콤팩트 필터바, 토글 아이콘 버튼 및 중요 글 뱃지 스타일 신설
-   [BOM] index(v4.0) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v2.0)
+   - style.css (v2.1): 별표 고정 너비 왼쪽 칼각 정렬, 숨김 뱃지 및 상황 4단계(구상중/대기중/작성중/완료) 색상 정의
+   [BOM] index(v4.1) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.1) / core.css(v1.2) / style.css(v2.1)
    ========================================================================== */
 
 :root {
-  --v-style-css: "v2.0";
+  --v-style-css: "v2.1";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -55,63 +55,13 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .section-title.is-focused { color: var(--primary); background: #dbeafe; }
 
 /* 4. 1줄 모바일 콤팩트 필터 바 */
-.post-filter-bar-compact {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 4px 6px;
-  background-color: #f1f5f9;
-  border: 1px solid var(--border-color);
-  border-bottom: none;
-  box-sizing: border-box;
-}
-.select-filter-compact {
-  flex: 1;
-  min-width: 0;
-  height: 24px;
-  padding: 0 2px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  background-color: #ffffff;
-  color: #334155;
-  outline: none;
-}
-.select-filter-compact:focus {
-  border-color: var(--primary);
-}
-.btn-filter-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  background-color: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-.btn-filter-icon:hover {
-  background-color: #e2e8f0;
-}
-/* 중요 필터 활성화 상태 */
-.btn-filter-icon.active-star {
-  background-color: #fef3c7;
-  border-color: #f59e0b;
-  box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
-}
-/* 숨김 필터 활성화 상태 */
-.btn-filter-icon.active-hidden {
-  background-color: #e0f2fe;
-  border-color: #0284c7;
-  box-shadow: 0 0 4px rgba(2, 132, 199, 0.4);
-}
+.post-filter-bar-compact { display: flex; align-items: center; gap: 3px; padding: 4px 6px; background-color: #f1f5f9; border: 1px solid var(--border-color); border-bottom: none; box-sizing: border-box; }
+.select-filter-compact { flex: 1; min-width: 0; height: 24px; padding: 0 2px; font-size: 0.72rem; font-weight: 500; border: 1px solid var(--border-color); border-radius: 3px; background-color: #ffffff; color: #334155; outline: none; }
+.select-filter-compact:focus { border-color: var(--primary); }
+.btn-filter-icon { width: 24px; height: 24px; flex-shrink: 0; background-color: #ffffff; border: 1px solid var(--border-color); border-radius: 3px; font-size: 0.75rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s ease; user-select: none; }
+.btn-filter-icon:hover { background-color: #e2e8f0; }
+.btn-filter-icon.active-star { background-color: #fef3c7; border-color: #f59e0b; box-shadow: 0 0 4px rgba(245, 158, 11, 0.4); }
+.btn-filter-icon.active-hidden { background-color: #e0f2fe; border-color: #0284c7; box-shadow: 0 0 4px rgba(2, 132, 199, 0.4); }
 
 /* 5. 우측 컨트롤 요소 및 액션 툴바 */
 .btn-copy { background: #ffffff; border: 1px solid var(--border-light); color: #475569; font-size: 0.72rem; font-weight: 600; height: 20px; padding: 0 5px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; }
@@ -131,13 +81,22 @@ header.mac-window-header { display: flex; flex-direction: column; background: li
 .post-row-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 8px; min-height: 26px; border-bottom: 1px solid #e2e8f0; }
 .post-row-item:nth-child(even) { background-color: #eef2f6; }
 .post-row-item.active { background-color: #dbeafe; }
-.post-row-title-area { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82rem; flex: 1; min-width: 0; }
-.post-star-badge { font-size: 0.74rem; color: #f59e0b; flex-shrink: 0; }
-.post-category-tag { font-size: 0.72rem; font-weight: 600; color: #64748b; }
-.btn-status-toggle { padding: 1px 5px; font-size: 0.68rem; font-weight: 600; border-radius: 3px; border: 1px solid transparent; cursor: pointer; flex-shrink: 0; }
-.btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; }
-.btn-status-toggle.status-done { background: #dcfce7; color: #15803d; }
-.btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; }
+
+/* 제목 영역 및 별표 고정 너비 왼쪽 정렬 엔진 */
+.post-row-title-area { display: flex; align-items: center; cursor: pointer; font-size: 0.82rem; flex: 1; min-width: 0; }
+.post-star-box { width: 20px; min-width: 20px; max-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.74rem; flex-shrink: 0; }
+.post-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-left: 2px; }
+
+/* 우측 상태 및 숨김 아이콘 묶음 */
+.post-row-right-group { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.post-hidden-badge { font-size: 0.74rem; color: #0284c7; line-height: 1; }
+
+/* 상황 4단계(구상중/대기중/작성중/완료) 전용 버튼 색상 */
+.btn-status-toggle { padding: 1px 6px; font-size: 0.68rem; font-weight: 700; border-radius: 3px; border: 1px solid transparent; cursor: pointer; flex-shrink: 0; }
+.btn-status-toggle.status-concept { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; } /* 구상중: 연보라 */
+.btn-status-toggle.status-wait    { background: #fef3c7; color: #b45309; border-color: #fde68a; } /* 대기중: 연주황 */
+.btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; } /* 작성중: 연파랑 */
+.btn-status-toggle.status-done    { background: #dcfce7; color: #15803d; border-color: #bbf7d0; } /* 완료:   연초록 */
 
 .meta-grid-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: #fff; border: 1px solid var(--border-color); }
 .meta-grid-table th { width: 80px; background: #f8fafc; color: #475569; padding: 4px 6px; border: 1px solid var(--border-light); text-align: center; }
