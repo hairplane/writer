@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.1): 드래그 핸들(⠿), 중요/숨김 상시 토글 버튼 스타일 및 BOM 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.2) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+- style.css (v2.2): 목록 항목 정렬 일치, 4면 활성 테두리 및 안전 간격 최적화
+[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.4) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.1";
+  --v-style-css: "v2.2";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -212,7 +212,7 @@ header.mac-window-header {
   opacity: 0.7;
 }
 
-/* 3. 소제목 헤더 및 토글 버튼 (core.css 위임 외 순수 디자인 속성) */
+/* 3. 소제목 헤더 및 토글 버튼 */
 .post-list-header, .meta-table-header, .api-box-header, .section-header-line {
   border-top: 1px solid var(--border-light);
 }
@@ -313,14 +313,12 @@ header.mac-window-header {
   background-color: #e2e8f0;
 }
 
-/* 중요 필터 활성화 상태 */
 .btn-filter-icon.active-star {
   background-color: #fef3c7;
   border-color: #f59e0b;
   box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
 }
 
-/* 숨김 필터 활성화 상태 */
 .btn-filter-icon.active-hidden {
   background-color: #e0f2fe;
   border-color: #0284c7;
@@ -412,12 +410,14 @@ header.mac-window-header {
 .post-row-item {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 3px 6px;
-  min-height: 28px;
+  min-height: 30px;
   border-bottom: 1px solid #e2e8f0;
-  transition: background-color 0.12s ease;
+  border: 1px solid transparent; /* 4면 테두리 기준점 */
+  transition: background-color 0.12s ease, border-color 0.12s ease;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .post-row-item:nth-child(even) {
@@ -428,56 +428,42 @@ header.mac-window-header {
   background-color: #dbeafe;
 }
 
-/* 드래그 상태 피드백 */
+/* 선택 및 드래그 시 4면 테두리 전체 활성화 (요청 3번) */
 .post-row-item.is-dragging {
-  opacity: 0.45;
-  background-color: #fef3c7;
+  opacity: 0.65;
+  background-color: #fef3c7 !important;
+  border: 2px solid #f59e0b !important;
+  border-radius: 4px;
 }
 
 .post-row-item.drag-over-top {
-  border-top: 2px solid var(--primary);
+  border: 2px solid var(--primary) !important;
+  background-color: #eff6ff !important;
+  border-radius: 4px;
 }
 
 .post-row-item.drag-over-bottom {
-  border-bottom: 2px solid var(--primary);
+  border: 2px solid var(--primary) !important;
+  background-color: #eff6ff !important;
+  border-radius: 4px;
 }
 
-/* 6-1. 드래그 핸들 (⠿) */
-.drag-handle {
-  width: 16px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  color: #94a3b8;
-  font-size: 0.95rem;
-  line-height: 1;
-  flex-shrink: 0;
-  touch-action: none;
-}
-
-.drag-handle:hover {
-  color: #334155;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-/* 6-2. 별표 중요 토글 버튼 (⭐ / ☆) */
+/* 6-1. 중요 별표 토글 버튼 (크기 동일화 - 요청 4번) */
 .btn-star-toggle {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 1px;
-  font-size: 0.8rem;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 0.95rem;
   line-height: 1;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #cbd5e1;
+  font-weight: 700;
 }
 
 .btn-star-toggle.is-important {
@@ -488,15 +474,22 @@ header.mac-window-header {
   transform: scale(1.15);
 }
 
-/* 6-3. 상황 뱃지 버튼 */
+/* 6-2. 상황 뱃지 버튼 (좌측 수직 정렬 및 완료 규격/가운데 정렬 - 요청 5번) */
 .btn-status-toggle {
-  padding: 1px 5px;
+  width: 44px;
+  height: 20px;
+  padding: 0;
   font-size: 0.68rem;
   font-weight: 600;
   border-radius: 3px;
   border: 1px solid transparent;
   cursor: pointer;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .btn-status-toggle.status-writing { background: #e0f2fe; color: #0369a1; }
@@ -504,11 +497,11 @@ header.mac-window-header {
 .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; }
 .btn-status-toggle.status-pending { background: #ede9fe; color: #6d28d9; }
 
-/* 6-4. 제목 텍스트 영역 */
+/* 6-3. 제목 텍스트 영역 (분류 태그 너비 고정으로 제목 수직 시작선 일치 - 요청 6번) */
 .post-row-title-area {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   cursor: pointer;
   font-size: 0.82rem;
   flex: 1;
@@ -516,26 +509,35 @@ header.mac-window-header {
 }
 
 .post-category-tag {
+  width: 78px;
+  max-width: 78px;
   font-size: 0.7rem;
   font-weight: 600;
   color: #64748b;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .post-row-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #1e293b;
 }
 
-/* 6-5. 숨김 토글 버튼 (🕶️ / 👓 - 상시 노출) */
+/* 6-4. 숨김 토글 버튼 */
 .btn-hidden-toggle {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 2px;
-  font-size: 0.82rem;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  font-size: 0.85rem;
   line-height: 1;
   flex-shrink: 0;
   display: inline-flex;
@@ -551,6 +553,30 @@ header.mac-window-header {
 .btn-hidden-toggle:hover {
   opacity: 1;
   transform: scale(1.15);
+}
+
+/* 6-5. 맨 오른쪽 드래그 핸들 (안전 간격 확보 - 요청 2번, 7번) */
+.drag-handle {
+  width: 22px;
+  height: 22px;
+  margin-left: 8px; /* 썬글라스와의 충분한 안전 간격 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: #94a3b8;
+  font-size: 1.05rem;
+  line-height: 1;
+  flex-shrink: 0;
+  touch-action: none; /* 모바일/에뮬레이터 터치 간섭 방지 */
+}
+
+.drag-handle:hover {
+  color: #334155;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 /* 7. 메타 그리드 테이블 */
