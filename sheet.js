@@ -1,9 +1,9 @@
 /* ==========================================================================
-   - sheet.js (v2.0): 분류1/분류2 2단계 연동 필터링, 중요/숨김 토글 필터 및 C/D/E/F열 데이터 매핑 구현
-   [BOM] index(v4.0) / core.js(v1.2) / sheet.js(v2.0) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v2.0)
+   - sheet.js (v2.1): 분류 텍스트 제거, 별표 고정 박스 왼쪽 정렬, 우측 숨김 뱃지 및 상황 4단계 순환 토글 구현
+   [BOM] index(v4.1) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.1) / core.css(v1.2) / style.css(v2.1)
    ========================================================================== */
 
-window._V_SHEET = "v2.0";
+window._V_SHEET = "v2.1";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -61,7 +61,6 @@ function populateCategoryFilters() {
     if (c1) cat1Set.add(c1);
   });
 
-  // 분류1 옵션 갱신
   cat1Select.innerHTML = '<option value="전체">분류1:전체</option>';
   cat1Set.forEach(function(c1) {
     const opt = document.createElement('option');
@@ -71,7 +70,6 @@ function populateCategoryFilters() {
   });
   cat1Select.value = cat1Set.has(currentCat1) ? currentCat1 : '전체';
 
-  // 분류2 옵션 갱신 (선택된 분류1 기준)
   updateCategory2Options(currentCat2);
 }
 
@@ -121,21 +119,16 @@ function renderPostList() {
   grid.innerHTML = '';
 
   const filtered = postListCache.filter(function(item) {
-    const itemStatus = (item.상황 || item.status || '작성').trim();
+    const itemStatus = (item.상황 || item.status || '작성중').trim();
     const itemImportant = String(item.중요 || item.important || 'N').trim().toUpperCase() === 'Y';
     const itemHidden = String(item.숨김 || item.hidden || 'N').trim().toUpperCase() === 'Y';
     const itemCat1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
     const itemCat2 = (item.분류2 || item.category2 || '').trim();
 
-    // 1) 상황 필터
     if (statusFilter !== '전체' && itemStatus !== statusFilter) return false;
-    // 2) 분류1 필터
     if (cat1Filter !== '전체' && itemCat1 !== cat1Filter) return false;
-    // 3) 분류2 필터
     if (cat2Filter !== '전체' && itemCat2 !== cat2Filter) return false;
-    // 4) 중요 필터
     if (filterOnlyImportant && !itemImportant) return false;
-    // 5) 숨김 필터 (비활성화 상태에서는 숨김 글 제외)
     if (!filterIncludeHidden && itemHidden) return false;
 
     return true;
@@ -149,26 +142,28 @@ function renderPostList() {
   filtered.forEach(function(post) {
     const postId = post.ID || post.id || '';
     const postTitle = post.제목 || post.title || '(제목 없음)';
-    const postStatus = (post.상황 || post.status || '작성').trim();
+    const postStatus = (post.상황 || post.status || '작성중').trim();
     const isImportant = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y';
-    const cat1 = (post.분류1 || post.category1 || post.분류 || post.category || '').trim();
-    const cat2 = (post.분류2 || post.category2 || '').trim();
-
-    let displayTag = '-';
-    if (cat1 && cat2) displayTag = cat1 + '/' + cat2;
-    else if (cat1) displayTag = cat1;
-    else if (cat2) displayTag = cat2;
+    const isHidden = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
 
     const row = document.createElement('div');
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
 
+    // 좌측 제목 영역 (별표 고정 박스 + 제목)
     const titleArea = document.createElement('div');
     titleArea.className = 'post-row-title-area';
 
-    const starHtml = isImportant ? '<span class="post-star-badge" title="중요 글">⭐</span>' : '';
-    titleArea.innerHTML = starHtml +
-      '<span class="post-category-tag" title="' + displayTag + '">' + displayTag + '</span>' +
-      '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
+    const starBox = document.createElement('span');
+    starBox.className = 'post-star-box';
+    starBox.innerHTML = isImportant ? '⭐' : '';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'post-row-title';
+    titleSpan.innerText = postTitle;
+    titleSpan.title = postTitle;
+
+    titleArea.appendChild(starBox);
+    titleArea.appendChild(titleSpan);
 
     titleArea.onclick = function() {
       if (isDirty) {
@@ -181,33 +176,50 @@ function renderPostList() {
       }
     };
 
+    // 우측 그룹: 숨김 뱃지 + 상황 토글 버튼
+    const rightGroup = document.createElement('div');
+    rightGroup.className = 'post-row-right-group';
+
+    if (isHidden) {
+      const hiddenBadge = document.createElement('span');
+      hiddenBadge.className = 'post-hidden-badge';
+      hiddenBadge.innerText = '👁️';
+      hiddenBadge.title = '숨김 글';
+      rightGroup.appendChild(hiddenBadge);
+    }
+
+    // 상황 4단계 스타일 클래스
     let statusClass = 'status-writing';
-    if (postStatus === '완료') statusClass = 'status-done';
-    else if (postStatus === '예정') statusClass = 'status-plan';
+    if (postStatus === '구상중') statusClass = 'status-concept';
+    else if (postStatus === '대기중') statusClass = 'status-wait';
+    else if (postStatus === '완료') statusClass = 'status-done';
 
     const statusBtn = document.createElement('button');
     statusBtn.type = 'button';
     statusBtn.className = 'btn-status-toggle ' + statusClass;
     statusBtn.innerText = postStatus;
-    statusBtn.title = "클릭 시 상황 변경 (작성 -> 완료 -> 예정)";
+    statusBtn.title = "클릭 시 상황 변경 (구상중 -> 대기중 -> 작성중 -> 완료)";
     statusBtn.onclick = function(e) {
       e.stopPropagation();
       togglePostStatus(post);
     };
 
+    rightGroup.appendChild(statusBtn);
+
     row.appendChild(titleArea);
-    row.appendChild(statusBtn);
+    row.appendChild(rightGroup);
     grid.appendChild(row);
   });
 }
 
-// 5. 작성/완료/예정 상태 토글 및 시트 비동기 동기화
+// 5. 상황 4단계 (구상중 -> 대기중 -> 작성중 -> 완료) 순환 토글 및 시트 비동기 동기화
 function togglePostStatus(post) {
-  const current = (post.상황 || post.status || '작성').trim();
-  let nextStatus = '작성';
-  if (current === '작성') nextStatus = '완료';
-  else if (current === '완료') nextStatus = '예정';
-  else if (current === '예정') nextStatus = '작성';
+  const current = (post.상황 || post.status || '작성중').trim();
+  let nextStatus = '구상중';
+  if (current === '구상중') nextStatus = '대기중';
+  else if (current === '대기중') nextStatus = '작성중';
+  else if (current === '작성중') nextStatus = '완료';
+  else if (current === '완료') nextStatus = '구상중';
 
   post.상황 = nextStatus;
   post.status = nextStatus;
