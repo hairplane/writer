@@ -1,5 +1,5 @@
-<!-- - index.html: 상단 2개 창을 <section>에서 <div> 태그로 교체하여 브라우저 기본 여백 간섭 원천 차단 (v3.4 -> v3.5) -->
-<!-- [BOM] index(v3.5) / core.js(v1.1) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.4) / core.css(v1.1) / style.css(v1.6) -->
+<!-- - filename: index.html (작성 글 목록 1줄 전용 필터바 신설 및 메타 테이블 C/D/E/F열 확장, v3.5 -> v3.6) -->
+<!-- [BOM] index(v3.6) / core.js(v1.2) / sheet.js(v1.1) / api.js(v1.1) / app.js(v1.5) / core.css(v1.2) / style.css(v1.9) -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -20,7 +20,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v3.5</span>
+          <span class="version-tag" title="모듈 로드 중...">v3.6</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -51,33 +51,37 @@
       <button type="button" id="btn-cancel-work" class="btn btn-danger">취소</button>
     </div>
 
-    <!-- 1. 작성 글 목록 섹션 (section -> div 태그로 교체 완료) -->
+    <!-- 1. 작성 글 목록 섹션 -->
     <div class="post-list-box" id="sec_postList">
       <div class="post-list-header" id="hdr_postList">
         <div class="post-list-title-wrap">
           <button type="button" id="arrow_postList" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_postList" title="클릭 시 단독 집중 모드">작성 글 목록</span>
         </div>
-        <div class="filter-group">
-          <label class="filter-label">분류:
-            <select id="categoryFilter" class="select-filter">
-              <option value="전체">전체</option>
-            </select>
-          </label>
-          <label class="filter-label">상황:
-            <select id="statusFilter" class="select-filter">
-              <option value="전체">전체</option>
-              <option value="작성">작성</option>
-              <option value="완료">완료</option>
-              <option value="예정">예정</option>
-            </select>
-          </label>
-        </div>
       </div>
-      <div class="post-list-rows" id="body_postList"></div>
+      <!-- 본문 영역: 1줄 콤팩트 필터 바 + 리스트 목록 -->
+      <div class="post-list-content-wrap" id="body_postList">
+        <div class="post-filter-bar-compact">
+          <select id="statusFilter" class="select-filter-compact" title="상황 필터">
+            <option value="전체">상황:전체</option>
+            <option value="작성">작성</option>
+            <option value="완료">완료</option>
+            <option value="예정">예정</option>
+          </select>
+          <select id="category1Filter" class="select-filter-compact" title="분류1 필터">
+            <option value="전체">분류1:전체</option>
+          </select>
+          <select id="category2Filter" class="select-filter-compact" title="분류2 필터">
+            <option value="전체">분류2:전체</option>
+          </select>
+          <button type="button" id="btnFilterImportant" class="btn-filter-icon" title="중요 글만 보기">⭐</button>
+          <button type="button" id="btnFilterHidden" class="btn-filter-icon" title="숨김 글 포함 보기">👁️</button>
+        </div>
+        <div class="post-list-rows" id="list_postRows"></div>
+      </div>
     </div>
 
-    <!-- 2. 작성 글 정보(메타) 섹션 (section -> div 태그로 교체 완료) -->
+    <!-- 2. 작성 글 정보(메타) 섹션 -->
     <div class="meta-table-box" id="sec_meta">
       <div class="meta-table-header" id="hdr_meta">
         <div class="section-header-left">
@@ -91,6 +95,26 @@
             <tr>
               <th>제목[ID]</th>
               <td colspan="3"><input type="text" id="essayTitleInput" placeholder="글 제목을 입력하세요"></td>
+            </tr>
+            <tr>
+              <th>분류</th>
+              <td>
+                <div style="display:flex; gap:4px;">
+                  <input type="text" id="postCategory1" placeholder="분류1 (예: 종친회)" style="flex:1;">
+                  <input type="text" id="postCategory2" placeholder="분류2 (예: 공지문)" style="flex:1;">
+                </div>
+              </td>
+              <th>설정</th>
+              <td>
+                <div style="display:flex; align-items:center; gap:10px; font-size:0.78rem;">
+                  <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="checkbox" id="postImportant"> 중요
+                  </label>
+                  <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="checkbox" id="postHidden"> 숨김
+                  </label>
+                </div>
+              </td>
             </tr>
             <tr>
               <th>시작일</th>
