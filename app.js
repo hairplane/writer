@@ -1,17 +1,26 @@
 /* ==========================================================================
-- app.js (v2.3): 7개 집필 창 취소/복원 버튼 disabled 상태 실시간 동기화 및 BOM 갱신
-[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
+- app.js (v3.0): 작성 글 정보 창 개편(적용/새글작성 모드, 제목행 토글, 메타 히스토리 관리) 전면 구현 및 BOM 갱신
+[BOM] index(v4.5) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0)
 ========================================================================== */
 
-window._V_APP = "v2.3";
+window._V_APP = "v3.0";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
 let currentPostId = null;
 let currentPostOrder = "";
-let currentPostStatus = "작성중";
+let currentPostStatus = "구상중";
+let currentPostImportant = "N";
+let currentPostHidden = "N";
+let isNewPostMode = false;
+let previousPostBackup = null;
+
 let currentFocusedKey = null;
 let pendingModalAction = null;
+
+// 작성 글 정보 창 전용 취소/복원 히스토리 스택
+let metaHistory = [];
+let metaSavedSnapshot = null;
 
 const SECTION_CONFIGS = [
   { key: 'outline',   id: 'essayOutline',   title: '글의 구성',      minH: 70,  stat: false, readTime: false, bullet: true },
@@ -56,18 +65,17 @@ function initBOMVersionDisplay() {
   versionTag.title = tooltipText;
 
   if (popover) {
-    popover.innerHTML = 
-      '<div class="version-popover-title">' +
-        '<span>📦 모듈 버전 명세서 (BOM)</span>' +
+    popover.innerHTML = '<div class="version-popover-title">' +
+      '<span>📦 모듈 버전 명세서 (BOM)</span>' +
       '</div>' +
       '<ul>' +
-        '<li><span class="bom-name">index.html</span><span class="bom-val">' + htmlVer + '</span></li>' +
-        '<li><span class="bom-name">core.js</span><span class="bom-val">' + coreJsVer + '</span></li>' +
-        '<li><span class="bom-name">sheet.js</span><span class="bom-val">' + sheetJsVer + '</span></li>' +
-        '<li><span class="bom-name">api.js</span><span class="bom-val">' + apiJsVer + '</span></li>' +
-        '<li><span class="bom-name">app.js</span><span class="bom-val">' + appJsVer + '</span></li>' +
-        '<li><span class="bom-name">core.css</span><span class="bom-val">' + coreCssVer + '</span></li>' +
-        '<li><span class="bom-name">style.css</span><span class="bom-val">' + styleCssVer + '</span></li>' +
+      '<li><span class="bom-name">index.html</span><span class="bom-val">' + htmlVer + '</span></li>' +
+      '<li><span class="bom-name">core.js</span><span class="bom-val">' + coreJsVer + '</span></li>' +
+      '<li><span class="bom-name">sheet.js</span><span class="bom-val">' + sheetJsVer + '</span></li>' +
+      '<li><span class="bom-name">api.js</span><span class="bom-val">' + apiJsVer + '</span></li>' +
+      '<li><span class="bom-name">app.js</span><span class="bom-val">' + appJsVer + '</span></li>' +
+      '<li><span class="bom-name">core.css</span><span class="bom-val">' + coreCssVer + '</span></li>' +
+      '<li><span class="bom-name">style.css</span><span class="bom-val">' + styleCssVer + '</span></li>' +
       '</ul>';
 
     versionTag.onclick = function(e) {
@@ -96,19 +104,17 @@ function buildEditorSections() {
 
     let extraAiButtons = '';
     if (cfg.isAi) {
-      extraAiButtons = 
-        '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
-        '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
+      extraAiButtons = '<button type="button" class="btn-ai-req" onclick="requestAiRefine()">✨ AI 수정 요청</button>' +
+                       '<button type="button" class="btn-append-header" onclick="appendDraftToCompleted()">본문에 추가</button>';
     }
 
-    hdr.innerHTML = 
-      '<div class="section-header-left">' +
-        '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
-        '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
+    hdr.innerHTML = '<div class="section-header-left">' +
+      '<button type="button" id="arrow_' + cfg.key + '" class="btn-section-toggle" onclick="toggleSection(\'' + cfg.key + '\')" title="열림/숨김">−</button>' +
+      '<span class="section-title" id="title_' + cfg.key + '" onclick="toggleFocusView(\'' + cfg.key + '\')" title="클릭 시 단독 집중 모드">' + cfg.title + '</span>' +
       '</div>' +
       '<div style="display:flex; align-items:center; gap:4px;">' +
-        '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
-        extraAiButtons +
+      '<button type="button" id="copyBtn_' + cfg.key + '" class="btn-copy" onclick="copyContent(\'' + cfg.id + '\', this)">📋 복사</button>' +
+      extraAiButtons +
       '</div>';
 
     const body = document.createElement('div');
@@ -119,14 +125,13 @@ function buildEditorSections() {
     const bulletAttr = cfg.bullet ? 'onkeydown="handleBulletEnter(event, this)"' : '';
     const statHtml = cfg.stat ? '<span class="stat-info" id="stat_' + cfg.key + '">0자</span>' : '<span></span>';
 
-    body.innerHTML = 
-      '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
+    body.innerHTML = '<textarea id="' + cfg.id + '" class="flat-textarea" style="min-height:' + cfg.minH + 'px; ' + bgStyle + '" ' + bulletAttr + ' oninput="handleFieldInput(\'' + cfg.key + '\')"></textarea>' +
       '<div class="editor-bottom-toolbar">' +
-        statHtml +
-        '<div class="restore-group">' +
-          '<button type="button" id="btn-undo-' + cfg.key + '" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')" disabled>↺ 취소</button>' +
-          '<button type="button" id="btn-restore-' + cfg.key + '" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')" disabled>⟲ 최근 저장 상태로</button>' +
-        '</div>' +
+      statHtml +
+      '<div class="restore-group">' +
+      '<button type="button" id="btn-undo-' + cfg.key + '" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')" disabled>↺ 취소</button>' +
+      '<button type="button" id="btn-restore-' + cfg.key + '" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')" disabled>⟲ 최근 저장 상태로</button>' +
+      '</div>' +
       '</div>';
 
     sec.appendChild(hdr);
@@ -223,7 +228,10 @@ function initFieldStates() {
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
     const val = el ? el.value : '';
-    fieldState[cfg.key] = { currentSaved: val, history: [val] };
+    fieldState[cfg.key] = {
+      currentSaved: val,
+      history: [val]
+    };
   });
   updateAllFieldToolbarButtons();
 }
@@ -308,6 +316,7 @@ function appendDraftToCompleted() {
 
   const completedEl = $('completedText');
   completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
+
   handleFieldInput('completed');
 
   ['newDraft', 'intent', 'promptReq', 'aiRefined'].forEach(function(k) {
@@ -319,27 +328,309 @@ function appendDraftToCompleted() {
   });
 }
 
+// 2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
+function getMetaSnapshot() {
+  return JSON.stringify({
+    title: $('essayTitleInput') ? $('essayTitleInput').value : '',
+    status: $('postStatusSelect') ? $('postStatusSelect').value : '구상중',
+    cat1: $('postCategory1') ? $('postCategory1').value : '미분류',
+    cat2: $('postCategory2') ? $('postCategory2').value : '미분류',
+    startDate: $('postStartDate') ? $('postStartDate').value : '',
+    endDate: $('postEndDate') ? $('postEndDate').value : '',
+    summary: $('postSummary') ? $('postSummary').value : '',
+    important: currentPostImportant,
+    hidden: currentPostHidden
+  });
+}
+
+function applyMetaSnapshot(snapStr) {
+  try {
+    const data = JSON.parse(snapStr);
+    if ($('essayTitleInput')) $('essayTitleInput').value = data.title;
+    if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
+    if ($('postCategory1')) $('postCategory1').value = data.cat1;
+    if ($('postCategory2')) $('postCategory2').value = data.cat2;
+    if ($('postStartDate')) $('postStartDate').value = data.startDate;
+    if ($('postEndDate')) $('postEndDate').value = data.endDate;
+    if ($('postSummary')) $('postSummary').value = data.summary;
+    currentPostStatus = data.status;
+    currentPostImportant = data.important;
+    currentPostHidden = data.hidden;
+    updateMetaIcons();
+  } catch (e) {
+    console.error("[app.js] 메타 스냅샷 복원 실패:", e);
+  }
+}
+
+function initMetaHistory() {
+  const snap = getMetaSnapshot();
+  metaSavedSnapshot = snap;
+  metaHistory = [snap];
+  updateMetaToolbarButtons();
+}
+
+function pushMetaHistory() {
+  markDirty();
+  const snap = getMetaSnapshot();
+  if (metaHistory[metaHistory.length - 1] !== snap) {
+    metaHistory.push(snap);
+    if (metaHistory.length > 50) metaHistory.shift();
+  }
+  updateMetaToolbarButtons();
+}
+
+function updateMetaToolbarButtons() {
+  const undoBtn = $('btn-undo-meta');
+  const restoreBtn = $('btn-restore-meta');
+  if (!undoBtn || !restoreBtn) return;
+
+  const canUndo = metaHistory.length > 1;
+  const currentSnap = getMetaSnapshot();
+  const canRestore = metaSavedSnapshot && (currentSnap !== metaSavedSnapshot);
+
+  undoBtn.disabled = !canUndo;
+  restoreBtn.disabled = !canRestore;
+}
+
+function undoMeta() {
+  if (metaHistory.length > 1) {
+    metaHistory.pop();
+    const prevSnap = metaHistory[metaHistory.length - 1];
+    applyMetaSnapshot(prevSnap);
+    markDirty();
+    updateMetaToolbarButtons();
+  } else {
+    // 새 글 작성 모드에서 취소할 내역이 없으면 이전 기존 글로 복귀
+    if (isNewPostMode && previousPostBackup) {
+      selectPost(previousPostBackup);
+    } else {
+      alert('되돌릴 이전 정보 입력 내역이 없습니다.');
+    }
+  }
+}
+
+function restoreSavedMeta() {
+  if (!metaSavedSnapshot) return;
+  const currentSnap = getMetaSnapshot();
+  if (currentSnap === metaSavedSnapshot) {
+    return alert('이미 최근 저장된 상태와 동일합니다.');
+  }
+
+  metaHistory.push(metaSavedSnapshot);
+  applyMetaSnapshot(metaSavedSnapshot);
+  markDirty();
+  updateMetaToolbarButtons();
+}
+
+function updateMetaIcons() {
+  const starBtn = $('btnMetaStar');
+  const hiddenBtn = $('btnMetaHidden');
+
+  if (starBtn) {
+    const isImp = currentPostImportant === 'Y';
+    starBtn.innerText = isImp ? '⭐' : '☆';
+    starBtn.className = 'btn-star-toggle ' + (isImp ? 'star-yellow is-important' : 'star-empty');
+  }
+
+  if (hiddenBtn) {
+    const isHid = currentPostHidden === 'Y';
+    hiddenBtn.innerText = isHid ? '🕶️' : '👓';
+    hiddenBtn.className = 'btn-hidden-toggle' + (isHid ? ' is-hidden' : '');
+  }
+}
+
+function toggleMetaImportant() {
+  currentPostImportant = currentPostImportant === 'Y' ? 'N' : 'Y';
+  updateMetaIcons();
+  pushMetaHistory();
+}
+
+function toggleMetaHidden() {
+  currentPostHidden = currentPostHidden === 'Y' ? 'N' : 'Y';
+  updateMetaIcons();
+  pushMetaHistory();
+}
+
+// 3. '적용' 버튼: 작성 글 정보 내용을 목록 및 구글 시트에 즉시 반영
+function applyMetaChanges() {
+  const titleVal = $('essayTitleInput').value.trim();
+  if (!titleVal) return alert('제목을 입력해주세요.');
+
+  const statusVal = $('postStatusSelect').value;
+  const c1Val = $('postCategory1').value.trim() || '미분류';
+  const c2Val = $('postCategory2').value.trim() || '미분류';
+  const sDate = $('postStartDate').value.trim();
+  const eDate = $('postEndDate').value.trim();
+  const summaryVal = $('postSummary').value.trim();
+
+  // 신규 글 작성 모드일 경우: ID 생성 및 목록 맨 상단 슬롯에 삽입
+  if (isNewPostMode || !currentPostId) {
+    currentPostId = "ID_" + new Date().getTime();
+    currentPostOrder = 1;
+
+    // 기존 목록들의 순서 1칸씩 밀기
+    postListCache.forEach(function(p) {
+      if (p.순서 !== undefined && p.순서 !== "") {
+        p.순서 = Number(p.순서) + 1;
+      }
+    });
+
+    const newPostObj = {
+      ID: currentPostId,
+      id: currentPostId,
+      순서: 1,
+      상황: statusVal,
+      status: statusVal,
+      중요: currentPostImportant,
+      important: currentPostImportant,
+      숨김: currentPostHidden,
+      hidden: currentPostHidden,
+      분류1: c1Val,
+      category1: c1Val,
+      분류2: c2Val,
+      category2: c2Val,
+      제목: titleVal,
+      title: titleVal,
+      작성시작일: sDate,
+      startDate: sDate,
+      작성완료일: eDate,
+      endDate: eDate,
+      요약: summaryVal,
+      summary: summaryVal,
+      글의구성: $('essayOutline').value,
+      완성글: $('completedText').value,
+      신규글: $('newDraftText').value,
+      글의의도: $('draftIntent').value,
+      요청내용: $('promptReqText').value,
+      AI수정글: $('aiRefinedText').value,
+      보관글: $('savedSnippets').value
+    };
+
+    postListCache.unshift(newPostObj);
+    exitNewPostMode();
+  } else {
+    // 기존 글 업데이트
+    const targetPost = postListCache.find(function(p) {
+      return (p.ID || p.id) === currentPostId;
+    });
+
+    if (targetPost) {
+      targetPost.제목 = titleVal;
+      targetPost.title = titleVal;
+      targetPost.상황 = statusVal;
+      targetPost.status = statusVal;
+      targetPost.분류1 = c1Val;
+      targetPost.category1 = c1Val;
+      targetPost.분류2 = c2Val;
+      targetPost.category2 = c2Val;
+      targetPost.중요 = currentPostImportant;
+      targetPost.important = currentPostImportant;
+      targetPost.숨김 = currentPostHidden;
+      targetPost.hidden = currentPostHidden;
+      targetPost.작성시작일 = sDate;
+      targetPost.startDate = sDate;
+      targetPost.작성완료일 = eDate;
+      targetPost.endDate = eDate;
+      targetPost.요약 = summaryVal;
+      targetPost.summary = summaryVal;
+    }
+  }
+
+  currentPostStatus = statusVal;
+  localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  if (typeof pushPostListHistory === 'function') pushPostListHistory();
+  if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
+  renderPostList();
+
+  // 구글 시트 백그라운드 전송
+  const currentPost = postListCache.find(function(p) { return (p.ID || p.id) === currentPostId; });
+  if (currentPost && typeof sendPostMetaUpdate === 'function') {
+    sendPostMetaUpdate(currentPost);
+  }
+
+  metaSavedSnapshot = getMetaSnapshot();
+  updateMetaToolbarButtons();
+  alert('작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
+}
+
+// 4. 새 글 작성 모드 활성화 및 해제
+function enterNewPostMode() {
+  if (isDirty) {
+    showUnsavedModal(
+      function() { saveWork('stay'); startNewPostSetup(); },
+      function() { startNewPostSetup(); }
+    );
+  } else {
+    startNewPostSetup();
+  }
+}
+
+function startNewPostSetup() {
+  // 이전 글 백업
+  if (currentPostId) {
+    previousPostBackup = postListCache.find(function(p) { return (p.ID || p.id) === currentPostId; }) || null;
+  }
+
+  isNewPostMode = true;
+  currentPostId = null;
+  currentPostOrder = "";
+  currentPostStatus = "구상중";
+  currentPostImportant = "N";
+  currentPostHidden = "N";
+
+  const metaBox = $('sec_meta');
+  if (metaBox) metaBox.classList.add('is-new-mode');
+
+  // 메타 정보 폼 기본값 초기화
+  if ($('essayTitleInput')) $('essayTitleInput').value = '';
+  if ($('postStatusSelect')) $('postStatusSelect').value = '구상중';
+  if ($('postCategory1')) $('postCategory1').value = '미분류';
+  if ($('postCategory2')) $('postCategory2').value = '미분류';
+  if ($('postStartDate')) $('postStartDate').value = '';
+  if ($('postEndDate')) $('postEndDate').value = '';
+  if ($('postSummary')) $('postSummary').value = '';
+
+  updateMetaIcons();
+
+  // 7개 집필 영역 비우기
+  SECTION_CONFIGS.forEach(function(cfg) {
+    const el = $(cfg.id);
+    if (el) el.value = '';
+  });
+
+  initFieldStates();
+  initMetaHistory();
+  updateAllStats();
+  resizeAllTextareas();
+  renderPostList();
+  isDirty = false;
+}
+
+function exitNewPostMode() {
+  isNewPostMode = false;
+  const metaBox = $('sec_meta');
+  if (metaBox) metaBox.classList.remove('is-new-mode');
+}
+
+// 5. 게시글 선택 및 로드
 function selectPost(post) {
+  exitNewPostMode();
+
   currentPostId = post.ID || post.id || '';
   currentPostOrder = post.순서 !== undefined ? post.순서 : '';
-  currentPostStatus = (post.상황 || post.status || '작성중').trim();
+  currentPostStatus = (post.상황 || post.status || '구상중').trim();
+  currentPostImportant = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+  currentPostHidden = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
 
-  $('essayTitleInput').value = post.제목 || post.title || '';
-  $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
-  $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
-  $('postSummary').value = post.요약 || post.summary || '';
+  if ($('essayTitleInput')) $('essayTitleInput').value = post.제목 || post.title || '';
+  if ($('postStatusSelect')) $('postStatusSelect').value = currentPostStatus;
+  if ($('postCategory1')) $('postCategory1').value = post.분류1 || post.category1 || post.분류 || post.category || '미분류';
+  if ($('postCategory2')) $('postCategory2').value = post.분류2 || post.category2 || '미분류';
+  if ($('postStartDate')) $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
+  if ($('postEndDate')) $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
+  if ($('postSummary')) $('postSummary').value = post.요약 || post.summary || '';
 
-  const cat1Input = $('postCategory1');
-  if (cat1Input) cat1Input.value = post.분류1 || post.category1 || post.분류 || post.category || '';
-
-  const cat2Input = $('postCategory2');
-  if (cat2Input) cat2Input.value = post.분류2 || post.category2 || '';
-
-  const importantCheck = $('postImportant');
-  if (importantCheck) importantCheck.checked = String(post.중요 || post.important || 'N').trim().toUpperCase() === 'Y';
-
-  const hiddenCheck = $('postHidden');
-  if (hiddenCheck) hiddenCheck.checked = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
+  updateMetaIcons();
 
   $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
   $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
@@ -350,30 +641,38 @@ function selectPost(post) {
   $('savedSnippets').value = post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || '';
 
   initFieldStates();
+  initMetaHistory();
   updateAllStats();
   resizeAllTextareas();
   renderPostList();
   isDirty = false;
 }
 
+// 6. 작업 저장 (전체 저장)
 function saveWork(mode) {
   const titleVal = $('essayTitleInput').value.trim();
   if (!titleVal) return alert('제목을 입력해주세요.');
 
-  if (!currentPostId) currentPostId = "ID_" + new Date().getTime();
+  if (isNewPostMode || !currentPostId) {
+    currentPostId = "ID_" + new Date().getTime();
+    currentPostOrder = 1;
+    postListCache.forEach(function(p) {
+      if (p.순서 !== undefined && p.순서 !== "") p.순서 = Number(p.순서) + 1;
+    });
+    exitNewPostMode();
+  }
 
-  const c1Val = $('postCategory1') ? $('postCategory1').value.trim() : '';
-  const c2Val = $('postCategory2') ? $('postCategory2').value.trim() : '';
-  const isImp = ($('postImportant') && $('postImportant').checked) ? 'Y' : 'N';
-  const isHid = ($('postHidden') && $('postHidden').checked) ? 'Y' : 'N';
+  const c1Val = $('postCategory1') ? $('postCategory1').value.trim() : '미분류';
+  const c2Val = $('postCategory2') ? $('postCategory2').value.trim() : '미분류';
+  const statusVal = $('postStatusSelect') ? $('postStatusSelect').value : '구상중';
 
   const payload = {
     ID: currentPostId,
     id: currentPostId,
     순서: currentPostOrder !== undefined ? currentPostOrder : "",
-    status: currentPostStatus || "작성중",
-    important: isImp,
-    hidden: isHid,
+    status: statusVal,
+    important: currentPostImportant,
+    hidden: currentPostHidden,
     category1: c1Val,
     category2: c2Val,
     category: c1Val,
@@ -392,10 +691,14 @@ function saveWork(mode) {
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
     if (el && fieldState[cfg.key]) fieldState[cfg.key].currentSaved = el.value;
   });
+
+  metaSavedSnapshot = getMetaSnapshot();
+  updateMetaToolbarButtons();
   isDirty = false;
   updateAllFieldToolbarButtons();
 
@@ -408,35 +711,32 @@ function saveWork(mode) {
 function loadSavedData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
-
   try {
     const data = JSON.parse(raw);
     if (data.ID || data.id) currentPostId = data.ID || data.id;
     if (data.순서 !== undefined) currentPostOrder = data.순서;
-    if (data.status) currentPostStatus = data.status;
-    if (data.title) $('essayTitleInput').value = data.title;
-    if (data.startDate) $('postStartDate').value = data.startDate;
-    if (data.endDate) $('postEndDate').value = data.endDate;
-    if (data.summary) $('postSummary').value = data.summary;
+    if (data.status) {
+      currentPostStatus = data.status;
+      if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
+    }
+    if (data.title && $('essayTitleInput')) $('essayTitleInput').value = data.title;
+    if (data.startDate && $('postStartDate')) $('postStartDate').value = data.startDate;
+    if (data.endDate && $('postEndDate')) $('postEndDate').value = data.endDate;
+    if (data.summary && $('postSummary')) $('postSummary').value = data.summary;
 
-    if ($('postCategory1') && (data.category1 || data.category)) {
-      $('postCategory1').value = data.category1 || data.category;
-    }
-    if ($('postCategory2') && data.category2) {
-      $('postCategory2').value = data.category2;
-    }
-    if ($('postImportant') && data.important) {
-      $('postImportant').checked = String(data.important).toUpperCase() === 'Y';
-    }
-    if ($('postHidden') && data.hidden) {
-      $('postHidden').checked = String(data.hidden).toUpperCase() === 'Y';
-    }
+    if ($('postCategory1')) $('postCategory1').value = data.category1 || data.category || '미분류';
+    if ($('postCategory2')) $('postCategory2').value = data.category2 || '미분류';
+
+    if (data.important) currentPostImportant = String(data.important).toUpperCase() === 'Y' ? 'Y' : 'N';
+    if (data.hidden) currentPostHidden = String(data.hidden).toUpperCase() === 'Y' ? 'Y' : 'N';
+    updateMetaIcons();
 
     SECTION_CONFIGS.forEach(function(cfg) {
       if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
     });
 
     initFieldStates();
+    initMetaHistory();
     resizeAllTextareas();
   } catch(e) {
     console.error("[app.js] 데이터 로드 실패:", e);
@@ -507,9 +807,11 @@ function initModalHandlers() {
   }
 }
 
+// 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
+  initMetaHistory();
   loadSavedData();
   checkApiKeyStatus();
   updateAllStats();
@@ -532,6 +834,19 @@ window.addEventListener('DOMContentLoaded', function() {
 
   const btnCancel = $('btn-cancel-work');
   if (btnCancel) btnCancel.onclick = cancelWork;
+
+  // 작성 글 정보 창 전용 이벤트 리스너 바인딩
+  const btnMetaApply = $('btn-meta-apply');
+  if (btnMetaApply) btnMetaApply.onclick = applyMetaChanges;
+
+  const btnNewPost = $('btn-new-post');
+  if (btnNewPost) btnNewPost.onclick = enterNewPostMode;
+
+  const btnMetaStar = $('btnMetaStar');
+  if (btnMetaStar) btnMetaStar.onclick = toggleMetaImportant;
+
+  const btnMetaHidden = $('btnMetaHidden');
+  if (btnMetaHidden) btnMetaHidden.onclick = toggleMetaHidden;
 
   const statusFilter = $('statusFilter');
   if (statusFilter) statusFilter.onchange = renderPostList;
@@ -565,15 +880,14 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
+  // 메타 인풋 필드 변경 감지 및 히스토리 스택 연동
   ['essayTitleInput', 'postCategory1', 'postCategory2', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
     const el = $(id);
-    if (el) el.oninput = markDirty;
+    if (el) el.oninput = pushMetaHistory;
   });
 
-  ['postImportant', 'postHidden'].forEach(function(id) {
-    const el = $(id);
-    if (el) el.onchange = markDirty;
-  });
+  const postStatusSelect = $('postStatusSelect');
+  if (postStatusSelect) postStatusSelect.onchange = pushMetaHistory;
 
   ALL_SECTION_KEYS.forEach(function(k) {
     const dot = $('dot_' + k);
@@ -582,28 +896,34 @@ window.addEventListener('DOMContentLoaded', function() {
 
   const arrowMeta = $('arrow_meta');
   if (arrowMeta) arrowMeta.onclick = function() { toggleSection('meta'); };
+
   const titleMeta = $('title_meta');
   if (titleMeta) titleMeta.onclick = function() { toggleFocusView('meta'); };
 
   const arrowPostList = $('arrow_postList');
   if (arrowPostList) arrowPostList.onclick = function() { toggleSection('postList'); };
+
   const titlePostList = $('title_postList');
   if (titlePostList) titlePostList.onclick = function() { toggleFocusView('postList'); };
 
   const arrowApi = $('arrow_api');
   if (arrowApi) arrowApi.onclick = function() { toggleSection('api'); };
+
   const titleApi = $('title_api');
   if (titleApi) titleApi.onclick = function() { toggleFocusView('api'); };
 
   const apiSaveBtn = $('apiSaveBtn');
   if (apiSaveBtn) apiSaveBtn.onclick = handleSaveButtonClick;
+
   const apiCancelBtn = $('apiCancelBtn');
   if (apiCancelBtn) apiCancelBtn.onclick = cancelKeyInput;
+
   const apiDelBtn = $('apiDelBtn');
   if (apiDelBtn) apiDelBtn.onclick = deleteApiKey;
 
   const btnApiShared = $('btn-api-shared');
   if (btnApiShared) btnApiShared.onclick = function() { selectKeyChoice('shared'); };
+
   const btnApiPersonal = $('btn-api-personal');
   if (btnApiPersonal) btnApiPersonal.onclick = function() { selectKeyChoice('personal'); };
 
@@ -616,6 +936,7 @@ window.addEventListener('DOMContentLoaded', function() {
         el.classList.remove('show');
       });
     }
+
     if (!e.target.closest('.version-tag') && !e.target.closest('.version-popover')) {
       const pop = $('versionPopover');
       if (pop && pop.classList.contains('show')) {
