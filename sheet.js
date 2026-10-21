@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.8): 모바일 터치 스크롤 방지, 동적 슬롯 이동 애니메이션 및 OS 제스처 차단
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.8) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.5)
+- sheet.js (v2.9): 드래그 중인 행 실시간 추적 플로팅(translateY) 및 BOM 동기화
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.9) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.6)
 ========================================================================== */
 
-window._V_SHEET = "v2.8";
+window._V_SHEET = "v2.9";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -113,7 +113,6 @@ function undoPostList() {
     renderPostList();
     updatePostListToolbarButtons();
 
-    // 동기화
     postListCache.forEach(function(post) {
       sendPostMetaUpdate(post);
     });
@@ -136,7 +135,6 @@ function restoreSavedPostList() {
   renderPostList();
   updatePostListToolbarButtons();
 
-  // 동기화
   postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
@@ -157,7 +155,6 @@ function populateCategoryFilters() {
     if (c1) cat1Set.add(c1);
   });
 
-  // 분류1 옵션 갱신
   cat1Select.innerHTML = '<option value="전체">분류1:전체</option>';
   cat1Set.forEach(function(c1) {
     const opt = document.createElement('option');
@@ -167,7 +164,6 @@ function populateCategoryFilters() {
   });
   cat1Select.value = cat1Set.has(currentCat1) ? currentCat1 : '전체';
 
-  // 분류2 옵션 갱신 (선택된 분류1 기준)
   updateCategory2Options(currentCat2);
 }
 
@@ -200,14 +196,16 @@ function updateCategory2Options(targetValue) {
   cat2Select.value = cat2Set.has(preferredVal) ? preferredVal : '전체';
 }
 
-// 4. 드래그 중인 항목 주변 줄들의 동적 변위(translateY) 실시간 갱신 헬퍼
+// 4. 드래그 중인 항목 주변 행들의 변위(translateY) 갱신 헬퍼
 function updateDynamicRowDisplacements(targetRow, insertBefore) {
   const rows = Array.from(document.querySelectorAll('.post-row-item'));
   const activeIdx = rows.findIndex(function(r) { return r === touchActiveRow; });
   const targetIdx = rows.findIndex(function(r) { return r === targetRow; });
 
   rows.forEach(function(r) {
-    r.classList.remove('shift-up', 'shift-down');
+    if (r !== touchActiveRow) {
+      r.classList.remove('shift-up', 'shift-down');
+    }
   });
 
   if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) return;
@@ -217,14 +215,12 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
   if (insertBefore && destIdx > activeIdx) destIdx -= 1;
 
   if (activeIdx < destIdx) {
-    // 아래로 이동: 그 사이에 있는 행들을 위로 한 칸씩 밈
     for (let i = activeIdx + 1; i <= destIdx; i++) {
-      if (rows[i]) rows[i].classList.add('shift-up');
+      if (rows[i] && rows[i] !== touchActiveRow) rows[i].classList.add('shift-up');
     }
   } else if (activeIdx > destIdx) {
-    // 위로 이동: 그 사이에 있는 행들을 아래로 한 칸씩 밈
     for (let i = destIdx; i < activeIdx; i++) {
-      if (rows[i]) rows[i].classList.add('shift-down');
+      if (rows[i] && rows[i] !== touchActiveRow) rows[i].classList.add('shift-down');
     }
   }
 }
@@ -232,6 +228,9 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
 function clearDynamicRowDisplacements() {
   document.querySelectorAll('.post-row-item').forEach(function(el) {
     el.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
+    if (el !== touchActiveRow) {
+      el.style.transform = '';
+    }
   });
 }
 
@@ -257,16 +256,10 @@ function renderPostList() {
     const itemCat1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
     const itemCat2 = (item.분류2 || item.category2 || '').trim();
 
-    // 1) 상황 필터
     if (statusFilter !== '전체' && itemStatus !== statusFilter) return false;
-    // 2) 분류1 필터
     if (cat1Filter !== '전체' && itemCat1 !== cat1Filter) return false;
-    // 3) 분류2 필터
     if (cat2Filter !== '전체' && itemCat2 !== cat2Filter) return false;
-    // 4) 중요 필터
     if (filterOnlyImportant && !itemImportant) return false;
-
-    // 5) 숨김 필터
     if (!filterOnlyHidden && itemHidden) return false;
 
     return true;
@@ -342,14 +335,14 @@ function renderPostList() {
       togglePostHidden(post);
     };
 
-    // [5] 드래그 핸들 (⠿) - OS 팝업화면 제스처 방지를 위해 draggable=false 부여
+    // [5] 드래그 핸들 (⠿) - OS 팝업화면 제스처 방지용 draggable=false
     const dragHandle = document.createElement('span');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⠿';
     dragHandle.title = '끌어서 순서 이동';
     dragHandle.setAttribute('draggable', 'false');
 
-    // 데스크톱 일반 마우스 드래그 이벤트 (HTML5 Drag fallback)
+    // 데스크톱 일반 마우스 드래그 fallback
     dragHandle.addEventListener('mousedown', function() {
       dragHandle.setAttribute('draggable', 'true');
     });
@@ -357,13 +350,24 @@ function renderPostList() {
     dragHandle.addEventListener('dragstart', function(e) {
       draggedPostId = postId;
       touchActiveRow = row;
+      touchStartY = e.clientY;
       row.classList.add('is-dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', postId);
     });
 
+    dragHandle.addEventListener('drag', function(e) {
+      if (e.clientY && touchActiveRow) {
+        const deltaY = e.clientY - touchStartY;
+        touchActiveRow.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
+      }
+    });
+
     dragHandle.addEventListener('dragend', function() {
-      row.classList.remove('is-dragging');
+      if (touchActiveRow) {
+        touchActiveRow.classList.remove('is-dragging');
+        touchActiveRow.style.transform = '';
+      }
       clearDynamicRowDisplacements();
       dragHandle.setAttribute('draggable', 'false');
       draggedPostId = null;
@@ -380,6 +384,10 @@ function renderPostList() {
 
     row.addEventListener('drop', function(e) {
       e.preventDefault();
+      if (touchActiveRow) {
+        touchActiveRow.classList.remove('is-dragging');
+        touchActiveRow.style.transform = '';
+      }
       clearDynamicRowDisplacements();
       const targetId = row.getAttribute('data-id');
       if (!draggedPostId || draggedPostId === targetId) return;
@@ -389,7 +397,7 @@ function renderPostList() {
       handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
     });
 
-    // 모바일 터치 및 PC 에뮬레이터 터치 이벤트 완벽 지원 (OS 화면분할 제스처 원천 차단)
+    // 모바일 터치 및 PC 에뮬레이터 실시간 플로팅 추적
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
       const touch = e.touches[0];
@@ -401,11 +409,16 @@ function renderPostList() {
 
     dragHandle.addEventListener('touchmove', function(e) {
       if (!draggedPostId || !touchActiveRow) return;
-      // 스크롤 및 브라우저 제스처 개입 완전 차단 (핵심)
       if (e.cancelable) e.preventDefault();
 
       const touch = e.touches[0];
+      const deltaY = touch.clientY - touchStartY;
+      touchActiveRow.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
+
+      touchActiveRow.style.pointerEvents = 'none';
       const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      touchActiveRow.style.pointerEvents = '';
+
       const targetRow = targetEl ? targetEl.closest('.post-row-item') : null;
 
       if (targetRow && targetRow !== touchActiveRow) {
@@ -418,8 +431,11 @@ function renderPostList() {
       }
     }, { passive: false });
 
-    dragHandle.addEventListener('touchend', function(e) {
-      if (touchActiveRow) touchActiveRow.classList.remove('is-dragging');
+    dragHandle.addEventListener('touchend', function() {
+      if (touchActiveRow) {
+        touchActiveRow.classList.remove('is-dragging');
+        touchActiveRow.style.transform = '';
+      }
       clearDynamicRowDisplacements();
 
       if (draggedPostId && touchCurrentTargetRow) {
@@ -435,14 +451,16 @@ function renderPostList() {
     });
 
     dragHandle.addEventListener('touchcancel', function() {
-      if (touchActiveRow) touchActiveRow.classList.remove('is-dragging');
+      if (touchActiveRow) {
+        touchActiveRow.classList.remove('is-dragging');
+        touchActiveRow.style.transform = '';
+      }
       clearDynamicRowDisplacements();
       draggedPostId = null;
       touchActiveRow = null;
       touchCurrentTargetRow = null;
     });
 
-    // DOM 결합: 1줄 순서 확정 [⭐/☆] [상황] [제목] [🕶️/👓] [⠿]
     row.appendChild(starBtn);
     row.appendChild(statusBtn);
     row.appendChild(titleArea);
@@ -461,29 +479,24 @@ function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList
 
   if (srcIdx === -1 || tgtIdx === -1) return;
 
-  // 1. 현재 화면에 노출된 항목들의 기존 슬롯 번호 세트 확보 (오름차순)
   const slotNumbers = visibleList.map(function(p, i) {
     return p.순서 !== undefined && p.순서 !== "" ? Number(p.순서) : (i + 1);
   }).sort(function(a, b) { return a - b; });
 
-  // 2. 화면에 보이는 리스트 내에서 항목 위치 재배치
   const itemToMove = visibleList.splice(srcIdx, 1)[0];
   let destIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === targetId; });
   if (!insertBefore) destIdx += 1;
   visibleList.splice(destIdx, 0, itemToMove);
 
-  // 3. 재배치된 순서대로 확보해둔 슬롯 번호를 다시 배정
   visibleList.forEach(function(post, idx) {
     post.순서 = slotNumbers[idx];
   });
 
-  // 4. 전체 캐시 정렬 및 로컬 즉시 저장 + 히스토리 등록
   sortPostsByOrder();
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   pushPostListHistory();
   renderPostList();
 
-  // 5. 변경된 글들의 신규 순서 구글 시트 백그라운드 동기화
   visibleList.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
