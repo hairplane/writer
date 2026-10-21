@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.4): 취소/복원 버튼 비활성화(disabled) 시각 피드백 및 BOM 동기화
-[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
+- style.css (v2.5): 드래그 슬롯 동적 변위 애니메이션(shift-up/down) 및 BOM 동기화
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.8) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.5)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.4";
+  --v-style-css: "v2.5";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -415,7 +415,7 @@ header.mac-window-header {
   min-height: 30px;
   border-bottom: 1px solid #e2e8f0;
   border: 1px solid transparent;
-  transition: background-color 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0.2, 1), background-color 0.12s ease, border-color 0.12s ease;
   user-select: none;
   box-sizing: border-box;
 }
@@ -428,24 +428,23 @@ header.mac-window-header {
   background-color: #dbeafe;
 }
 
-/* 선택 및 드래그 시 4면 테두리 전체 활성화 */
+/* 드래그 시 주변 행들이 위/아래로 부드럽게 비켜서는 동적 변위 */
+.post-row-item.shift-up {
+  transform: translateY(-30px);
+}
+
+.post-row-item.shift-down {
+  transform: translateY(30px);
+}
+
+/* 선택 및 드래그 중인 행 4면 전체 활성화 */
 .post-row-item.is-dragging {
   opacity: 0.65;
   background-color: #fef3c7 !important;
   border: 2px solid #f59e0b !important;
   border-radius: 4px;
-}
-
-.post-row-item.drag-over-top {
-  border: 2px solid var(--primary) !important;
-  background-color: #eff6ff !important;
-  border-radius: 4px;
-}
-
-.post-row-item.drag-over-bottom {
-  border: 2px solid var(--primary) !important;
-  background-color: #eff6ff !important;
-  border-radius: 4px;
+  z-index: 10;
+  position: relative;
 }
 
 /* 6-1. 중요 별표 토글 버튼 (노란 별/빈 별 크기 및 중심선 일치) */
@@ -548,7 +547,7 @@ header.mac-window-header {
   transform: scale(1.15);
 }
 
-/* 6-5. 맨 오른쪽 드래그 핸들 (안전 간격 확보) */
+/* 6-5. 맨 오른쪽 드래그 핸들 (안전 간격 확보 및 터치 간섭 방지) */
 .drag-handle {
   width: 22px;
   height: 22px;
@@ -562,6 +561,8 @@ header.mac-window-header {
   line-height: 1;
   flex-shrink: 0;
   touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .drag-handle:hover {
@@ -732,7 +733,7 @@ textarea.flat-textarea:focus {
   color: var(--text-sub);
 }
 
-/* 9. 하단 취소 및 복원 버튼 (비활성화 상태 시각 피드백 추가) */
+/* 9. 하단 취소 및 복원 버튼 */
 .btn-restore-icon {
   background: #fff;
   border: 1px solid var(--border-light);
