@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.11): 드래그 중 목록 컨테이너 overflow 잠금을 통한 모바일 화면 스크롤링 완벽 차단
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.11) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.7)
+- sheet.js (v2.12): 스마트폰 글로벌 스크롤(document 단위) 강제 차단 로직 적용
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.8)
 ========================================================================== */
 
-window._V_SHEET = "v2.11";
+window._V_SHEET = "v2.12";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -24,6 +24,11 @@ let touchActiveRow = null;
 let touchStartY = 0;
 let touchCurrentTargetRow = null;
 let touchInsertBefore = false;
+
+// 모바일 드래그 중 화면 전체 스크롤 원천 차단용 전역 핸들러
+function preventGlobalScroll(e) {
+  e.preventDefault();
+}
 
 // 1. 로컬 캐시 불러오기
 function loadCachedPosts() {
@@ -307,7 +312,7 @@ function renderPostList() {
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
 
-    // [1] 중요 별표 토글 버튼 (⭐ / ☆)
+    // [1] 중요 별표 토글 버튼
     const starBtn = document.createElement('button');
     starBtn.type = 'button';
     starBtn.className = 'btn-star-toggle ' + (isImportant ? 'star-yellow is-important' : 'star-empty');
@@ -361,14 +366,14 @@ function renderPostList() {
       togglePostHidden(post);
     };
 
-    // [5] 드래그 핸들 (⠿) - OS 팝업화면 제스처 방지용 draggable=false
+    // [5] 드래그 핸들 (⠿)
     const dragHandle = document.createElement('span');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⠿';
     dragHandle.title = '끌어서 순서 이동';
     dragHandle.setAttribute('draggable', 'false');
 
-    // 데스크톱 일반 마우스 드래그 fallback
+    // --- 데스크톱 일반 마우스 드래그 fallback ---
     dragHandle.addEventListener('mousedown', function() {
       dragHandle.setAttribute('draggable', 'true');
     });
@@ -423,12 +428,14 @@ function renderPostList() {
       handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
     });
 
-    // 모바일 터치 및 PC 에뮬레이터 실시간 플로팅 추적 (화면 스크롤링 원천 차단)
+    // --- 모바일 터치 및 PC 에뮬레이터 실시간 플로팅 추적 ---
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
       if (e.cancelable) e.preventDefault();
 
-      // 목록 박스 스크롤 일시 잠금
+      // 전역 스크롤(document 단위) 완전 차단 이벤트 등록
+      document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
+
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'hidden';
 
@@ -465,7 +472,9 @@ function renderPostList() {
     }, { passive: false });
 
     dragHandle.addEventListener('touchend', function() {
-      // 목록 박스 스크롤 복원
+      // 전역 스크롤 차단 해제
+      document.removeEventListener('touchmove', preventGlobalScroll);
+
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'auto';
 
@@ -488,7 +497,8 @@ function renderPostList() {
     });
 
     dragHandle.addEventListener('touchcancel', function() {
-      // 목록 박스 스크롤 복원
+      document.removeEventListener('touchmove', preventGlobalScroll);
+
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'auto';
 
@@ -631,7 +641,7 @@ function sendPostMetaUpdate(post) {
       snippets: post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || ""
     })
   }).catch(function(err) {
-    console.warn("[sheet.js] 메타 백그라운드 동기화 실패:", err);
+    console.warn("[sheet.js] 메타 백그라운드 동기 동기화 실패:", err);
   });
 }
 
