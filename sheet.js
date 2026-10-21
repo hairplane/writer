@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.12): 스마트폰 글로벌 스크롤(document 단위) 강제 차단 로직 적용
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.8)
+- sheet.js (v3.0): 작성 글 정보 창 개편에 따른 메타데이터 양방향 동기화 연동 및 BOM 갱신
+[BOM] index(v4.5) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0)
 ========================================================================== */
 
-window._V_SHEET = "v2.12";
+window._V_SHEET = "v3.0";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -567,6 +567,9 @@ function togglePostStatus(post) {
 
   if (currentPostId === (post.ID || post.id)) {
     currentPostStatus = nextStatus;
+    const statusSelect = $('postStatusSelect');
+    if (statusSelect) statusSelect.value = nextStatus;
+    if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -584,8 +587,9 @@ function togglePostImportant(post) {
   post.important = next;
 
   if (currentPostId === (post.ID || post.id)) {
-    const chk = $('postImportant');
-    if (chk) chk.checked = (next === 'Y');
+    currentPostImportant = next;
+    if (typeof updateMetaIcons === 'function') updateMetaIcons();
+    if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -603,8 +607,9 @@ function togglePostHidden(post) {
   post.hidden = next;
 
   if (currentPostId === (post.ID || post.id)) {
-    const chk = $('postHidden');
-    if (chk) chk.checked = (next === 'Y');
+    currentPostHidden = next;
+    if (typeof updateMetaIcons === 'function') updateMetaIcons();
+    if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -641,7 +646,7 @@ function sendPostMetaUpdate(post) {
       snippets: post.보관글 || post['보관 글'] || post['보관\n글'] || post.snippets || ""
     })
   }).catch(function(err) {
-    console.warn("[sheet.js] 메타 백그라운드 동기 동기화 실패:", err);
+    console.warn("[sheet.js] 메타 백그라운드 동기화 실패:", err);
   });
 }
 
