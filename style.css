@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.6): 드래그 행 실시간 플로팅 입체 스타일 및 BOM 동기화
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.9) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.6)
+- style.css (v2.7): 드래그 중 줄바꿈 유효 영역 진입 시 녹색 전환(can-drop) 스타일 및 BOM 동기화
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.10) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.7)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.6";
+  --v-style-css: "v2.7";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -438,7 +438,7 @@ header.mac-window-header {
   transform: translateY(30px);
 }
 
-/* 드래그 중인 행: 손가락을 따라 실시간 이동하며 입체적으로 뜨는 스타일 */
+/* 드래그 중인 행: 손가락을 따라 실시간 이동하며 입체적으로 뜨는 기본 노란색 스타일 */
 .post-row-item.is-dragging {
   opacity: 0.92;
   background-color: #fef3c7 !important;
@@ -447,7 +447,14 @@ header.mac-window-header {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
   z-index: 100;
   position: relative;
-  transition: none !important; /* 실시간 추적 시 부자연스러운 지연 방지 */
+  transition: none !important;
+}
+
+/* 줄바꿈 가능 유효 영역에 진입했을 때: 녹색으로 즉시 전환 */
+.post-row-item.is-dragging.can-drop {
+  background-color: #dcfce7 !important;
+  border: 2px solid #16a34a !important;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3) !important;
 }
 
 /* 6-1. 중요 별표 토글 버튼 */
