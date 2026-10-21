@@ -1,11 +1,13 @@
-<!-- - index.html (v4.3): 작성 글 목록 창 하단 취소/복원 툴바 추가 및 BOM 동기화 -->
-<!-- [BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4) -->
+<!-- - index.html (v4.4): 파비콘 SVG 데이터 URI 추가(404 에러 방지) 및 BOM 동기화 -->
+<!-- [BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>글쓰기 스튜디오</title>
+  <!-- 파비콘 지정 (favicon.ico 404 에러 방지) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✍️</text></svg>">
   <!-- 1. 불변 시스템 레이아웃 엔진 라이브러리 -->
   <link rel="stylesheet" href="core.css">
   <!-- 2. 커스텀 테마, 색상, 디자인 스타일시트 -->
@@ -19,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v4.3</span>
+          <span class="version-tag" title="모듈 로드 중...">v4.4</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
