@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.10): 스마트폰 스크롤 간섭 차단 및 줄바꿈 영역 진입 시 녹색 전환(can-drop)
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.10) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.6)
+- sheet.js (v2.11): 드래그 중 목록 컨테이너 overflow 잠금을 통한 모바일 화면 스크롤링 완벽 차단
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.11) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.7)
 ========================================================================== */
 
-window._V_SHEET = "v2.10";
+window._V_SHEET = "v2.11";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -426,8 +426,11 @@ function renderPostList() {
     // 모바일 터치 및 PC 에뮬레이터 실시간 플로팅 추적 (화면 스크롤링 원천 차단)
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
-      // 브라우저 기본 스크롤 동작 즉시 차단
       if (e.cancelable) e.preventDefault();
+
+      // 목록 박스 스크롤 일시 잠금
+      const listContainer = $('list_postRows');
+      if (listContainer) listContainer.style.overflowY = 'hidden';
 
       const touch = e.touches[0];
       draggedPostId = postId;
@@ -462,6 +465,10 @@ function renderPostList() {
     }, { passive: false });
 
     dragHandle.addEventListener('touchend', function() {
+      // 목록 박스 스크롤 복원
+      const listContainer = $('list_postRows');
+      if (listContainer) listContainer.style.overflowY = 'auto';
+
       if (touchActiveRow) {
         touchActiveRow.classList.remove('is-dragging', 'can-drop');
         touchActiveRow.style.transform = '';
@@ -481,6 +488,10 @@ function renderPostList() {
     });
 
     dragHandle.addEventListener('touchcancel', function() {
+      // 목록 박스 스크롤 복원
+      const listContainer = $('list_postRows');
+      if (listContainer) listContainer.style.overflowY = 'auto';
+
       if (touchActiveRow) {
         touchActiveRow.classList.remove('is-dragging', 'can-drop');
         touchActiveRow.style.transform = '';
