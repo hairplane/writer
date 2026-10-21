@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.3): 별표(⭐/☆) 크기·중심선 일치 및 순수 제목 정렬 최적화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.6) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.3)
+- style.css (v2.4): 취소/복원 버튼 비활성화(disabled) 시각 피드백 및 BOM 동기화
+[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.3";
+  --v-style-css: "v2.4";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -464,13 +464,11 @@ header.mac-window-header {
   user-select: none;
 }
 
-/* 노란색 이모지 별 (⭐) */
 .btn-star-toggle.star-yellow {
   font-size: 0.88rem;
   color: #f59e0b;
 }
 
-/* 빈 텍스트 별 (☆) - 이모지와 동일한 체감 크기로 확대 및 두께/중심선 보정 */
 .btn-star-toggle.star-empty {
   font-size: 1.15rem;
   font-weight: 900;
@@ -505,7 +503,7 @@ header.mac-window-header {
 .btn-status-toggle.status-plan { background: #fef3c7; color: #b45309; }
 .btn-status-toggle.status-pending { background: #ede9fe; color: #6d28d9; }
 
-/* 6-3. 제목 텍스트 영역 (순수 제목 좌측 수직 시작선 일치) */
+/* 6-3. 제목 텍스트 영역 */
 .post-row-title-area {
   display: flex;
   align-items: center;
@@ -734,6 +732,7 @@ textarea.flat-textarea:focus {
   color: var(--text-sub);
 }
 
+/* 9. 하단 취소 및 복원 버튼 (비활성화 상태 시각 피드백 추가) */
 .btn-restore-icon {
   background: #fff;
   border: 1px solid var(--border-light);
@@ -742,6 +741,21 @@ textarea.flat-textarea:focus {
   padding: 1px 6px;
   border-radius: 3px;
   cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-restore-icon:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: var(--primary);
+}
+
+.btn-restore-icon:disabled {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  background-color: #f8fafc;
+  color: #94a3b8;
+  border-color: #e2e8f0;
 }
 
 .modal-overlay {
