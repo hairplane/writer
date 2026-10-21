@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.7): 작성 글 목록 창 취소/복원 히스토리 스택 및 버튼 disabled 연동
-[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
+- sheet.js (v2.8): 모바일 터치 스크롤 방지, 동적 슬롯 이동 애니메이션 및 OS 제스처 차단
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.8) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.5)
 ========================================================================== */
 
-window._V_SHEET = "v2.7";
+window._V_SHEET = "v2.8";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -200,7 +200,42 @@ function updateCategory2Options(targetValue) {
   cat2Select.value = cat2Set.has(preferredVal) ? preferredVal : '전체';
 }
 
-// 4. 작성 글 목록 DOM 렌더링 (순서: [⭐/☆] [상황버튼] [제목] [🕶️/👓] [⠿])
+// 4. 드래그 중인 항목 주변 줄들의 동적 변위(translateY) 실시간 갱신 헬퍼
+function updateDynamicRowDisplacements(targetRow, insertBefore) {
+  const rows = Array.from(document.querySelectorAll('.post-row-item'));
+  const activeIdx = rows.findIndex(function(r) { return r === touchActiveRow; });
+  const targetIdx = rows.findIndex(function(r) { return r === targetRow; });
+
+  rows.forEach(function(r) {
+    r.classList.remove('shift-up', 'shift-down');
+  });
+
+  if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) return;
+
+  let destIdx = targetIdx;
+  if (!insertBefore && destIdx < activeIdx) destIdx += 1;
+  if (insertBefore && destIdx > activeIdx) destIdx -= 1;
+
+  if (activeIdx < destIdx) {
+    // 아래로 이동: 그 사이에 있는 행들을 위로 한 칸씩 밈
+    for (let i = activeIdx + 1; i <= destIdx; i++) {
+      if (rows[i]) rows[i].classList.add('shift-up');
+    }
+  } else if (activeIdx > destIdx) {
+    // 위로 이동: 그 사이에 있는 행들을 아래로 한 칸씩 밈
+    for (let i = destIdx; i < activeIdx; i++) {
+      if (rows[i]) rows[i].classList.add('shift-down');
+    }
+  }
+}
+
+function clearDynamicRowDisplacements() {
+  document.querySelectorAll('.post-row-item').forEach(function(el) {
+    el.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
+  });
+}
+
+// 5. 작성 글 목록 DOM 렌더링 (순서: [⭐/☆] [상황버튼] [제목] [🕶️/👓] [⠿])
 function renderPostList() {
   const grid = $('list_postRows') || $('body_postList');
   if (!grid) return;
@@ -228,13 +263,11 @@ function renderPostList() {
     if (cat1Filter !== '전체' && itemCat1 !== cat1Filter) return false;
     // 3) 분류2 필터
     if (cat2Filter !== '전체' && itemCat2 !== cat2Filter) return false;
-    // 4) 중요 필터 (별표 켜졌을 때 중요 글만)
+    // 4) 중요 필터
     if (filterOnlyImportant && !itemImportant) return false;
 
-    // 5) 숨김 필터: 선글라스 버튼이 꺼져 있을 때만 숨김 글 제외, 켜져 있으면 숨김 글도 포함(전체 표시)
-    if (!filterOnlyHidden && itemHidden) {
-      return false;
-    }
+    // 5) 숨김 필터
+    if (!filterOnlyHidden && itemHidden) return false;
 
     return true;
   });
@@ -255,7 +288,7 @@ function renderPostList() {
     row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
 
-    // [1] 중요 별표 토글 버튼 (⭐ / ☆ - 크기 일치를 위한 전용 클래스 분기)
+    // [1] 중요 별표 토글 버튼 (⭐ / ☆)
     const starBtn = document.createElement('button');
     starBtn.type = 'button';
     starBtn.className = 'btn-star-toggle ' + (isImportant ? 'star-yellow is-important' : 'star-empty');
@@ -266,7 +299,7 @@ function renderPostList() {
       togglePostImportant(post);
     };
 
-    // [2] 상황 뱃지 버튼 (구상중 -> 대기중 -> 작성중 -> 완료)
+    // [2] 상황 뱃지 버튼
     let statusClass = 'status-writing';
     if (postStatus === '완료') statusClass = 'status-done';
     else if (postStatus === '구상중') statusClass = 'status-plan';
@@ -282,7 +315,7 @@ function renderPostList() {
       togglePostStatus(post);
     };
 
-    // [3] 제목 텍스트 영역 (분류 태그 없이 순수 제목만 표시)
+    // [3] 제목 텍스트 영역
     const titleArea = document.createElement('div');
     titleArea.className = 'post-row-title-area';
     titleArea.innerHTML = '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
@@ -298,7 +331,7 @@ function renderPostList() {
       }
     };
 
-    // [4] 숨김 토글 버튼 (🕶️ / 👓 - 상시 노출)
+    // [4] 숨김 토글 버튼
     const hiddenBtn = document.createElement('button');
     hiddenBtn.type = 'button';
     hiddenBtn.className = 'btn-hidden-toggle' + (isHidden ? ' is-hidden' : '');
@@ -309,16 +342,21 @@ function renderPostList() {
       togglePostHidden(post);
     };
 
-    // [5] 드래그 핸들 (⠿) - 라인의 맨 오른쪽 끝 배치
+    // [5] 드래그 핸들 (⠿) - OS 팝업화면 제스처 방지를 위해 draggable=false 부여
     const dragHandle = document.createElement('span');
     dragHandle.className = 'drag-handle';
     dragHandle.innerHTML = '⠿';
     dragHandle.title = '끌어서 순서 이동';
-    dragHandle.setAttribute('draggable', 'true');
+    dragHandle.setAttribute('draggable', 'false');
 
-    // 데스크톱 HTML5 드래그 이벤트
+    // 데스크톱 일반 마우스 드래그 이벤트 (HTML5 Drag fallback)
+    dragHandle.addEventListener('mousedown', function() {
+      dragHandle.setAttribute('draggable', 'true');
+    });
+
     dragHandle.addEventListener('dragstart', function(e) {
       draggedPostId = postId;
+      touchActiveRow = row;
       row.classList.add('is-dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', postId);
@@ -326,33 +364,23 @@ function renderPostList() {
 
     dragHandle.addEventListener('dragend', function() {
       row.classList.remove('is-dragging');
-      document.querySelectorAll('.post-row-item').forEach(function(el) {
-        el.classList.remove('drag-over-top', 'drag-over-bottom');
-      });
+      clearDynamicRowDisplacements();
+      dragHandle.setAttribute('draggable', 'false');
       draggedPostId = null;
+      touchActiveRow = null;
     });
 
     row.addEventListener('dragover', function(e) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       const rect = row.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      if (e.clientY < mid) {
-        row.classList.add('drag-over-top');
-        row.classList.remove('drag-over-bottom');
-      } else {
-        row.classList.add('drag-over-bottom');
-        row.classList.remove('drag-over-top');
-      }
-    });
-
-    row.addEventListener('dragleave', function() {
-      row.classList.remove('drag-over-top', 'drag-over-bottom');
+      const insertBefore = e.clientY < (rect.top + rect.height / 2);
+      updateDynamicRowDisplacements(row, insertBefore);
     });
 
     row.addEventListener('drop', function(e) {
       e.preventDefault();
-      row.classList.remove('drag-over-top', 'drag-over-bottom');
+      clearDynamicRowDisplacements();
       const targetId = row.getAttribute('data-id');
       if (!draggedPostId || draggedPostId === targetId) return;
 
@@ -361,45 +389,38 @@ function renderPostList() {
       handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
     });
 
-    // 모바일 및 PC 브라우저 에뮬레이터 터치 드래그 이벤트 바인딩
+    // 모바일 터치 및 PC 에뮬레이터 터치 이벤트 완벽 지원 (OS 화면분할 제스처 원천 차단)
     dragHandle.addEventListener('touchstart', function(e) {
+      e.stopPropagation();
       const touch = e.touches[0];
       draggedPostId = postId;
       touchActiveRow = row;
       touchStartY = touch.clientY;
       row.classList.add('is-dragging');
-    }, { passive: true });
+    }, { passive: false });
 
     dragHandle.addEventListener('touchmove', function(e) {
       if (!draggedPostId || !touchActiveRow) return;
+      // 스크롤 및 브라우저 제스처 개입 완전 차단 (핵심)
+      if (e.cancelable) e.preventDefault();
+
       const touch = e.touches[0];
       const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
       const targetRow = targetEl ? targetEl.closest('.post-row-item') : null;
 
-      document.querySelectorAll('.post-row-item').forEach(function(el) {
-        if (el !== touchActiveRow) el.classList.remove('drag-over-top', 'drag-over-bottom');
-      });
-
       if (targetRow && targetRow !== touchActiveRow) {
         const rect = targetRow.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        touchInsertBefore = touch.clientY < mid;
+        touchInsertBefore = touch.clientY < (rect.top + rect.height / 2);
         touchCurrentTargetRow = targetRow;
-        if (touchInsertBefore) {
-          targetRow.classList.add('drag-over-top');
-        } else {
-          targetRow.classList.add('drag-over-bottom');
-        }
-      } else {
+        updateDynamicRowDisplacements(targetRow, touchInsertBefore);
+      } else if (!targetRow) {
         touchCurrentTargetRow = null;
       }
     }, { passive: false });
 
-    dragHandle.addEventListener('touchend', function() {
+    dragHandle.addEventListener('touchend', function(e) {
       if (touchActiveRow) touchActiveRow.classList.remove('is-dragging');
-      document.querySelectorAll('.post-row-item').forEach(function(el) {
-        el.classList.remove('drag-over-top', 'drag-over-bottom');
-      });
+      clearDynamicRowDisplacements();
 
       if (draggedPostId && touchCurrentTargetRow) {
         const targetId = touchCurrentTargetRow.getAttribute('data-id');
@@ -413,7 +434,15 @@ function renderPostList() {
       touchCurrentTargetRow = null;
     });
 
-    // DOM 결합: 1줄 순서 확정안 [⭐/☆] [상황] [순수제목] [🕶️/👓] [⠿]
+    dragHandle.addEventListener('touchcancel', function() {
+      if (touchActiveRow) touchActiveRow.classList.remove('is-dragging');
+      clearDynamicRowDisplacements();
+      draggedPostId = null;
+      touchActiveRow = null;
+      touchCurrentTargetRow = null;
+    });
+
+    // DOM 결합: 1줄 순서 확정 [⭐/☆] [상황] [제목] [🕶️/👓] [⠿]
     row.appendChild(starBtn);
     row.appendChild(statusBtn);
     row.appendChild(titleArea);
@@ -424,7 +453,7 @@ function renderPostList() {
   });
 }
 
-// 4-1. 원칙 B 슬롯 맞교환 순서 재배치 로직
+// 4-1. 슬롯 맞교환 순서 재배치 로직
 function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList) {
   const visibleList = currentFilteredList.slice();
   const srcIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
@@ -460,7 +489,7 @@ function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList
   });
 }
 
-// 5. 상황 토글 (구상중 -> 대기중 -> 작성중 -> 완료)
+// 5. 상황 토글
 function togglePostStatus(post) {
   const current = (post.상황 || post.status || '작성중').trim();
   let nextStatus = '구상중';
@@ -520,7 +549,7 @@ function togglePostHidden(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송 (기존 본문 필드 전체 보존)
+// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
 function sendPostMetaUpdate(post) {
   fetch(GAS_ENDPOINT, {
     method: "POST",
