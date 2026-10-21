@@ -1,5 +1,5 @@
-<!-- - index.html (v4.2): 숨김 필터 선글라스(🕶️) 아이콘 교체 및 BOM 동기화 -->
-<!-- [BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.2) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.2) -->
+<!-- - index.html (v4.3): 작성 글 목록 창 하단 취소/복원 툴바 추가 및 BOM 동기화 -->
+<!-- [BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -19,7 +19,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v4.2</span>
+          <span class="version-tag" title="모듈 로드 중...">v4.3</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -58,7 +58,7 @@
           <span class="section-title" id="title_postList" title="클릭 시 단독 집중 모드">작성 글 목록</span>
         </div>
       </div>
-      <!-- 본문 영역: 1줄 콤팩트 필터 바 + 리스트 목록 -->
+      <!-- 본문 영역: 1줄 콤팩트 필터 바 + 리스트 목록 + 하단 취소/복원 툴바 -->
       <div class="post-list-content-wrap" id="body_postList">
         <div class="post-filter-bar-compact">
           <select id="statusFilter" class="select-filter-compact" title="상황 필터">
@@ -78,6 +78,13 @@
           <button type="button" id="btnFilterHidden" class="btn-filter-icon" title="숨김 글만 보기">🕶️</button>
         </div>
         <div class="post-list-rows" id="list_postRows"></div>
+        <div class="editor-bottom-toolbar" style="padding: 2px 2px 0 2px;">
+          <span></span>
+          <div class="restore-group">
+            <button type="button" id="btn-undo-postList" class="btn-restore-icon" onclick="undoPostList()" disabled>↺ 취소</button>
+            <button type="button" id="btn-restore-postList" class="btn-restore-icon" onclick="restoreSavedPostList()" disabled>⟲ 최근 저장 상태로</button>
+          </div>
+        </div>
       </div>
     </div>
 
