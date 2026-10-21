@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v2.8): 모바일 화면 스크롤 제스처 차단 touch-action 보강 및 BOM 동기화
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.11) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.8)
+- style.css (v2.9): 오버스크롤/주소창 바운스 차단(overscroll-behavior: none) 및 BOM 동기화
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.9)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v2.8";
+  --v-style-css: "v2.9";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -13,6 +13,12 @@
   --text-main: #0f172a;
   --text-sub: #64748b;
   --app-height: 100dvh;
+}
+
+/* 모바일 브라우저 주소창 숨김/펼침 및 화면 상하 바운스 유동 완벽 차단 */
+html, body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -407,6 +413,7 @@ header.mac-window-header {
   background: #fff;
   position: relative;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .post-row-item {
@@ -439,7 +446,7 @@ header.mac-window-header {
   transform: translateY(30px);
 }
 
-/* 드래그 중인 행: 손가락을 따라 실시간 이동하며 입체적으로 뜨는 기본 노란색 스타일 (스크롤 제스처 완벽 차단) */
+/* 드래그 중인 행: 손가락을 따라 실시간 이동하며 입체적으로 뜨는 기본 노란색 스타일 */
 .post-row-item.is-dragging {
   opacity: 0.92;
   background-color: #fef3c7 !important;
