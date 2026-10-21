@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v2.2): 선글라스 단독 필터(filterOnlyHidden) 및 순서(B열) 데이터 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.1) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.1)
+- app.js (v2.3): 7개 집필 창 취소/복원 버튼 disabled 상태 실시간 동기화 및 BOM 갱신
+[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
 ========================================================================== */
 
-window._V_APP = "v2.2";
+window._V_APP = "v2.3";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -124,8 +124,8 @@ function buildEditorSections() {
       '<div class="editor-bottom-toolbar">' +
         statHtml +
         '<div class="restore-group">' +
-          '<button type="button" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')">↺ 취소</button>' +
-          '<button type="button" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')">⟲ 최근 저장 상태로</button>' +
+          '<button type="button" id="btn-undo-' + cfg.key + '" class="btn-restore-icon" onclick="undoField(\'' + cfg.key + '\')" disabled>↺ 취소</button>' +
+          '<button type="button" id="btn-restore-' + cfg.key + '" class="btn-restore-icon" onclick="restoreSaved(\'' + cfg.key + '\')" disabled>⟲ 최근 저장 상태로</button>' +
         '</div>' +
       '</div>';
 
@@ -197,12 +197,35 @@ function resizeAllTextareas() {
   });
 }
 
+function updateFieldToolbarButtons(key) {
+  const undoBtn = $('btn-undo-' + key);
+  const restoreBtn = $('btn-restore-' + key);
+  if (!undoBtn || !restoreBtn || !fieldState[key]) return;
+
+  const cfg = SECTION_CONFIGS.find(function(c) { return c.key === key; });
+  const el = $(cfg.id);
+  const currentVal = el ? el.value : '';
+
+  const canUndo = fieldState[key].history.length > 1;
+  const canRestore = currentVal !== fieldState[key].currentSaved;
+
+  undoBtn.disabled = !canUndo;
+  restoreBtn.disabled = !canRestore;
+}
+
+function updateAllFieldToolbarButtons() {
+  SECTION_CONFIGS.forEach(function(cfg) {
+    updateFieldToolbarButtons(cfg.key);
+  });
+}
+
 function initFieldStates() {
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
     const val = el ? el.value : '';
     fieldState[cfg.key] = { currentSaved: val, history: [val] };
   });
+  updateAllFieldToolbarButtons();
 }
 
 function handleFieldInput(key) {
@@ -220,6 +243,7 @@ function handleFieldInput(key) {
 
   autoResizeTextarea(el, cfg.minH);
   updateStat(key, val);
+  updateFieldToolbarButtons(key);
 }
 
 function undoField(key) {
@@ -234,6 +258,7 @@ function undoField(key) {
     autoResizeTextarea(el, cfg.minH);
     updateStat(key, el.value);
     markDirty();
+    updateFieldToolbarButtons(key);
   } else {
     alert('되돌릴 이전 입력 내용이 없습니다.');
   }
@@ -252,6 +277,7 @@ function restoreSaved(key) {
   autoResizeTextarea(el, cfg.minH);
   updateStat(key, targetVal);
   markDirty();
+  updateFieldToolbarButtons(key);
 }
 
 function updateStat(key, text) {
@@ -371,6 +397,7 @@ function saveWork(mode) {
     if (el && fieldState[cfg.key]) fieldState[cfg.key].currentSaved = el.value;
   });
   isDirty = false;
+  updateAllFieldToolbarButtons();
 
   syncPostToSheet(payload);
 
