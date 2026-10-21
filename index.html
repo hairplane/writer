@@ -1,5 +1,5 @@
-<!-- - index.html (v4.4): 파비콘 SVG 데이터 URI 추가(404 에러 방지) 및 BOM 동기화 -->
-<!-- [BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4) -->
+<!-- - index.html (v4.5): 작성 글 정보 창 레이아웃 개편(적용/새글작성 버튼, 제목행 토글 아이콘, 2행 개편, 하단 툴바 추가) 및 BOM 동기화 -->
+<!-- [BOM] index(v4.5) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v3.0) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v4.4</span>
+          <span class="version-tag" title="모듈 로드 중...">v4.5</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -79,7 +79,9 @@
           <button type="button" id="btnFilterImportant" class="btn-filter-icon" title="중요 글만 보기">⭐</button>
           <button type="button" id="btnFilterHidden" class="btn-filter-icon" title="숨김 글만 보기">🕶️</button>
         </div>
+
         <div class="post-list-rows" id="list_postRows"></div>
+
         <div class="editor-bottom-toolbar" style="padding: 2px 2px 0 2px;">
           <span></span>
           <div class="restore-group">
@@ -96,47 +98,72 @@
         <div class="section-header-left">
           <button type="button" id="arrow_meta" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_meta" title="클릭 시 단독 집중 모드">작성 글 정보</span>
+          <button type="button" id="btn-meta-apply" class="btn-meta-apply" title="수정 내용을 목록 및 구글 시트에 즉시 반영">적용</button>
+          <span class="badge-new-mode" id="badgeNewMode">새 글 작성 중</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button type="button" id="btn-new-post" class="btn-new-post" title="신규 글 작성 모드로 전환">✚ 새 글 작성</button>
         </div>
       </div>
+
       <div class="meta-content-wrap" id="body_meta">
         <table class="meta-grid-table">
           <tbody>
+            <!-- 1행: 제목 + 중요/숨김 토글 아이콘 -->
             <tr>
-              <th>제목[ID]</th>
-              <td colspan="3"><input type="text" id="essayTitleInput" placeholder="글 제목을 입력하세요"></td>
+              <th>제목</th>
+              <td colspan="3">
+                <div class="meta-title-row-wrap">
+                  <input type="text" id="essayTitleInput" placeholder="글 제목을 입력하세요">
+                  <div class="meta-title-icons">
+                    <button type="button" id="btnMetaStar" class="btn-star-toggle star-empty" title="중요 토글">☆</button>
+                    <button type="button" id="btnMetaHidden" class="btn-hidden-toggle" title="숨김 토글">👓</button>
+                  </div>
+                </div>
+              </td>
             </tr>
+            <!-- 2행: 상황, 분류1, 분류2 -->
             <tr>
+              <th>상황</th>
+              <td>
+                <select id="postStatusSelect" class="select-filter-compact" style="width:100%; border:none; background:transparent;">
+                  <option value="구상중">구상중</option>
+                  <option value="대기중">대기중</option>
+                  <option value="작성중">작성중</option>
+                  <option value="완료">완료</option>
+                </select>
+              </td>
               <th>분류</th>
               <td>
                 <div style="display:flex; gap:4px;">
-                  <input type="text" id="postCategory1" placeholder="분류1 (예: 종친회)" style="flex:1;">
-                  <input type="text" id="postCategory2" placeholder="분류2 (예: 공지문)" style="flex:1;">
-                </div>
-              </td>
-              <th>설정</th>
-              <td>
-                <div style="display:flex; align-items:center; gap:10px; font-size:0.78rem;">
-                  <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="checkbox" id="postImportant"> 중요
-                  </label>
-                  <label style="display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="checkbox" id="postHidden"> 숨김
-                  </label>
+                  <input type="text" id="postCategory1" placeholder="분류1" style="flex:1;">
+                  <input type="text" id="postCategory2" placeholder="분류2" style="flex:1;">
                 </div>
               </td>
             </tr>
+            <!-- 3행: 시작일, 완료일 -->
             <tr>
               <th>시작일</th>
               <td><input type="text" id="postStartDate" placeholder="YYYYMMDD"></td>
               <th>완료일</th>
               <td><input type="text" id="postEndDate" placeholder="YYYYMMDD"></td>
             </tr>
+            <!-- 4행: 요약 -->
             <tr>
               <th>요약</th>
               <td colspan="3"><textarea id="postSummary" rows="2" placeholder="글의 핵심 요약을 기록하세요"></textarea></td>
             </tr>
           </tbody>
         </table>
+
+        <!-- 하단 취소 및 복원 툴바 -->
+        <div class="editor-bottom-toolbar" style="padding: 2px 2px 0 2px;">
+          <span></span>
+          <div class="restore-group">
+            <button type="button" id="btn-undo-meta" class="btn-restore-icon" onclick="undoMeta()" disabled>↺ 취소</button>
+            <button type="button" id="btn-restore-meta" class="btn-restore-icon" onclick="restoreSavedMeta()" disabled>⟲ 최근 저장 상태로</button>
+          </div>
+        </div>
       </div>
     </div>
 
