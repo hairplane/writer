@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.9): 드래그 중인 행 실시간 추적 플로팅(translateY) 및 BOM 동기화
-[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v2.9) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.6)
+- sheet.js (v3.0): 줄바꿈 가능 영역 테두리 하이라이트 및 실시간 플로팅 안정화
+[BOM] index(v4.4) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.6)
 ========================================================================== */
 
-window._V_SHEET = "v2.9";
+window._V_SHEET = "v3.0";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -196,20 +196,35 @@ function updateCategory2Options(targetValue) {
   cat2Select.value = cat2Set.has(preferredVal) ? preferredVal : '전체';
 }
 
-// 4. 드래그 중인 항목 주변 행들의 변위(translateY) 갱신 헬퍼
+// 4. 드래그 중인 항목 주변 행들의 변위(translateY) 및 타깃 테두리 갱신 헬퍼
 function updateDynamicRowDisplacements(targetRow, insertBefore) {
   const rows = Array.from(document.querySelectorAll('.post-row-item'));
   const activeIdx = rows.findIndex(function(r) { return r === touchActiveRow; });
   const targetIdx = rows.findIndex(function(r) { return r === targetRow; });
 
+  // 1) 기존 상태 초기화
   rows.forEach(function(r) {
     if (r !== touchActiveRow) {
-      r.classList.remove('shift-up', 'shift-down');
+      r.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
+      r.style.borderColor = '';
+      r.style.boxShadow = '';
     }
   });
 
   if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) return;
 
+  // 2) 줄바꿈 가능 타깃 행에 뚜렷한 파란색 강조 테두리 적용
+  if (targetRow && targetRow !== touchActiveRow) {
+    targetRow.style.borderColor = '#2563eb';
+    targetRow.style.boxShadow = 'inset 0 0 0 1px #2563eb';
+    if (insertBefore) {
+      targetRow.classList.add('drag-over-top');
+    } else {
+      targetRow.classList.add('drag-over-bottom');
+    }
+  }
+
+  // 3) 주변 행 위치 이동 애니메이션
   let destIdx = targetIdx;
   if (!insertBefore && destIdx < activeIdx) destIdx += 1;
   if (insertBefore && destIdx > activeIdx) destIdx -= 1;
@@ -228,6 +243,8 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
 function clearDynamicRowDisplacements() {
   document.querySelectorAll('.post-row-item').forEach(function(el) {
     el.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
     if (el !== touchActiveRow) {
       el.style.transform = '';
     }
