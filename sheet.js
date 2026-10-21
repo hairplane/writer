@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v2.6): 별표 버튼 클래스 분기(star-yellow, star-empty) 및 BOM 동기화
-[BOM] index(v4.2) / core.js(v1.2) / sheet.js(v2.6) / api.js(v1.1) / app.js(v2.2) / core.css(v1.2) / style.css(v2.3)
+- sheet.js (v2.7): 작성 글 목록 창 취소/복원 히스토리 스택 및 버튼 disabled 연동
+[BOM] index(v4.3) / core.js(v1.2) / sheet.js(v2.7) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v2.4)
 ========================================================================== */
 
-window._V_SHEET = "v2.6";
+window._V_SHEET = "v2.7";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -11,6 +11,10 @@ const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 let postListCache = [];
 let filterOnlyImportant = false;
 let filterOnlyHidden = false; // 선글라스 버튼: 꺼짐(공개글만), 켜짐(숨김글도 포함하여 전체 표시)
+
+// 작성 글 목록 취소/복원 히스토리 스택
+let postListHistory = [];
+let postListSavedSnapshot = null;
 
 // 드래그 앤 드롭 상태 관리 변수
 let draggedPostId = null;
@@ -28,6 +32,7 @@ function loadCachedPosts() {
     try {
       postListCache = JSON.parse(cached);
       sortPostsByOrder();
+      initPostListHistory();
       populateCategoryFilters();
       renderPostList();
     } catch (e) {
@@ -46,6 +51,7 @@ function fetchSheetPosts() {
       postListCache = response.data;
       sortPostsByOrder();
       localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+      initPostListHistory();
       populateCategoryFilters();
       renderPostList();
     }
@@ -63,6 +69,76 @@ function sortPostsByOrder() {
     const orderA = a.순서 !== undefined && a.순서 !== "" ? Number(a.순서) : 999999;
     const orderB = b.순서 !== undefined && b.순서 !== "" ? Number(b.순서) : 999999;
     return orderA - orderB;
+  });
+}
+
+// 2-2. 목록 히스토리 초기화 및 버튼 비활성화 상태 갱신
+function initPostListHistory() {
+  const snapshotStr = JSON.stringify(postListCache);
+  postListSavedSnapshot = snapshotStr;
+  postListHistory = [snapshotStr];
+  updatePostListToolbarButtons();
+}
+
+function pushPostListHistory() {
+  const currentSnap = JSON.stringify(postListCache);
+  if (postListHistory[postListHistory.length - 1] !== currentSnap) {
+    postListHistory.push(currentSnap);
+    if (postListHistory.length > 50) postListHistory.shift();
+  }
+  updatePostListToolbarButtons();
+}
+
+function updatePostListToolbarButtons() {
+  const undoBtn = $('btn-undo-postList');
+  const restoreBtn = $('btn-restore-postList');
+  if (!undoBtn || !restoreBtn) return;
+
+  const canUndo = postListHistory.length > 1;
+  const currentSnap = JSON.stringify(postListCache);
+  const canRestore = postListSavedSnapshot && (currentSnap !== postListSavedSnapshot);
+
+  undoBtn.disabled = !canUndo;
+  restoreBtn.disabled = !canRestore;
+}
+
+// 2-3. 목록 창 취소(Undo) 및 최근 저장 상태로(Restore)
+function undoPostList() {
+  if (postListHistory.length > 1) {
+    postListHistory.pop();
+    const prevSnap = postListHistory[postListHistory.length - 1];
+    postListCache = JSON.parse(prevSnap);
+    sortPostsByOrder();
+    localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+    renderPostList();
+    updatePostListToolbarButtons();
+
+    // 동기화
+    postListCache.forEach(function(post) {
+      sendPostMetaUpdate(post);
+    });
+  } else {
+    alert('되돌릴 이전 목록 변경 내역이 없습니다.');
+  }
+}
+
+function restoreSavedPostList() {
+  if (!postListSavedSnapshot) return;
+  const currentSnap = JSON.stringify(postListCache);
+  if (currentSnap === postListSavedSnapshot) {
+    return alert('이미 최근 저장된 목록 상태와 동일합니다.');
+  }
+
+  postListHistory.push(postListSavedSnapshot);
+  postListCache = JSON.parse(postListSavedSnapshot);
+  sortPostsByOrder();
+  localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  renderPostList();
+  updatePostListToolbarButtons();
+
+  // 동기화
+  postListCache.forEach(function(post) {
+    sendPostMetaUpdate(post);
   });
 }
 
@@ -372,9 +448,10 @@ function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList
     post.순서 = slotNumbers[idx];
   });
 
-  // 4. 전체 캐시 정렬 및 로컬 즉시 저장
+  // 4. 전체 캐시 정렬 및 로컬 즉시 저장 + 히스토리 등록
   sortPostsByOrder();
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  pushPostListHistory();
   renderPostList();
 
   // 5. 변경된 글들의 신규 순서 구글 시트 백그라운드 동기화
@@ -400,6 +477,7 @@ function togglePostStatus(post) {
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  pushPostListHistory();
   renderPostList();
   sendPostMetaUpdate(post);
 }
@@ -418,6 +496,7 @@ function togglePostImportant(post) {
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  pushPostListHistory();
   renderPostList();
   sendPostMetaUpdate(post);
 }
@@ -436,6 +515,7 @@ function togglePostHidden(post) {
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+  pushPostListHistory();
   renderPostList();
   sendPostMetaUpdate(post);
 }
