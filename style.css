@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.4): 메타 테이블 열 너비(제목 기준) 균일화 및 YYYYMMDD 날짜 중앙 정렬
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.4)
+- style.css (v3.5): 상황/분류1/분류2 및 시작/완료/경과 3등분 균등 분할 및 th 폭 32px 통일
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.5)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.4";
+  --v-style-css: "v3.5";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -635,17 +635,23 @@ header.mac-window-header {
   box-sizing: border-box;
 }
 
-/* 7-1. 라벨(th) 최소폭(32px) 고정 및 3분할 열 너비 균등 분할 */
-.meta-th-fixed {
-  width: 32px;
+/* 7-1. 6개 열(라벨 3개 + 데이터 3개) 엄격한 3등분(33.33%) 레이아웃 */
+.meta-th-fixed,
+.meta-grid-table th {
+  width: 32px !important;
+  max-width: 32px !important;
+  min-width: 32px !important;
 }
 
 .meta-row-trio th {
-  width: 32px;
+  width: 32px !important;
+  max-width: 32px !important;
+  min-width: 32px !important;
 }
 
 .meta-row-trio td {
-  width: calc((100% - 96px) / 3);
+  width: calc((100% - 96px) / 3) !important;
+  max-width: calc((100% - 96px) / 3) !important;
 }
 
 /* 날짜 및 경과일 셀 텍스트 정중앙 정렬 */
