@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.0): 작성 글 정보 창 개편에 따른 메타데이터 양방향 동기화 연동 및 BOM 갱신
-[BOM] index(v4.5) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0)
+- sheet.js (v3.1): 시작일/요약 컬럼 매핑 교정, 구글 시트 영구 삭제 통신(deletePostFromSheet) 추가 및 BOM 동기화
+[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.1) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
 ========================================================================== */
 
-window._V_SHEET = "v3.0";
+window._V_SHEET = "v3.1";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -122,7 +122,11 @@ function undoPostList() {
       sendPostMetaUpdate(post);
     });
   } else {
-    alert('되돌릴 이전 목록 변경 내역이 없습니다.');
+    if (typeof showMacAlert === 'function') {
+      showMacAlert('안내', '되돌릴 이전 목록 변경 내역이 없습니다.');
+    } else {
+      alert('되돌릴 이전 목록 변경 내역이 없습니다.');
+    }
   }
 }
 
@@ -130,7 +134,11 @@ function restoreSavedPostList() {
   if (!postListSavedSnapshot) return;
   const currentSnap = JSON.stringify(postListCache);
   if (currentSnap === postListSavedSnapshot) {
-    return alert('이미 최근 저장된 목록 상태와 동일합니다.');
+    if (typeof showMacAlert === 'function') {
+      return showMacAlert('안내', '이미 최근 저장된 목록 상태와 동일합니다.');
+    } else {
+      return alert('이미 최근 저장된 목록 상태와 동일합니다.');
+    }
   }
 
   postListHistory.push(postListSavedSnapshot);
@@ -217,7 +225,6 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
   });
 
   if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) {
-    // 줄바꿈 영역이 아니면 잡고 있는 줄의 녹색 해제 (노란색 유지)
     if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
     return;
   }
@@ -373,7 +380,7 @@ function renderPostList() {
     dragHandle.title = '끌어서 순서 이동';
     dragHandle.setAttribute('draggable', 'false');
 
-    // --- 데스크톱 일반 마우스 드래그 fallback ---
+    // 데스크톱 마우스 드래그 fallback
     dragHandle.addEventListener('mousedown', function() {
       dragHandle.setAttribute('draggable', 'true');
     });
@@ -428,12 +435,11 @@ function renderPostList() {
       handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
     });
 
-    // --- 모바일 터치 및 PC 에뮬레이터 실시간 플로팅 추적 ---
+    // 모바일 터치 이벤트 핸들러
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
       if (e.cancelable) e.preventDefault();
 
-      // 전역 스크롤(document 단위) 완전 차단 이벤트 등록
       document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
 
       const listContainer = $('list_postRows');
@@ -472,7 +478,6 @@ function renderPostList() {
     }, { passive: false });
 
     dragHandle.addEventListener('touchend', function() {
-      // 전역 스크롤 차단 해제
       document.removeEventListener('touchmove', preventGlobalScroll);
 
       const listContainer = $('list_postRows');
@@ -618,7 +623,7 @@ function togglePostHidden(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
+// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송 (I열: 요약, J열: 작성시작일, K열: 작성완료일 매핑 동기화)
 function sendPostMetaUpdate(post) {
   fetch(GAS_ENDPOINT, {
     method: "POST",
@@ -647,6 +652,25 @@ function sendPostMetaUpdate(post) {
     })
   }).catch(function(err) {
     console.warn("[sheet.js] 메타 백그라운드 동기화 실패:", err);
+  });
+}
+
+// 5-4. 구글 시트 글 영구 삭제 백엔드 전송
+function deletePostFromSheet(postId) {
+  if (!postId) return;
+  fetch(GAS_ENDPOINT, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "delete",
+      ID: postId,
+      id: postId
+    })
+  }).then(function() {
+    fetchSheetPosts();
+  }).catch(function(err) {
+    console.warn("[sheet.js] 구글 시트 글 삭제 전송 실패:", err);
   });
 }
 
