@@ -1,5 +1,5 @@
-<!-- - index.html (v5.0): 제목행 사각형 아이콘, 2행 3분할(상황/분류1/분류2) 및 3행 2분할(시작일/완료일) 균등 배치, 소제목 줄 삭제 버튼 및 Mac 스타일 커스텀 모달 구조 정비 -->
-<!-- [BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0) -->
+<!-- - index.html (v5.1): 소제목 버튼 재배치(새글작성 중앙/삭제 우측), 분류1·분류2 셀렉트 메뉴화, 3행(시작/완료/경과) 3분할 개편 및 BOM 동기화 -->
+<!-- [BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.2) / core.css(v1.2) / style.css(v3.1) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.0</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.1</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -95,15 +95,20 @@
     <!-- 2. 작성 글 정보(메타) 섹션 -->
     <div class="meta-table-box" id="sec_meta">
       <div class="meta-table-header" id="hdr_meta">
+        <!-- 좌측: 토글, 제목, 적용, 새글뱃지 -->
         <div class="section-header-left">
           <button type="button" id="arrow_meta" class="btn-section-toggle" title="열림/숨김">−</button>
           <span class="section-title" id="title_meta" title="클릭 시 단독 집중 모드">작성 글 정보</span>
           <button type="button" id="btn-meta-apply" class="btn-meta-apply" title="수정 내용을 목록 및 구글 시트에 즉시 반영">적용</button>
           <span class="badge-new-mode" id="badgeNewMode">새 글 작성 중</span>
         </div>
-        <div style="display:flex; align-items:center; gap:4px;">
-          <button type="button" id="btn-meta-delete" class="btn-meta-delete" title="현재 글을 목록 및 DB에서 영구 삭제">🗑️ 삭제</button>
+        <!-- 중앙: 새 글 작성 버튼 -->
+        <div class="section-header-center">
           <button type="button" id="btn-new-post" class="btn-new-post" title="신규 글 작성 모드로 전환">✚ 새 글 작성</button>
+        </div>
+        <!-- 우측 끝: 삭제 버튼 -->
+        <div class="section-header-right">
+          <button type="button" id="btn-meta-delete" class="btn-meta-delete" title="현재 글을 목록 및 DB에서 영구 삭제">🗑️ 삭제</button>
         </div>
       </div>
 
@@ -123,11 +128,11 @@
                 </div>
               </td>
             </tr>
-            <!-- 2행: 상황(33.3%), 분류1(33.3%), 분류2(33.3%) 균등 3분할 -->
+            <!-- 2행: 상황, 분류1, 분류2 드롭다운 3분할 -->
             <tr class="meta-row-trio">
               <th>상황</th>
               <td>
-                <select id="postStatusSelect" class="select-filter-compact" style="width:100%; border:none; background:transparent;">
+                <select id="postStatusSelect" class="select-filter-compact meta-select">
                   <option value="구상중">구상중</option>
                   <option value="대기중">대기중</option>
                   <option value="작성중">작성중</option>
@@ -135,16 +140,26 @@
                 </select>
               </td>
               <th>분류1</th>
-              <td><input type="text" id="postCategory1" placeholder="분류1"></td>
+              <td>
+                <select id="postCategory1Select" class="select-filter-compact meta-select">
+                  <option value="미분류">미분류</option>
+                </select>
+              </td>
               <th>분류2</th>
-              <td><input type="text" id="postCategory2" placeholder="분류2"></td>
+              <td>
+                <select id="postCategory2Select" class="select-filter-compact meta-select">
+                  <option value="미분류">미분류</option>
+                </select>
+              </td>
             </tr>
-            <!-- 3행: 시작일(50%), 완료일(50%) 균등 2분할 -->
-            <tr class="meta-row-duo">
-              <th>시작일</th>
-              <td colspan="2"><input type="text" id="postStartDate" placeholder="YYYYMMDD"></td>
-              <th>완료일</th>
-              <td colspan="2"><input type="text" id="postEndDate" placeholder="YYYYMMDD"></td>
+            <!-- 3행: 시작, 완료, 경과 3분할 -->
+            <tr class="meta-row-trio">
+              <th>시작</th>
+              <td><input type="text" id="postStartDate" placeholder="YYYYMMDD"></td>
+              <th>완료</th>
+              <td><input type="text" id="postEndDate" placeholder="YYYYMMDD"></td>
+              <th>경과</th>
+              <td><input type="text" id="postElapsedDays" placeholder="-" readonly style="color: #64748b; font-weight: 600; text-align: center;"></td>
             </tr>
             <!-- 4행: 요약 -->
             <tr>
