@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.1): 시작일/요약 컬럼 매핑 교정, 구글 시트 영구 삭제 통신(deletePostFromSheet) 추가 및 BOM 동기화
-[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.1) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
+- sheet.js (v3.2): 스크립트 로드 순서 의존성 에러(selectPost/showUnsavedModal 안전 가드) 수정 및 BOM 동기화
+[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
 ========================================================================== */
 
-window._V_SHEET = "v3.1";
+window._V_SHEET = "v3.2";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -95,6 +95,7 @@ function pushPostListHistory() {
 }
 
 function updatePostListToolbarButtons() {
+  if (typeof $ !== 'function') return;
   const undoBtn = $('btn-undo-postList');
   const restoreBtn = $('btn-restore-postList');
   if (!undoBtn || !restoreBtn) return;
@@ -155,6 +156,7 @@ function restoreSavedPostList() {
 
 // 3. 분류1 및 분류2 드롭다운 동적 생성 및 연동
 function populateCategoryFilters() {
+  if (typeof $ !== 'function') return;
   const cat1Select = $('category1Filter');
   const cat2Select = $('category2Filter');
   if (!cat1Select || !cat2Select) return;
@@ -181,6 +183,7 @@ function populateCategoryFilters() {
 }
 
 function updateCategory2Options(targetValue) {
+  if (typeof $ !== 'function') return;
   const cat1Select = $('category1Filter');
   const cat2Select = $('category2Filter');
   if (!cat1Select || !cat2Select) return;
@@ -274,6 +277,7 @@ function clearDynamicRowDisplacements() {
 
 // 5. 작성 글 목록 DOM 렌더링 (순서: [⭐/☆] [상황버튼] [제목] [🕶️/👓] [⠿])
 function renderPostList() {
+  if (typeof $ !== 'function') return;
   const grid = $('list_postRows') || $('body_postList');
   if (!grid) return;
 
@@ -308,6 +312,8 @@ function renderPostList() {
     return;
   }
 
+  const activePostId = (typeof currentPostId !== 'undefined') ? currentPostId : null;
+
   filtered.forEach(function(post) {
     const postId = post.ID || post.id || '';
     const postTitle = post.제목 || post.title || '(제목 없음)';
@@ -316,7 +322,7 @@ function renderPostList() {
     const isHidden = String(post.숨김 || post.hidden || 'N').trim().toUpperCase() === 'Y';
 
     const row = document.createElement('div');
-    row.className = 'post-row-item' + (currentPostId === postId ? ' active' : '');
+    row.className = 'post-row-item' + (activePostId === postId ? ' active' : '');
     row.setAttribute('data-id', postId);
 
     // [1] 중요 별표 토글 버튼
@@ -352,13 +358,21 @@ function renderPostList() {
     titleArea.innerHTML = '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
 
     titleArea.onclick = function() {
-      if (isDirty) {
+      const hasUnsaved = (typeof isDirty !== 'undefined') && isDirty;
+      if (hasUnsaved && typeof showUnsavedModal === 'function') {
         showUnsavedModal(
-          function() { saveWork('stay'); selectPost(post); },
-          function() { selectPost(post); }
+          function() {
+            if (typeof saveWork === 'function') saveWork('stay');
+            if (typeof selectPost === 'function') selectPost(post);
+          },
+          function() {
+            if (typeof selectPost === 'function') selectPost(post);
+          }
         );
       } else {
-        selectPost(post);
+        if (typeof selectPost === 'function') {
+          selectPost(post);
+        }
       }
     };
 
@@ -570,10 +584,13 @@ function togglePostStatus(post) {
   post.상황 = nextStatus;
   post.status = nextStatus;
 
-  if (currentPostId === (post.ID || post.id)) {
-    currentPostStatus = nextStatus;
-    const statusSelect = $('postStatusSelect');
-    if (statusSelect) statusSelect.value = nextStatus;
+  const activePostId = (typeof currentPostId !== 'undefined') ? currentPostId : null;
+  if (activePostId === (post.ID || post.id)) {
+    if (typeof currentPostStatus !== 'undefined') currentPostStatus = nextStatus;
+    if (typeof $ === 'function') {
+      const statusSelect = $('postStatusSelect');
+      if (statusSelect) statusSelect.value = nextStatus;
+    }
     if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
 
@@ -591,8 +608,9 @@ function togglePostImportant(post) {
   post.중요 = next;
   post.important = next;
 
-  if (currentPostId === (post.ID || post.id)) {
-    currentPostImportant = next;
+  const activePostId = (typeof currentPostId !== 'undefined') ? currentPostId : null;
+  if (activePostId === (post.ID || post.id)) {
+    if (typeof currentPostImportant !== 'undefined') currentPostImportant = next;
     if (typeof updateMetaIcons === 'function') updateMetaIcons();
     if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
@@ -611,8 +629,9 @@ function togglePostHidden(post) {
   post.숨김 = next;
   post.hidden = next;
 
-  if (currentPostId === (post.ID || post.id)) {
-    currentPostHidden = next;
+  const activePostId = (typeof currentPostId !== 'undefined') ? currentPostId : null;
+  if (activePostId === (post.ID || post.id)) {
+    if (typeof currentPostHidden !== 'undefined') currentPostHidden = next;
     if (typeof updateMetaIcons === 'function') updateMetaIcons();
     if (typeof pushMetaHistory === 'function') pushMetaHistory();
   }
@@ -623,7 +642,7 @@ function togglePostHidden(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송 (I열: 요약, J열: 작성시작일, K열: 작성완료일 매핑 동기화)
+// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
 function sendPostMetaUpdate(post) {
   fetch(GAS_ENDPOINT, {
     method: "POST",
