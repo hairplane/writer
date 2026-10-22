@@ -1,5 +1,5 @@
-<!-- - index.html (v5.1): 소제목 버튼 재배치(새글작성 중앙/삭제 우측), 분류1·분류2 셀렉트 메뉴화, 3행(시작/완료/경과) 3분할 개편 및 BOM 동기화 -->
-<!-- [BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.2) / core.css(v1.2) / style.css(v3.1) -->
+<!-- - index.html (v5.2): colgroup 명시적 열 너비 강제 고정(th 32px / 입력칸 3등분) 및 BOM 동기화 -->
+<!-- [BOM] index(v5.2) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.5) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.1</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.2</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -114,6 +114,15 @@
 
       <div class="meta-content-wrap" id="body_meta">
         <table class="meta-grid-table">
+          <!-- 6개 열(라벨 32px / 입력칸 균등 3분할) 강제 고정 -->
+          <colgroup>
+            <col style="width: 32px;">
+            <col style="width: calc((100% - 96px) / 3);">
+            <col style="width: 32px;">
+            <col style="width: calc((100% - 96px) / 3);">
+            <col style="width: 32px;">
+            <col style="width: calc((100% - 96px) / 3);">
+          </colgroup>
           <tbody>
             <!-- 1행: 제목 + 사각형 중요/숨김 토글 버튼 -->
             <tr>
