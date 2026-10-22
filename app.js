@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.3): 분류1·2 드롭다운(미분류 기본) 연동, 시작/완료 기반 경과일수 자동 계산 및 BOM 동기화
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.3) / core.css(v1.2) / style.css(v3.2)
+- app.js (v3.4): 시작일/요약 데이터 바인딩 역전 교정, 날짜 입력 즉시 경과 계산 연동 및 BOM 동기화
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.4) / core.css(v1.2) / style.css(v3.3)
 ========================================================================== */
 
-window._V_APP = "v3.3";
+window._V_APP = "v3.4";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -441,18 +441,14 @@ function updateElapsedDays() {
     targetDate = new Date();
   }
 
-  // 날짜 비교 (자정 기준)
+  // 자정 기준 날짜 차이 계산
   const dStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate());
   const dTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
   const diffMs = dTarget - dStart;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays >= 0) {
-    elapsedEl.value = diffDays + '일';
-  } else {
-    elapsedEl.value = diffDays + '일';
-  }
+  elapsedEl.value = diffDays + '일';
 }
 
 // 2-1. '작성 글 정보' 창의 분류1, 분류2 드롭다운 옵션 동적 구성 (미분류 최상단)
@@ -844,7 +840,7 @@ function exitNewPostMode() {
   if (btnMetaDel) btnMetaDel.style.display = 'inline-flex';
 }
 
-// 5. 게시글 선택 및 로드
+// 5. 게시글 선택 및 로드 (시작일/요약 번지수 역전 원천 교정)
 function selectPost(post) {
   exitNewPostMode();
 
@@ -861,15 +857,14 @@ function selectPost(post) {
   const c2Val = post.분류2 || post.category2 || '미분류';
   populateMetaCategoryDropdowns(c1Val, c2Val);
 
-  if ($('postStartDate')) {
-    $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
-  }
-  if ($('postEndDate')) {
-    $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
-  }
-  if ($('postSummary')) {
-    $('postSummary').value = post.요약 || post.summary || '';
-  }
+  // 시트 I열: 작성시작일, J열: 작성완료일, K열: 요약 정확히 1:1 매핑
+  const sDate = post.작성시작일 || post['작성 시작일'] || post['작성\n시작일'] || post.startDate || '';
+  const eDate = post.작성완료일 || post['작성 완료일'] || post['작성\n완료일'] || post.endDate || '';
+  const sumText = post.요약 || post.summary || '';
+
+  if ($('postStartDate')) $('postStartDate').value = sDate;
+  if ($('postEndDate')) $('postEndDate').value = eDate;
+  if ($('postSummary')) $('postSummary').value = sumText;
 
   updateMetaIcons();
   updateElapsedDays();
@@ -1090,11 +1085,27 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 메타 인풋 필드 변경 감지 및 히스토리 스택 연동
-  ['essayTitleInput', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
+  // 메타 인풋 필드 변경 감지 및 히스토리 스택/실시간 경과 연동
+  ['essayTitleInput', 'postSummary'].forEach(function(id) {
     const el = $(id);
     if (el) el.oninput = pushMetaHistory;
   });
+
+  const postStartEl = $('postStartDate');
+  if (postStartEl) {
+    postStartEl.oninput = function() {
+      updateElapsedDays();
+      pushMetaHistory();
+    };
+  }
+
+  const postEndEl = $('postEndDate');
+  if (postEndEl) {
+    postEndEl.oninput = function() {
+      updateElapsedDays();
+      pushMetaHistory();
+    };
+  }
 
   const postStatusSelect = $('postStatusSelect');
   if (postStatusSelect) {
