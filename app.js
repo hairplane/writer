@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.5): 작성시작일/요약 데이터 매핑 역전 및 지능형 값 스왑 보정, 실시간 경과 일수 계산 연동, BOM 동기화
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.3)
+- app.js (v3.6): 메타 창 분류1 변경 시 분류2 동적 종속 필터링 연동 및 최신 BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_APP = "v3.5";
+window._V_APP = "v3.6";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -451,24 +451,58 @@ function updateElapsedDays() {
   elapsedEl.value = diffDays + '일';
 }
 
-// 2-1. '작성 글 정보' 창의 분류1, 분류2 드롭다운 옵션 동적 구성 (미분류 최상단)
-function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
+// 2-1. '작성 글 정보' 창의 분류1 및 분류2 드롭다운 옵션 동적 구성 (분류1 종속 필터링 연동)
+function updateMetaCategory2Options(preferredVal) {
   const c1Select = $('postCategory1Select');
   const c2Select = $('postCategory2Select');
-  if (!c1Select || !c2Select) return;
+  if (!c2Select) return;
 
-  const curC1 = selectedCat1 || c1Select.value || '미분류';
-  const curC2 = selectedCat2 || c2Select.value || '미분류';
-
-  const c1Set = new Set();
+  const selectedC1 = c1Select ? c1Select.value : '미분류';
+  const targetVal = preferredVal || c2Select.value || '미분류';
   const c2Set = new Set();
 
   if (Array.isArray(postListCache)) {
     postListCache.forEach(function(item) {
       const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
       const c2 = (item.분류2 || item.category2 || '').trim();
+      if (!c2 || c2 === '미분류') return;
+
+      if (!selectedC1 || selectedC1 === '미분류' || c1 === selectedC1) {
+        c2Set.add(c2);
+      }
+    });
+  }
+
+  c2Select.innerHTML = '<option value="미분류">미분류</option>';
+  Array.from(c2Set).sort().forEach(function(val) {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.innerText = val;
+    c2Select.appendChild(opt);
+  });
+
+  if (targetVal && targetVal !== '미분류' && !c2Set.has(targetVal)) {
+    const opt = document.createElement('option');
+    opt.value = targetVal;
+    opt.innerText = targetVal;
+    c2Select.appendChild(opt);
+  }
+
+  c2Select.value = targetVal;
+}
+
+function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
+  const c1Select = $('postCategory1Select');
+  if (!c1Select) return;
+
+  const curC1 = selectedCat1 || c1Select.value || '미분류';
+  const curC2 = selectedCat2 || ($('postCategory2Select') ? $('postCategory2Select').value : '미분류');
+
+  const c1Set = new Set();
+  if (Array.isArray(postListCache)) {
+    postListCache.forEach(function(item) {
+      const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
       if (c1 && c1 !== '미분류') c1Set.add(c1);
-      if (c2 && c2 !== '미분류') c2Set.add(c2);
     });
   }
 
@@ -480,6 +514,7 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
     opt.innerText = val;
     c1Select.appendChild(opt);
   });
+
   if (curC1 && curC1 !== '미분류' && !c1Set.has(curC1)) {
     const opt = document.createElement('option');
     opt.value = curC1;
@@ -488,21 +523,8 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
   }
   c1Select.value = curC1;
 
-  // 분류2 옵션 구축
-  c2Select.innerHTML = '<option value="미분류">미분류</option>';
-  Array.from(c2Set).sort().forEach(function(val) {
-    const opt = document.createElement('option');
-    opt.value = val;
-    opt.innerText = val;
-    c2Select.appendChild(opt);
-  });
-  if (curC2 && curC2 !== '미분류' && !c2Set.has(curC2)) {
-    const opt = document.createElement('option');
-    opt.value = curC2;
-    opt.innerText = curC2;
-    c2Select.appendChild(opt);
-  }
-  c2Select.value = curC2;
+  // 분류1에 종속된 분류2 옵션 구축
+  updateMetaCategory2Options(curC2);
 }
 
 // 2-2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
@@ -1035,6 +1057,7 @@ window.saveWork = saveWork;
 window.showMacAlert = showMacAlert;
 window.showMacConfirm = showMacConfirm;
 window.populateMetaCategoryDropdowns = populateMetaCategoryDropdowns;
+window.updateMetaCategory2Options = updateMetaCategory2Options;
 
 // 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
@@ -1141,8 +1164,14 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
+  // 분류1 변경 시: 분류2 옵션 동적 재구성 및 히스토리 갱신
   const postCat1 = $('postCategory1Select');
-  if (postCat1) postCat1.onchange = pushMetaHistory;
+  if (postCat1) {
+    postCat1.onchange = function() {
+      updateMetaCategory2Options('미분류');
+      pushMetaHistory();
+    };
+  }
 
   const postCat2 = $('postCategory2Select');
   if (postCat2) postCat2.onchange = pushMetaHistory;
