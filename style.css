@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.3): 드롭다운 기본 화살표 숨김, th 최소폭(32px) 축소 및 8자리 날짜 입력칸 공간 최적화
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.3) / core.css(v1.2) / style.css(v3.3)
+- style.css (v3.4): 메타 테이블 열 너비(제목 기준) 균일화 및 YYYYMMDD 날짜 중앙 정렬
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.4)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.3";
+  --v-style-css: "v3.4";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -635,9 +635,9 @@ header.mac-window-header {
   box-sizing: border-box;
 }
 
-/* 7-1. 라벨(th) 폭 최소화(32px) 및 입력칸(td) 너비 극대화 */
+/* 7-1. 라벨(th) 최소폭(32px) 고정 및 3분할 열 너비 균등 분할 */
 .meta-th-fixed {
-  width: 36px;
+  width: 32px;
 }
 
 .meta-row-trio th {
@@ -648,7 +648,12 @@ header.mac-window-header {
   width: calc((100% - 96px) / 3);
 }
 
-/* 드롭다운 기본 화살표 숨김 (텍스트 가림 완전 해소) */
+/* 날짜 및 경과일 셀 텍스트 정중앙 정렬 */
+#postStartDate, #postEndDate, #postElapsedDays {
+  text-align: center;
+}
+
+/* 드롭다운 기본 화살표 숨김 */
 .meta-select {
   width: 100%;
   height: 22px;
@@ -670,7 +675,7 @@ header.mac-window-header {
   border-radius: 2px;
 }
 
-/* 7-2. 소제목 줄 3단 분할 (좌측 정보/적용, 중앙 새글작성, 우측 삭제) */
+/* 7-2. 소제목 줄 3단 분할 */
 .meta-table-header {
   display: flex;
   align-items: center;
