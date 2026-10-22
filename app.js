@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.2): 템플릿 리터럴 호환성 개선, sheet.js 연동 전역 바인딩 보강 및 BOM 동기화
-[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.2) / core.css(v1.2) / style.css(v3.1)
+- app.js (v3.3): 분류1·2 드롭다운(미분류 기본) 연동, 시작/완료 기반 경과일수 자동 계산 및 BOM 동기화
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.3) / core.css(v1.2) / style.css(v3.2)
 ========================================================================== */
 
-window._V_APP = "v3.2";
+window._V_APP = "v3.3";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -404,13 +404,118 @@ function appendDraftToCompleted() {
   });
 }
 
-// 2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
+// 2. '경과' 일수 자동 계산 헬퍼
+function parseCustomDate(str) {
+  if (!str) return null;
+  const cleaned = String(str).replace(/[^0-9]/g, '');
+  if (cleaned.length === 8) {
+    const y = parseInt(cleaned.substring(0, 4), 10);
+    const m = parseInt(cleaned.substring(4, 6), 10) - 1;
+    const d = parseInt(cleaned.substring(6, 8), 10);
+    const dateObj = new Date(y, m, d);
+    if (!isNaN(dateObj.getTime())) return dateObj;
+  }
+  const fallback = new Date(str);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function updateElapsedDays() {
+  const elapsedEl = $('postElapsedDays');
+  if (!elapsedEl) return;
+
+  const sVal = $('postStartDate') ? $('postStartDate').value.trim() : '';
+  const eVal = $('postEndDate') ? $('postEndDate').value.trim() : '';
+  const status = $('postStatusSelect') ? $('postStatusSelect').value.trim() : '구상중';
+
+  const sDate = parseCustomDate(sVal);
+  if (!sDate) {
+    elapsedEl.value = '-';
+    return;
+  }
+
+  let targetDate;
+  if (status === '완료') {
+    const eDate = parseCustomDate(eVal);
+    targetDate = eDate || new Date();
+  } else {
+    targetDate = new Date();
+  }
+
+  // 날짜 비교 (자정 기준)
+  const dStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate());
+  const dTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+
+  const diffMs = dTarget - dStart;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays >= 0) {
+    elapsedEl.value = diffDays + '일';
+  } else {
+    elapsedEl.value = diffDays + '일';
+  }
+}
+
+// 2-1. '작성 글 정보' 창의 분류1, 분류2 드롭다운 옵션 동적 구성 (미분류 최상단)
+function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
+  const c1Select = $('postCategory1Select');
+  const c2Select = $('postCategory2Select');
+  if (!c1Select || !c2Select) return;
+
+  const curC1 = selectedCat1 || c1Select.value || '미분류';
+  const curC2 = selectedCat2 || c2Select.value || '미분류';
+
+  const c1Set = new Set();
+  const c2Set = new Set();
+
+  if (Array.isArray(postListCache)) {
+    postListCache.forEach(function(item) {
+      const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
+      const c2 = (item.분류2 || item.category2 || '').trim();
+      if (c1 && c1 !== '미분류') c1Set.add(c1);
+      if (c2 && c2 !== '미분류') c2Set.add(c2);
+    });
+  }
+
+  // 분류1 옵션 구축
+  c1Select.innerHTML = '<option value="미분류">미분류</option>';
+  Array.from(c1Set).sort().forEach(function(val) {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.innerText = val;
+    c1Select.appendChild(opt);
+  });
+  if (curC1 && curC1 !== '미분류' && !c1Set.has(curC1)) {
+    const opt = document.createElement('option');
+    opt.value = curC1;
+    opt.innerText = curC1;
+    c1Select.appendChild(opt);
+  }
+  c1Select.value = curC1;
+
+  // 분류2 옵션 구축
+  c2Select.innerHTML = '<option value="미분류">미분류</option>';
+  Array.from(c2Set).sort().forEach(function(val) {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.innerText = val;
+    c2Select.appendChild(opt);
+  });
+  if (curC2 && curC2 !== '미분류' && !c2Set.has(curC2)) {
+    const opt = document.createElement('option');
+    opt.value = curC2;
+    opt.innerText = curC2;
+    c2Select.appendChild(opt);
+  }
+  c2Select.value = curC2;
+}
+
+// 2-2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
 function getMetaSnapshot() {
   return JSON.stringify({
     title: $('essayTitleInput') ? $('essayTitleInput').value : '',
     status: $('postStatusSelect') ? $('postStatusSelect').value : '구상중',
-    cat1: $('postCategory1') ? $('postCategory1').value : '미분류',
-    cat2: $('postCategory2') ? $('postCategory2').value : '미분류',
+    cat1: $('postCategory1Select') ? $('postCategory1Select').value : '미분류',
+    cat2: $('postCategory2Select') ? $('postCategory2Select').value : '미분류',
     startDate: $('postStartDate') ? $('postStartDate').value : '',
     endDate: $('postEndDate') ? $('postEndDate').value : '',
     summary: $('postSummary') ? $('postSummary').value : '',
@@ -424,8 +529,7 @@ function applyMetaSnapshot(snapStr) {
     const data = JSON.parse(snapStr);
     if ($('essayTitleInput')) $('essayTitleInput').value = data.title;
     if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
-    if ($('postCategory1')) $('postCategory1').value = data.cat1;
-    if ($('postCategory2')) $('postCategory2').value = data.cat2;
+    populateMetaCategoryDropdowns(data.cat1, data.cat2);
     if ($('postStartDate')) $('postStartDate').value = data.startDate;
     if ($('postEndDate')) $('postEndDate').value = data.endDate;
     if ($('postSummary')) $('postSummary').value = data.summary;
@@ -433,6 +537,7 @@ function applyMetaSnapshot(snapStr) {
     currentPostImportant = data.important;
     currentPostHidden = data.hidden;
     updateMetaIcons();
+    updateElapsedDays();
   } catch (e) {
     console.error("[app.js] 메타 스냅샷 복원 실패:", e);
   }
@@ -447,6 +552,7 @@ function initMetaHistory() {
 
 function pushMetaHistory() {
   markDirty();
+  updateElapsedDays();
   const snap = getMetaSnapshot();
   if (metaHistory[metaHistory.length - 1] !== snap) {
     metaHistory.push(snap);
@@ -476,7 +582,6 @@ function undoMeta() {
     markDirty();
     updateMetaToolbarButtons();
   } else {
-    // 새 글 작성 모드에서 취소할 내역이 없으면 이전 글로 복귀
     if (isNewPostMode && previousPostBackup) {
       selectPost(previousPostBackup);
     } else {
@@ -533,8 +638,8 @@ function applyMetaChanges() {
   if (!titleVal) return showMacAlert('확인 필요', '글 제목을 입력해주세요.');
 
   const statusVal = $('postStatusSelect').value;
-  const c1Val = $('postCategory1').value.trim() || '미분류';
-  const c2Val = $('postCategory2').value.trim() || '미분류';
+  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value : '미분류';
+  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value : '미분류';
   const sDate = $('postStartDate').value.trim();
   const eDate = $('postEndDate').value.trim();
   const summaryVal = $('postSummary').value.trim();
@@ -544,7 +649,6 @@ function applyMetaChanges() {
     currentPostId = "ID_" + new Date().getTime();
     currentPostOrder = 1;
 
-    // 기존 목록들의 순서 1칸씩 밀기
     postListCache.forEach(function(p) {
       if (p.순서 !== undefined && p.순서 !== "") {
         p.순서 = Number(p.순서) + 1;
@@ -616,6 +720,7 @@ function applyMetaChanges() {
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   if (typeof pushPostListHistory === 'function') pushPostListHistory();
   if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
+  populateMetaCategoryDropdowns(c1Val, c2Val);
   renderPostList();
 
   // 구글 시트 백그라운드 전송
@@ -626,10 +731,11 @@ function applyMetaChanges() {
 
   metaSavedSnapshot = getMetaSnapshot();
   updateMetaToolbarButtons();
+  updateElapsedDays();
   showMacAlert('반영 완료', '작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
 }
 
-// 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리 (표준 문자열 결합)
+// 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리
 function deleteCurrentPost() {
   if (isNewPostMode || !currentPostId) {
     return showMacAlert('안내', '새 글 작성 중에는 삭제할 기존 글이 없습니다.');
@@ -707,13 +813,13 @@ function startNewPostSetup() {
   // 메타 정보 폼 기본값 초기화
   if ($('essayTitleInput')) $('essayTitleInput').value = '';
   if ($('postStatusSelect')) $('postStatusSelect').value = '구상중';
-  if ($('postCategory1')) $('postCategory1').value = '미분류';
-  if ($('postCategory2')) $('postCategory2').value = '미분류';
+  populateMetaCategoryDropdowns('미분류', '미분류');
   if ($('postStartDate')) $('postStartDate').value = '';
   if ($('postEndDate')) $('postEndDate').value = '';
   if ($('postSummary')) $('postSummary').value = '';
 
   updateMetaIcons();
+  updateElapsedDays();
 
   // 7개 집필 영역 비우기
   SECTION_CONFIGS.forEach(function(cfg) {
@@ -738,7 +844,7 @@ function exitNewPostMode() {
   if (btnMetaDel) btnMetaDel.style.display = 'inline-flex';
 }
 
-// 5. 게시글 선택 및 로드 (시작일/요약 매핑 엄격 분리)
+// 5. 게시글 선택 및 로드
 function selectPost(post) {
   exitNewPostMode();
 
@@ -750,10 +856,11 @@ function selectPost(post) {
 
   if ($('essayTitleInput')) $('essayTitleInput').value = post.제목 || post.title || '';
   if ($('postStatusSelect')) $('postStatusSelect').value = currentPostStatus;
-  if ($('postCategory1')) $('postCategory1').value = post.분류1 || post.category1 || post.분류 || post.category || '미분류';
-  if ($('postCategory2')) $('postCategory2').value = post.분류2 || post.category2 || '미분류';
 
-  // 시트 I열: 요약, J열: 작성 시작일, K열: 작성 완료일
+  const c1Val = post.분류1 || post.category1 || post.분류 || post.category || '미분류';
+  const c2Val = post.분류2 || post.category2 || '미분류';
+  populateMetaCategoryDropdowns(c1Val, c2Val);
+
   if ($('postStartDate')) {
     $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
   }
@@ -765,6 +872,7 @@ function selectPost(post) {
   }
 
   updateMetaIcons();
+  updateElapsedDays();
 
   $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
   $('completedText').value = post.완성글 || post['완성 글'] || post['완성\n글'] || post.completed || '';
@@ -796,8 +904,8 @@ function saveWork(mode) {
     exitNewPostMode();
   }
 
-  const c1Val = $('postCategory1') ? $('postCategory1').value.trim() : '미분류';
-  const c2Val = $('postCategory2') ? $('postCategory2').value.trim() : '미분류';
+  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value : '미분류';
+  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value : '미분류';
   const statusVal = $('postStatusSelect') ? $('postStatusSelect').value : '구상중';
 
   const payload = {
@@ -858,12 +966,12 @@ function loadSavedData() {
     if (data.endDate && $('postEndDate')) $('postEndDate').value = data.endDate;
     if (data.summary && $('postSummary')) $('postSummary').value = data.summary;
 
-    if ($('postCategory1')) $('postCategory1').value = data.category1 || data.category || '미분류';
-    if ($('postCategory2')) $('postCategory2').value = data.category2 || '미분류';
+    populateMetaCategoryDropdowns(data.category1 || data.category || '미분류', data.category2 || '미분류');
 
     if (data.important) currentPostImportant = String(data.important).toUpperCase() === 'Y' ? 'Y' : 'N';
     if (data.hidden) currentPostHidden = String(data.hidden).toUpperCase() === 'Y' ? 'Y' : 'N';
     updateMetaIcons();
+    updateElapsedDays();
 
     SECTION_CONFIGS.forEach(function(cfg) {
       if (data[cfg.key]) $(cfg.id).value = data[cfg.key];
@@ -905,6 +1013,7 @@ window.showUnsavedModal = showUnsavedModal;
 window.saveWork = saveWork;
 window.showMacAlert = showMacAlert;
 window.showMacConfirm = showMacConfirm;
+window.populateMetaCategoryDropdowns = populateMetaCategoryDropdowns;
 
 // 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
@@ -982,13 +1091,24 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   // 메타 인풋 필드 변경 감지 및 히스토리 스택 연동
-  ['essayTitleInput', 'postCategory1', 'postCategory2', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
+  ['essayTitleInput', 'postStartDate', 'postEndDate', 'postSummary'].forEach(function(id) {
     const el = $(id);
     if (el) el.oninput = pushMetaHistory;
   });
 
   const postStatusSelect = $('postStatusSelect');
-  if (postStatusSelect) postStatusSelect.onchange = pushMetaHistory;
+  if (postStatusSelect) {
+    postStatusSelect.onchange = function() {
+      updateElapsedDays();
+      pushMetaHistory();
+    };
+  }
+
+  const postCat1 = $('postCategory1Select');
+  if (postCat1) postCat1.onchange = pushMetaHistory;
+
+  const postCat2 = $('postCategory2Select');
+  if (postCat2) postCat2.onchange = pushMetaHistory;
 
   ALL_SECTION_KEYS.forEach(function(k) {
     const dot = $('dot_' + k);
