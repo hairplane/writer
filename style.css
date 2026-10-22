@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.1): 작성 글 정보 창 사각형 토글, 2행 3분할/3행 2분할 균등 폭, 삭제 버튼 및 Mac 스타일 모달 구현
-[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.1)
+- style.css (v3.2): 소제목 3단 분할(새글작성 중앙/삭제 우측), th 폭 최소화 및 메타 셀렉트 전용 스타일 적용
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.2) / core.css(v1.2) / style.css(v3.2)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.1";
+  --v-style-css: "v3.2";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -611,15 +611,16 @@ header.mac-window-header {
 .meta-grid-table th {
   background: #f8fafc;
   color: #475569;
-  padding: 4px 6px;
+  padding: 4px 2px;
   border: 1px solid var(--border-light);
   text-align: center;
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
+  white-space: nowrap;
 }
 
 .meta-grid-table td {
-  padding: 3px 6px;
+  padding: 3px 5px;
   border: 1px solid var(--border-light);
 }
 
@@ -632,28 +633,55 @@ header.mac-window-header {
   font-family: inherit;
 }
 
-/* 7-1. 폭 균등 분할 헬퍼 (2행 3분할 33.3%, 3행 2분할 50%) */
+/* 7-1. 라벨(th) 폭 최소화(38px) 및 입력칸(td) 너비 극대화 */
 .meta-th-fixed {
-  width: 58px;
+  width: 42px;
 }
 
 .meta-row-trio th {
-  width: 54px;
+  width: 38px;
 }
 
 .meta-row-trio td {
-  width: calc((100% - 162px) / 3);
+  width: calc((100% - 114px) / 3);
 }
 
-.meta-row-duo th {
-  width: 54px;
+.meta-select {
+  width: 100%;
+  height: 22px;
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  padding: 0 1px;
 }
 
-.meta-row-duo td {
-  width: calc((100% - 108px) / 2);
+.meta-select:focus {
+  background: #f8fafc;
 }
 
-/* 7-2. 소제목 줄 버튼 (적용 / 삭제 / 새 글 작성) */
+/* 7-2. 소제목 줄 3단 분할 (좌측 정보/적용, 중앙 새글작성, 우측 삭제) */
+.meta-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.section-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .btn-meta-apply {
   background: #0284c7;
   color: #ffffff;
