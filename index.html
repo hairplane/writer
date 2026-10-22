@@ -1,5 +1,5 @@
-<!-- - index.html (v4.5): 작성 글 정보 창 레이아웃 개편(적용/새글작성 버튼, 제목행 토글 아이콘, 2행 개편, 하단 툴바 추가) 및 BOM 동기화 -->
-<!-- [BOM] index(v4.5) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v2.3) / core.css(v1.2) / style.css(v3.0) -->
+<!-- - index.html (v5.0): 제목행 사각형 아이콘, 2행 3분할(상황/분류1/분류2) 및 3행 2분할(시작일/완료일) 균등 배치, 소제목 줄 삭제 버튼 및 Mac 스타일 커스텀 모달 구조 정비 -->
+<!-- [BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v4.5</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.0</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -102,6 +102,7 @@
           <span class="badge-new-mode" id="badgeNewMode">새 글 작성 중</span>
         </div>
         <div style="display:flex; align-items:center; gap:4px;">
+          <button type="button" id="btn-meta-delete" class="btn-meta-delete" title="현재 글을 목록 및 DB에서 영구 삭제">🗑️ 삭제</button>
           <button type="button" id="btn-new-post" class="btn-new-post" title="신규 글 작성 모드로 전환">✚ 새 글 작성</button>
         </div>
       </div>
@@ -109,21 +110,21 @@
       <div class="meta-content-wrap" id="body_meta">
         <table class="meta-grid-table">
           <tbody>
-            <!-- 1행: 제목 + 중요/숨김 토글 아이콘 -->
+            <!-- 1행: 제목 + 사각형 중요/숨김 토글 버튼 -->
             <tr>
-              <th>제목</th>
-              <td colspan="3">
+              <th class="meta-th-fixed">제목</th>
+              <td colspan="5">
                 <div class="meta-title-row-wrap">
                   <input type="text" id="essayTitleInput" placeholder="글 제목을 입력하세요">
                   <div class="meta-title-icons">
-                    <button type="button" id="btnMetaStar" class="btn-star-toggle star-empty" title="중요 토글">☆</button>
-                    <button type="button" id="btnMetaHidden" class="btn-hidden-toggle" title="숨김 토글">👓</button>
+                    <button type="button" id="btnMetaStar" class="btn-filter-icon" title="중요 토글">☆</button>
+                    <button type="button" id="btnMetaHidden" class="btn-filter-icon" title="숨김 토글">👓</button>
                   </div>
                 </div>
               </td>
             </tr>
-            <!-- 2행: 상황, 분류1, 분류2 -->
-            <tr>
+            <!-- 2행: 상황(33.3%), 분류1(33.3%), 분류2(33.3%) 균등 3분할 -->
+            <tr class="meta-row-trio">
               <th>상황</th>
               <td>
                 <select id="postStatusSelect" class="select-filter-compact" style="width:100%; border:none; background:transparent;">
@@ -133,25 +134,22 @@
                   <option value="완료">완료</option>
                 </select>
               </td>
-              <th>분류</th>
-              <td>
-                <div style="display:flex; gap:4px;">
-                  <input type="text" id="postCategory1" placeholder="분류1" style="flex:1;">
-                  <input type="text" id="postCategory2" placeholder="분류2" style="flex:1;">
-                </div>
-              </td>
+              <th>분류1</th>
+              <td><input type="text" id="postCategory1" placeholder="분류1"></td>
+              <th>분류2</th>
+              <td><input type="text" id="postCategory2" placeholder="분류2"></td>
             </tr>
-            <!-- 3행: 시작일, 완료일 -->
-            <tr>
+            <!-- 3행: 시작일(50%), 완료일(50%) 균등 2분할 -->
+            <tr class="meta-row-duo">
               <th>시작일</th>
-              <td><input type="text" id="postStartDate" placeholder="YYYYMMDD"></td>
+              <td colspan="2"><input type="text" id="postStartDate" placeholder="YYYYMMDD"></td>
               <th>완료일</th>
-              <td><input type="text" id="postEndDate" placeholder="YYYYMMDD"></td>
+              <td colspan="2"><input type="text" id="postEndDate" placeholder="YYYYMMDD"></td>
             </tr>
             <!-- 4행: 요약 -->
             <tr>
               <th>요약</th>
-              <td colspan="3"><textarea id="postSummary" rows="2" placeholder="글의 핵심 요약을 기록하세요"></textarea></td>
+              <td colspan="5"><textarea id="postSummary" rows="2" placeholder="글의 핵심 요약을 기록하세요"></textarea></td>
             </tr>
           </tbody>
         </table>
@@ -202,15 +200,22 @@
     <main id="editor-container"></main>
   </div>
 
-  <!-- 커스텀 저장 확인 모달 -->
+  <!-- Mac 스타일 범용 커스텀 모달 (저장 확인, 삭제 경고, 일반 알림 공용) -->
   <div id="unsaved-modal" class="modal-overlay hidden">
-    <div class="modal-card">
-      <h3 class="modal-title">⚠️ 저장 확인</h3>
-      <p class="modal-desc">저장되지 않은 변경사항이 있습니다. 어떻게 처리할까요?</p>
-      <div class="modal-actions">
-        <button type="button" id="modal-btn-cancel" class="btn btn-default">계속 편집</button>
+    <div class="modal-card mac-modal-card">
+      <div class="mac-modal-header">
+        <div class="mac-modal-dots">
+          <span class="mac-dot mac-dot-red"></span>
+          <span class="mac-dot mac-dot-yellow"></span>
+          <span class="mac-dot mac-dot-green"></span>
+        </div>
+        <h3 class="modal-title" id="modalTitle">⚠️ 알림</h3>
+      </div>
+      <p class="modal-desc" id="modalDesc">내용을 확인해주세요.</p>
+      <div class="modal-actions" id="modalActions">
+        <button type="button" id="modal-btn-cancel" class="btn btn-default">취소</button>
         <button type="button" id="modal-btn-discard" class="btn btn-danger">저장 안 함</button>
-        <button type="button" id="modal-btn-save" class="btn btn-primary">저장하고 진행</button>
+        <button type="button" id="modal-btn-save" class="btn btn-primary">확인</button>
       </div>
     </div>
   </div>
