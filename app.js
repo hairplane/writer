@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.1): 시작일/요약 컬럼 매핑 교정, Mac 스타일 커스텀 모달 엔진 구축 및 영구 삭제 기능 구현
-[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
+- app.js (v3.2): 템플릿 리터럴 호환성 개선, sheet.js 연동 전역 바인딩 보강 및 BOM 동기화
+[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.2) / core.css(v1.2) / style.css(v3.1)
 ========================================================================== */
 
-window._V_APP = "v3.1";
+window._V_APP = "v3.2";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -387,7 +387,7 @@ function updateAllStats() {
 }
 
 function appendDraftToCompleted() {
-  const textToAppend = $('aiRefinedText').value.trim() \vert{}\vert{}$('newDraftText').value.trim();
+  const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
   if (!textToAppend) return showMacAlert('안내', '이어 붙일 내용이 없습니다.');
 
   const completedEl = $('completedText');
@@ -407,13 +407,13 @@ function appendDraftToCompleted() {
 // 2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
 function getMetaSnapshot() {
   return JSON.stringify({
-    title: $('essayTitleInput') ?$('essayTitleInput').value : '',
-    status: $('postStatusSelect') ?$('postStatusSelect').value : '구상중',
-    cat1: $('postCategory1') ?$('postCategory1').value : '미분류',
-    cat2: $('postCategory2') ?$('postCategory2').value : '미분류',
-    startDate: $('postStartDate') ?$('postStartDate').value : '',
-    endDate: $('postEndDate') ?$('postEndDate').value : '',
-    summary: $('postSummary') ?$('postSummary').value : '',
+    title: $('essayTitleInput') ? $('essayTitleInput').value : '',
+    status: $('postStatusSelect') ? $('postStatusSelect').value : '구상중',
+    cat1: $('postCategory1') ? $('postCategory1').value : '미분류',
+    cat2: $('postCategory2') ? $('postCategory2').value : '미분류',
+    startDate: $('postStartDate') ? $('postStartDate').value : '',
+    endDate: $('postEndDate') ? $('postEndDate').value : '',
+    summary: $('postSummary') ? $('postSummary').value : '',
     important: currentPostImportant,
     hidden: currentPostHidden
   });
@@ -422,13 +422,13 @@ function getMetaSnapshot() {
 function applyMetaSnapshot(snapStr) {
   try {
     const data = JSON.parse(snapStr);
-    if ($('essayTitleInput'))$('essayTitleInput').value = data.title;
-    if ($('postStatusSelect'))$('postStatusSelect').value = data.status;
-    if ($('postCategory1'))$('postCategory1').value = data.cat1;
-    if ($('postCategory2'))$('postCategory2').value = data.cat2;
-    if ($('postStartDate'))$('postStartDate').value = data.startDate;
-    if ($('postEndDate'))$('postEndDate').value = data.endDate;
-    if ($('postSummary'))$('postSummary').value = data.summary;
+    if ($('essayTitleInput')) $('essayTitleInput').value = data.title;
+    if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
+    if ($('postCategory1')) $('postCategory1').value = data.cat1;
+    if ($('postCategory2')) $('postCategory2').value = data.cat2;
+    if ($('postStartDate')) $('postStartDate').value = data.startDate;
+    if ($('postEndDate')) $('postEndDate').value = data.endDate;
+    if ($('postSummary')) $('postSummary').value = data.summary;
     currentPostStatus = data.status;
     currentPostImportant = data.important;
     currentPostHidden = data.hidden;
@@ -629,16 +629,18 @@ function applyMetaChanges() {
   showMacAlert('반영 완료', '작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
 }
 
-// 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리
+// 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리 (표준 문자열 결합)
 function deleteCurrentPost() {
   if (isNewPostMode || !currentPostId) {
     return showMacAlert('안내', '새 글 작성 중에는 삭제할 기존 글이 없습니다.');
   }
 
   const postTitle = $('essayTitleInput').value.trim() || "현재 글";
+  const confirmMsg = "'" + postTitle + "'을(를) 정말로 영구 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.";
+
   showMacConfirm(
     "🗑️ 글 영구 삭제",
-    `'${postTitle}'을(를) 정말로 영구 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`,
+    confirmMsg,
     function() {
       const deletedId = currentPostId;
       const targetIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === deletedId; });
@@ -896,6 +898,13 @@ function cancelAndClose() {
     window.close();
   }
 }
+
+// 6-1. 타 모듈(sheet.js) 상호 연동을 위한 전역 네임스페이스 등록
+window.selectPost = selectPost;
+window.showUnsavedModal = showUnsavedModal;
+window.saveWork = saveWork;
+window.showMacAlert = showMacAlert;
+window.showMacConfirm = showMacConfirm;
 
 // 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
