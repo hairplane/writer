@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.2): 스크립트 로드 순서 의존성 에러(selectPost/showUnsavedModal 안전 가드) 수정 및 BOM 동기화
-[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.2) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
+- sheet.js (v3.3): 분류1·분류2 동적 드롭다운 갱신 연동 및 BOM 세트 최신화
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.3) / core.css(v1.2) / style.css(v3.2)
 ========================================================================== */
 
-window._V_SHEET = "v3.2";
+window._V_SHEET = "v3.3";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -39,6 +39,9 @@ function loadCachedPosts() {
       sortPostsByOrder();
       initPostListHistory();
       populateCategoryFilters();
+      if (typeof populateMetaCategoryDropdowns === 'function') {
+        populateMetaCategoryDropdowns();
+      }
       renderPostList();
     } catch (e) {
       console.error("[sheet.js] 캐시 파싱 에러:", e);
@@ -58,6 +61,9 @@ function fetchSheetPosts() {
       localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
       initPostListHistory();
       populateCategoryFilters();
+      if (typeof populateMetaCategoryDropdowns === 'function') {
+        populateMetaCategoryDropdowns();
+      }
       renderPostList();
     }
   };
