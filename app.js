@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.4): 시작일/요약 데이터 바인딩 역전 교정, 날짜 입력 즉시 경과 계산 연동 및 BOM 동기화
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.4) / core.css(v1.2) / style.css(v3.3)
+- app.js (v3.5): 작성시작일/요약 데이터 매핑 역전 및 지능형 값 스왑 보정, 실시간 경과 일수 계산 연동, BOM 동기화
+[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.3)
 ========================================================================== */
 
-window._V_APP = "v3.4";
+window._V_APP = "v3.5";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -840,7 +840,7 @@ function exitNewPostMode() {
   if (btnMetaDel) btnMetaDel.style.display = 'inline-flex';
 }
 
-// 5. 게시글 선택 및 로드 (시작일/요약 번지수 역전 원천 교정)
+// 5. 게시글 선택 및 로드 (시작일/요약 지능형 값 정규화 및 스왑 보정)
 function selectPost(post) {
   exitNewPostMode();
 
@@ -857,10 +857,21 @@ function selectPost(post) {
   const c2Val = post.분류2 || post.category2 || '미분류';
   populateMetaCategoryDropdowns(c1Val, c2Val);
 
-  // 시트 I열: 작성시작일, J열: 작성완료일, K열: 요약 정확히 1:1 매핑
-  const sDate = post.작성시작일 || post['작성 시작일'] || post['작성\n시작일'] || post.startDate || '';
-  const eDate = post.작성완료일 || post['작성 완료일'] || post['작성\n완료일'] || post.endDate || '';
-  const sumText = post.요약 || post.summary || '';
+  // 1단계: 원본 필드값 후보 추출
+  let sDate = post.작성시작일 !== undefined ? post.작성시작일 : (post['작성 시작일'] || post['작성\n시작일'] || post.startDate || '');
+  let eDate = post.작성완료일 !== undefined ? post.작성완료일 : (post['작성 완료일'] || post['작성\n완료일'] || post.endDate || '');
+  let sumText = post.요약 !== undefined ? post.요약 : (post.summary || '');
+
+  // 2단계: 키 역전 및 데이터 오염 자동 교정 가드 (sDate에 '요약'이 있거나, sumText에 8자리 숫자 날짜가 들어간 경우)
+  const isSDateSummaryLike = String(sDate).trim().startsWith('요약');
+  const sumDigits = String(sumText).replace(/[^0-9]/g, '');
+  const sDigits = String(sDate).replace(/[^0-9]/g, '');
+
+  if (isSDateSummaryLike || (sumDigits.length === 8 && sDigits.length !== 8)) {
+    const temp = sDate;
+    sDate = sumText;
+    sumText = temp;
+  }
 
   if ($('postStartDate')) $('postStartDate').value = sDate;
   if ($('postEndDate')) $('postEndDate').value = eDate;
@@ -957,9 +968,24 @@ function loadSavedData() {
       if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
     }
     if (data.title && $('essayTitleInput')) $('essayTitleInput').value = data.title;
-    if (data.startDate && $('postStartDate')) $('postStartDate').value = data.startDate;
-    if (data.endDate && $('postEndDate')) $('postEndDate').value = data.endDate;
-    if (data.summary && $('postSummary')) $('postSummary').value = data.summary;
+
+    let sDate = data.startDate || '';
+    let eDate = data.endDate || '';
+    let sumText = data.summary || '';
+
+    // 로컬 스토리지에 저장되어 있던 구형 역전 데이터 보정
+    const isSDateSummaryLike = String(sDate).trim().startsWith('요약');
+    const sumDigits = String(sumText).replace(/[^0-9]/g, '');
+    const sDigits = String(sDate).replace(/[^0-9]/g, '');
+    if (isSDateSummaryLike || (sumDigits.length === 8 && sDigits.length !== 8)) {
+      const temp = sDate;
+      sDate = sumText;
+      sumText = temp;
+    }
+
+    if ($('postStartDate')) $('postStartDate').value = sDate;
+    if ($('postEndDate')) $('postEndDate').value = eDate;
+    if ($('postSummary')) $('postSummary').value = sumText;
 
     populateMetaCategoryDropdowns(data.category1 || data.category || '미분류', data.category2 || '미분류');
 
