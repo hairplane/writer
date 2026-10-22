@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.0): 작성 글 정보 창 개편(적용/새글작성 모드, 제목행 토글, 메타 히스토리 관리) 전면 구현 및 BOM 갱신
-[BOM] index(v4.5) / core.js(v1.2) / sheet.js(v2.12) / api.js(v1.1) / app.js(v3.0) / core.css(v1.2) / style.css(v3.0)
+- app.js (v3.1): 시작일/요약 컬럼 매핑 교정, Mac 스타일 커스텀 모달 엔진 구축 및 영구 삭제 기능 구현
+[BOM] index(v5.0) / core.js(v1.2) / sheet.js(v3.0) / api.js(v1.1) / app.js(v3.1) / core.css(v1.2) / style.css(v3.1)
 ========================================================================== */
 
-window._V_APP = "v3.0";
+window._V_APP = "v3.1";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -16,7 +16,6 @@ let isNewPostMode = false;
 let previousPostBackup = null;
 
 let currentFocusedKey = null;
-let pendingModalAction = null;
 
 // 작성 글 정보 창 전용 취소/복원 히스토리 스택
 let metaHistory = [];
@@ -83,6 +82,81 @@ function initBOMVersionDisplay() {
       popover.classList.toggle('show');
     };
   }
+}
+
+// 0-1. Mac 스타일 범용 커스텀 모달 엔진 (규칙 10 표준 준수)
+function showMacAlert(title, message, callback) {
+  const modal = $('unsaved-modal');
+  if (!modal) return;
+
+  $('modalTitle').innerText = title || "⚠️ 알림";
+  $('modalDesc').innerText = message || "";
+
+  const actions = $('modalActions');
+  actions.innerHTML = '<button type="button" id="mac-modal-ok" class="btn btn-primary">확인</button>';
+
+  modal.classList.remove('hidden');
+
+  $('mac-modal-ok').onclick = function() {
+    modal.classList.add('hidden');
+    if (callback) callback();
+  };
+}
+
+function showMacConfirm(title, message, onConfirm, onCancel, confirmText, isDanger) {
+  const modal = $('unsaved-modal');
+  if (!modal) return;
+
+  $('modalTitle').innerText = title || "⚠️ 확인";
+  $('modalDesc').innerText = message || "진행하시겠습니까?";
+
+  const confirmBtnClass = isDanger ? "btn btn-danger" : "btn btn-primary";
+  const btnLabel = confirmText || "확인";
+
+  const actions = $('modalActions');
+  actions.innerHTML = '<button type="button" id="mac-modal-cancel" class="btn btn-default">취소</button>' +
+                      '<button type="button" id="mac-modal-confirm" class="' + confirmBtnClass + '">' + btnLabel + '</button>';
+
+  modal.classList.remove('hidden');
+
+  $('mac-modal-cancel').onclick = function() {
+    modal.classList.add('hidden');
+    if (onCancel) onCancel();
+  };
+
+  $('mac-modal-confirm').onclick = function() {
+    modal.classList.add('hidden');
+    if (onConfirm) onConfirm();
+  };
+}
+
+function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
+  const modal = $('unsaved-modal');
+  if (!modal) return;
+
+  $('modalTitle').innerText = "⚠️ 저장 확인";
+  $('modalDesc').innerText = "저장되지 않은 변경사항이 있습니다. 어떻게 처리할까요?";
+
+  const actions = $('modalActions');
+  actions.innerHTML = '<button type="button" id="modal-btn-cancel" class="btn btn-default">계속 편집</button>' +
+                      '<button type="button" id="modal-btn-discard" class="btn btn-danger">저장 안 함</button>' +
+                      '<button type="button" id="modal-btn-save" class="btn btn-primary">저장하고 진행</button>';
+
+  modal.classList.remove('hidden');
+
+  $('modal-btn-cancel').onclick = function() {
+    modal.classList.add('hidden');
+  };
+
+  $('modal-btn-discard').onclick = function() {
+    modal.classList.add('hidden');
+    if (onDiscardAndExit) onDiscardAndExit();
+  };
+
+  $('modal-btn-save').onclick = function() {
+    modal.classList.add('hidden');
+    if (onSaveAndExit) onSaveAndExit();
+  };
 }
 
 // 1. 집필 섹션 동적 DOM 생성
@@ -268,7 +342,7 @@ function undoField(key) {
     markDirty();
     updateFieldToolbarButtons(key);
   } else {
-    alert('되돌릴 이전 입력 내용이 없습니다.');
+    showMacAlert('안내', '되돌릴 이전 입력 내용이 없습니다.');
   }
 }
 
@@ -278,7 +352,9 @@ function restoreSaved(key) {
   if (!el || !fieldState[key]) return;
 
   const targetVal = fieldState[key].currentSaved;
-  if (el.value === targetVal) return alert('이미 최근 저장된 상태와 동일합니다.');
+  if (el.value === targetVal) {
+    return showMacAlert('안내', '이미 최근 저장된 상태와 동일합니다.');
+  }
 
   fieldState[key].history.push(targetVal);
   el.value = targetVal;
@@ -311,8 +387,8 @@ function updateAllStats() {
 }
 
 function appendDraftToCompleted() {
-  const textToAppend = $('aiRefinedText').value.trim() || $('newDraftText').value.trim();
-  if (!textToAppend) return alert('이어 붙일 내용이 없습니다.');
+  const textToAppend = $('aiRefinedText').value.trim() \vert{}\vert{}$('newDraftText').value.trim();
+  if (!textToAppend) return showMacAlert('안내', '이어 붙일 내용이 없습니다.');
 
   const completedEl = $('completedText');
   completedEl.value = completedEl.value.trim() ? completedEl.value.trim() + "\n\n" + textToAppend : textToAppend;
@@ -331,13 +407,13 @@ function appendDraftToCompleted() {
 // 2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
 function getMetaSnapshot() {
   return JSON.stringify({
-    title: $('essayTitleInput') ? $('essayTitleInput').value : '',
-    status: $('postStatusSelect') ? $('postStatusSelect').value : '구상중',
-    cat1: $('postCategory1') ? $('postCategory1').value : '미분류',
-    cat2: $('postCategory2') ? $('postCategory2').value : '미분류',
-    startDate: $('postStartDate') ? $('postStartDate').value : '',
-    endDate: $('postEndDate') ? $('postEndDate').value : '',
-    summary: $('postSummary') ? $('postSummary').value : '',
+    title: $('essayTitleInput') ?$('essayTitleInput').value : '',
+    status: $('postStatusSelect') ?$('postStatusSelect').value : '구상중',
+    cat1: $('postCategory1') ?$('postCategory1').value : '미분류',
+    cat2: $('postCategory2') ?$('postCategory2').value : '미분류',
+    startDate: $('postStartDate') ?$('postStartDate').value : '',
+    endDate: $('postEndDate') ?$('postEndDate').value : '',
+    summary: $('postSummary') ?$('postSummary').value : '',
     important: currentPostImportant,
     hidden: currentPostHidden
   });
@@ -346,13 +422,13 @@ function getMetaSnapshot() {
 function applyMetaSnapshot(snapStr) {
   try {
     const data = JSON.parse(snapStr);
-    if ($('essayTitleInput')) $('essayTitleInput').value = data.title;
-    if ($('postStatusSelect')) $('postStatusSelect').value = data.status;
-    if ($('postCategory1')) $('postCategory1').value = data.cat1;
-    if ($('postCategory2')) $('postCategory2').value = data.cat2;
-    if ($('postStartDate')) $('postStartDate').value = data.startDate;
-    if ($('postEndDate')) $('postEndDate').value = data.endDate;
-    if ($('postSummary')) $('postSummary').value = data.summary;
+    if ($('essayTitleInput'))$('essayTitleInput').value = data.title;
+    if ($('postStatusSelect'))$('postStatusSelect').value = data.status;
+    if ($('postCategory1'))$('postCategory1').value = data.cat1;
+    if ($('postCategory2'))$('postCategory2').value = data.cat2;
+    if ($('postStartDate'))$('postStartDate').value = data.startDate;
+    if ($('postEndDate'))$('postEndDate').value = data.endDate;
+    if ($('postSummary'))$('postSummary').value = data.summary;
     currentPostStatus = data.status;
     currentPostImportant = data.important;
     currentPostHidden = data.hidden;
@@ -400,11 +476,11 @@ function undoMeta() {
     markDirty();
     updateMetaToolbarButtons();
   } else {
-    // 새 글 작성 모드에서 취소할 내역이 없으면 이전 기존 글로 복귀
+    // 새 글 작성 모드에서 취소할 내역이 없으면 이전 글로 복귀
     if (isNewPostMode && previousPostBackup) {
       selectPost(previousPostBackup);
     } else {
-      alert('되돌릴 이전 정보 입력 내역이 없습니다.');
+      showMacAlert('안내', '되돌릴 이전 정보 입력 내역이 없습니다.');
     }
   }
 }
@@ -413,7 +489,7 @@ function restoreSavedMeta() {
   if (!metaSavedSnapshot) return;
   const currentSnap = getMetaSnapshot();
   if (currentSnap === metaSavedSnapshot) {
-    return alert('이미 최근 저장된 상태와 동일합니다.');
+    return showMacAlert('안내', '이미 최근 저장된 상태와 동일합니다.');
   }
 
   metaHistory.push(metaSavedSnapshot);
@@ -429,13 +505,13 @@ function updateMetaIcons() {
   if (starBtn) {
     const isImp = currentPostImportant === 'Y';
     starBtn.innerText = isImp ? '⭐' : '☆';
-    starBtn.className = 'btn-star-toggle ' + (isImp ? 'star-yellow is-important' : 'star-empty');
+    starBtn.className = 'btn-filter-icon' + (isImp ? ' active-star is-important' : '');
   }
 
   if (hiddenBtn) {
     const isHid = currentPostHidden === 'Y';
     hiddenBtn.innerText = isHid ? '🕶️' : '👓';
-    hiddenBtn.className = 'btn-hidden-toggle' + (isHid ? ' is-hidden' : '');
+    hiddenBtn.className = 'btn-filter-icon' + (isHid ? ' active-hidden is-hidden' : '');
   }
 }
 
@@ -454,7 +530,7 @@ function toggleMetaHidden() {
 // 3. '적용' 버튼: 작성 글 정보 내용을 목록 및 구글 시트에 즉시 반영
 function applyMetaChanges() {
   const titleVal = $('essayTitleInput').value.trim();
-  if (!titleVal) return alert('제목을 입력해주세요.');
+  if (!titleVal) return showMacAlert('확인 필요', '글 제목을 입력해주세요.');
 
   const statusVal = $('postStatusSelect').value;
   const c1Val = $('postCategory1').value.trim() || '미분류';
@@ -550,7 +626,49 @@ function applyMetaChanges() {
 
   metaSavedSnapshot = getMetaSnapshot();
   updateMetaToolbarButtons();
-  alert('작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
+  showMacAlert('반영 완료', '작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
+}
+
+// 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리
+function deleteCurrentPost() {
+  if (isNewPostMode || !currentPostId) {
+    return showMacAlert('안내', '새 글 작성 중에는 삭제할 기존 글이 없습니다.');
+  }
+
+  const postTitle = $('essayTitleInput').value.trim() || "현재 글";
+  showMacConfirm(
+    "🗑️ 글 영구 삭제",
+    `'${postTitle}'을(를) 정말로 영구 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`,
+    function() {
+      const deletedId = currentPostId;
+      const targetIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === deletedId; });
+
+      if (targetIdx !== -1) {
+        postListCache.splice(targetIdx, 1);
+        localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
+        if (typeof pushPostListHistory === 'function') pushPostListHistory();
+        if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
+        renderPostList();
+
+        // 구글 시트 영구 삭제 통신 호출
+        if (typeof deletePostFromSheet === 'function') {
+          deletePostFromSheet(deletedId);
+        }
+
+        // 남은 목록 중 첫 번째 글을 자동 로드하거나 초기화
+        if (postListCache.length > 0) {
+          selectPost(postListCache[0]);
+        } else {
+          startNewPostSetup();
+        }
+
+        showMacAlert('삭제 완료', '글이 성공적으로 영구 삭제되었습니다.');
+      }
+    },
+    null,
+    "삭제",
+    true
+  );
 }
 
 // 4. 새 글 작성 모드 활성화 및 해제
@@ -566,7 +684,6 @@ function enterNewPostMode() {
 }
 
 function startNewPostSetup() {
-  // 이전 글 백업
   if (currentPostId) {
     previousPostBackup = postListCache.find(function(p) { return (p.ID || p.id) === currentPostId; }) || null;
   }
@@ -580,6 +697,10 @@ function startNewPostSetup() {
 
   const metaBox = $('sec_meta');
   if (metaBox) metaBox.classList.add('is-new-mode');
+
+  // 삭제 버튼 비활성화/숨김
+  const btnMetaDel = $('btn-meta-delete');
+  if (btnMetaDel) btnMetaDel.style.display = 'none';
 
   // 메타 정보 폼 기본값 초기화
   if ($('essayTitleInput')) $('essayTitleInput').value = '';
@@ -610,9 +731,12 @@ function exitNewPostMode() {
   isNewPostMode = false;
   const metaBox = $('sec_meta');
   if (metaBox) metaBox.classList.remove('is-new-mode');
+
+  const btnMetaDel = $('btn-meta-delete');
+  if (btnMetaDel) btnMetaDel.style.display = 'inline-flex';
 }
 
-// 5. 게시글 선택 및 로드
+// 5. 게시글 선택 및 로드 (시작일/요약 매핑 엄격 분리)
 function selectPost(post) {
   exitNewPostMode();
 
@@ -626,9 +750,17 @@ function selectPost(post) {
   if ($('postStatusSelect')) $('postStatusSelect').value = currentPostStatus;
   if ($('postCategory1')) $('postCategory1').value = post.분류1 || post.category1 || post.분류 || post.category || '미분류';
   if ($('postCategory2')) $('postCategory2').value = post.분류2 || post.category2 || '미분류';
-  if ($('postStartDate')) $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
-  if ($('postEndDate')) $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
-  if ($('postSummary')) $('postSummary').value = post.요약 || post.summary || '';
+
+  // 시트 I열: 요약, J열: 작성 시작일, K열: 작성 완료일
+  if ($('postStartDate')) {
+    $('postStartDate').value = post.작성시작일 || post['작성 시작일'] || post.startDate || '';
+  }
+  if ($('postEndDate')) {
+    $('postEndDate').value = post.작성완료일 || post['작성 완료일'] || post.endDate || '';
+  }
+  if ($('postSummary')) {
+    $('postSummary').value = post.요약 || post.summary || '';
+  }
 
   updateMetaIcons();
 
@@ -651,7 +783,7 @@ function selectPost(post) {
 // 6. 작업 저장 (전체 저장)
 function saveWork(mode) {
   const titleVal = $('essayTitleInput').value.trim();
-  if (!titleVal) return alert('제목을 입력해주세요.');
+  if (!titleVal) return showMacAlert('확인 필요', '글 제목을 입력해주세요.');
 
   if (isNewPostMode || !currentPostId) {
     currentPostId = "ID_" + new Date().getTime();
@@ -704,7 +836,7 @@ function saveWork(mode) {
 
   syncPostToSheet(payload);
 
-  if (mode === 'stay') alert('구글 시트 및 로컬에 안전하게 저장되었습니다.');
+  if (mode === 'stay') showMacAlert('저장 완료', '구글 시트 및 로컬에 안전하게 저장되었습니다.');
   else if (mode === 'exit') window.close();
 }
 
@@ -750,7 +882,7 @@ function cancelWork() {
       function() { loadSavedData(); isDirty = false; }
     );
   } else {
-    alert('변경된 내용이 없습니다.');
+    showMacAlert('안내', '변경된 내용이 없습니다.');
   }
 }
 
@@ -765,48 +897,6 @@ function cancelAndClose() {
   }
 }
 
-function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
-  const modal = $('unsaved-modal');
-  if (!modal) {
-    if (confirm('저장되지 않은 변경사항이 있습니다. 저장하고 진행하시겠습니까?')) {
-      if (onSaveAndExit) onSaveAndExit();
-    } else {
-      if (onDiscardAndExit) onDiscardAndExit();
-    }
-    return;
-  }
-  pendingModalAction = { save: onSaveAndExit, discard: onDiscardAndExit };
-  modal.classList.remove('hidden');
-}
-
-function hideUnsavedModal() {
-  const modal = $('unsaved-modal');
-  if (modal) modal.classList.add('hidden');
-  pendingModalAction = null;
-}
-
-function initModalHandlers() {
-  const btnCancel = $('modal-btn-cancel');
-  const btnDiscard = $('modal-btn-discard');
-  const btnSave = $('modal-btn-save');
-
-  if (btnCancel) btnCancel.onclick = hideUnsavedModal;
-  if (btnDiscard) {
-    btnDiscard.onclick = function() {
-      const act = pendingModalAction;
-      hideUnsavedModal();
-      if (act && act.discard) act.discard();
-    };
-  }
-  if (btnSave) {
-    btnSave.onclick = function() {
-      const act = pendingModalAction;
-      hideUnsavedModal();
-      if (act && act.save) act.save();
-    };
-  }
-}
-
 // 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
@@ -817,7 +907,6 @@ window.addEventListener('DOMContentLoaded', function() {
   updateAllStats();
   loadCachedPosts();
   fetchSheetPosts();
-  initModalHandlers();
   initBOMVersionDisplay();
 
   const btnToggleAll = $('btn-toggle-all');
@@ -838,6 +927,9 @@ window.addEventListener('DOMContentLoaded', function() {
   // 작성 글 정보 창 전용 이벤트 리스너 바인딩
   const btnMetaApply = $('btn-meta-apply');
   if (btnMetaApply) btnMetaApply.onclick = applyMetaChanges;
+
+  const btnMetaDelete = $('btn-meta-delete');
+  if (btnMetaDelete) btnMetaDelete.onclick = deleteCurrentPost;
 
   const btnNewPost = $('btn-new-post');
   if (btnNewPost) btnNewPost.onclick = enterNewPostMode;
