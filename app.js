@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.8): 모바일 터치(touchstart) 캡처링 이벤트 추가로 드래그 핸들(⠿) 터치 시에도 BOM 팝오버 닫힘 완벽 보장
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.8) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.9): '완료' 상태가 아닐 때 완료일 칸 비움 및 읽기 전용 처리, 상태 전환 시 오늘 날짜 자동 입력 연동 및 최신 BOM 세트 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.9) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.8";
+window._V_APP = "v3.9";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -172,7 +172,7 @@ function buildEditorSections() {
     sec.id = 'sec_' + cfg.key;
     sec.className = 'editor-section';
 
-    const hdr = document.createElement('div');
+    const hdr = document.createElement('hdr_' + cfg.key) || document.createElement('div');
     hdr.id = 'hdr_' + cfg.key;
     hdr.className = 'section-header-line';
 
@@ -404,7 +404,7 @@ function appendDraftToCompleted() {
   });
 }
 
-// 2. '경과' 일수 자동 계산 헬퍼
+// 2. '경과' 일수 자동 계산 헬퍼 및 날짜 문자열 포맷터
 function parseCustomDate(str) {
   if (!str) return null;
   const cleaned = String(str).replace(/[^0-9]/g, '');
@@ -417,6 +417,39 @@ function parseCustomDate(str) {
   }
   const fallback = new Date(str);
   return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function getTodayString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+// 2-1. '완료' 여부에 따른 완료일 입력칸 활성/비활성 및 자동 비움/채움 동기화
+function syncEndDateFieldState() {
+  const statusSelect = $('postStatusSelect');
+  const endDateInput = $('postEndDate');
+  if (!statusSelect || !endDateInput) return;
+
+  const status = statusSelect.value.trim();
+  if (status === '완료') {
+    endDateInput.readOnly = false;
+    endDateInput.style.backgroundColor = '#ffffff';
+    endDateInput.style.color = '#0f172a';
+    endDateInput.placeholder = 'YYYYMMDD';
+    if (!endDateInput.value.trim()) {
+      endDateInput.value = getTodayString();
+    }
+  } else {
+    // 완료가 아닌 경우 (구상중 / 대기중 / 작성중) 값을 비우고 입력 금지
+    endDateInput.value = '';
+    endDateInput.readOnly = true;
+    endDateInput.style.backgroundColor = '#f1f5f9';
+    endDateInput.style.color = '#94a3b8';
+    endDateInput.placeholder = '-';
+  }
 }
 
 function updateElapsedDays() {
@@ -450,7 +483,7 @@ function updateElapsedDays() {
   elapsedEl.value = diffDays + '일';
 }
 
-// 2-1. '작성 글 정보' 창의 분류1 및 분류2 드롭다운 옵션 동적 구성 (분류1 종속 필터링 연동)
+// 2-2. '작성 글 정보' 창의 분류1 및 분류2 드롭다운 옵션 동적 구성 (분류1 종속 필터링 연동)
 function updateMetaCategory2Options(preferredVal) {
   const c1Select = $('postCategory1Select');
   const c2Select = $('postCategory2Select');
@@ -505,7 +538,6 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
     });
   }
 
-  // 분류1 옵션 구축
   c1Select.innerHTML = '<option value="미분류">미분류</option>';
   Array.from(c1Set).sort().forEach(function(val) {
     const opt = document.createElement('option');
@@ -522,11 +554,10 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
   }
   c1Select.value = curC1;
 
-  // 분류1에 종속된 분류2 옵션 구축
   updateMetaCategory2Options(curC2);
 }
 
-// 2-2. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
+// 2-3. '작성 글 정보' 창 전용 히스토리 및 UI 동기화
 function getMetaSnapshot() {
   return JSON.stringify({
     title: $('essayTitleInput') ? $('essayTitleInput').value : '',
@@ -554,6 +585,7 @@ function applyMetaSnapshot(snapStr) {
     currentPostImportant = data.important;
     currentPostHidden = data.hidden;
     updateMetaIcons();
+    syncEndDateFieldState();
     updateElapsedDays();
   } catch (e) {
     console.error("[app.js] 메타 스냅샷 복원 실패:", e);
@@ -569,6 +601,7 @@ function initMetaHistory() {
 
 function pushMetaHistory() {
   markDirty();
+  syncEndDateFieldState();
   updateElapsedDays();
   const snap = getMetaSnapshot();
   if (metaHistory[metaHistory.length - 1] !== snap) {
@@ -740,7 +773,6 @@ function applyMetaChanges() {
   populateMetaCategoryDropdowns(c1Val, c2Val);
   renderPostList();
 
-  // 구글 시트 백그라운드 전송
   const currentPost = postListCache.find(function(p) { return (p.ID || p.id) === currentPostId; });
   if (currentPost && typeof sendPostMetaUpdate === 'function') {
     sendPostMetaUpdate(currentPost);
@@ -775,12 +807,10 @@ function deleteCurrentPost() {
         if (typeof populateCategoryFilters === 'function') populateCategoryFilters();
         renderPostList();
 
-        // 구글 시트 영구 삭제 통신 호출
         if (typeof deletePostFromSheet === 'function') {
           deletePostFromSheet(deletedId);
         }
 
-        // 남은 목록 중 첫 번째 글을 자동 로드하거나 초기화
         if (postListCache.length > 0) {
           selectPost(postListCache[0]);
         } else {
@@ -823,22 +853,20 @@ function startNewPostSetup() {
   const metaBox = $('sec_meta');
   if (metaBox) metaBox.classList.add('is-new-mode');
 
-  // 삭제 버튼 비활성화/숨김
   const btnMetaDel = $('btn-meta-delete');
   if (btnMetaDel) btnMetaDel.style.display = 'none';
 
-  // 메타 정보 폼 기본값 초기화
   if ($('essayTitleInput')) $('essayTitleInput').value = '';
   if ($('postStatusSelect')) $('postStatusSelect').value = '구상중';
   populateMetaCategoryDropdowns('미분류', '미분류');
-  if ($('postStartDate')) $('postStartDate').value = '';
+  if ($('postStartDate')) $('postStartDate').value = getTodayString();
   if ($('postEndDate')) $('postEndDate').value = '';
   if ($('postSummary')) $('postSummary').value = '';
 
   updateMetaIcons();
+  syncEndDateFieldState();
   updateElapsedDays();
 
-  // 7개 집필 영역 비우기
   SECTION_CONFIGS.forEach(function(cfg) {
     const el = $(cfg.id);
     if (el) el.value = '';
@@ -861,7 +889,7 @@ function exitNewPostMode() {
   if (btnMetaDel) btnMetaDel.style.display = 'inline-flex';
 }
 
-// 5. 게시글 선택 및 로드 (시작일/요약 지능형 값 정규화 및 스왑 보정)
+// 5. 게시글 선택 및 로드
 function selectPost(post) {
   exitNewPostMode();
 
@@ -878,20 +906,13 @@ function selectPost(post) {
   const c2Val = post.분류2 || post.category2 || '미분류';
   populateMetaCategoryDropdowns(c1Val, c2Val);
 
-  // 1단계: 원본 필드값 후보 추출
   let sDate = post.작성시작일 !== undefined ? post.작성시작일 : (post['작성 시작일'] || post['작성\n시작일'] || post.startDate || '');
   let eDate = post.작성완료일 !== undefined ? post.작성완료일 : (post['작성 완료일'] || post['작성\n완료일'] || post.endDate || '');
   let sumText = post.요약 !== undefined ? post.요약 : (post.summary || '');
 
-  // 2단계: 키 역전 및 데이터 오염 자동 교정 가드 (sDate에 '요약'이 있거나, sumText에 8자리 숫자 날짜가 들어간 경우)
-  const isSDateSummaryLike = String(sDate).trim().startsWith('요약');
-  const sumDigits = String(sumText).replace(/[^0-9]/g, '');
-  const sDigits = String(sDate).replace(/[^0-9]/g, '');
-
-  if (isSDateSummaryLike || (sumDigits.length === 8 && sDigits.length !== 8)) {
-    const temp = sDate;
-    sDate = sumText;
-    sumText = temp;
+  // 완료 상태가 아닌 경우 완료일을 무조건 빈칸으로 초기화
+  if (currentPostStatus !== '완료') {
+    eDate = '';
   }
 
   if ($('postStartDate')) $('postStartDate').value = sDate;
@@ -899,6 +920,7 @@ function selectPost(post) {
   if ($('postSummary')) $('postSummary').value = sumText;
 
   updateMetaIcons();
+  syncEndDateFieldState();
   updateElapsedDays();
 
   $('essayOutline').value  = post.글의구성 || post['글의 구성'] || post['글의\n구성'] || post.outline || '';
@@ -994,14 +1016,8 @@ function loadSavedData() {
     let eDate = data.endDate || '';
     let sumText = data.summary || '';
 
-    // 로컬 스토리지에 저장되어 있던 구형 역전 데이터 보정
-    const isSDateSummaryLike = String(sDate).trim().startsWith('요약');
-    const sumDigits = String(sumText).replace(/[^0-9]/g, '');
-    const sDigits = String(sDate).replace(/[^0-9]/g, '');
-    if (isSDateSummaryLike || (sumDigits.length === 8 && sDigits.length !== 8)) {
-      const temp = sDate;
-      sDate = sumText;
-      sumText = temp;
+    if (currentPostStatus !== '완료') {
+      eDate = '';
     }
 
     if ($('postStartDate')) $('postStartDate').value = sDate;
@@ -1013,6 +1029,7 @@ function loadSavedData() {
     if (data.important) currentPostImportant = String(data.important).toUpperCase() === 'Y' ? 'Y' : 'N';
     if (data.hidden) currentPostHidden = String(data.hidden).toUpperCase() === 'Y' ? 'Y' : 'N';
     updateMetaIcons();
+    syncEndDateFieldState();
     updateElapsedDays();
 
     SECTION_CONFIGS.forEach(function(cfg) {
@@ -1057,6 +1074,7 @@ window.showMacAlert = showMacAlert;
 window.showMacConfirm = showMacConfirm;
 window.populateMetaCategoryDropdowns = populateMetaCategoryDropdowns;
 window.updateMetaCategory2Options = updateMetaCategory2Options;
+window.syncEndDateFieldState = syncEndDateFieldState;
 
 // 7. 메인 초기화 진입점
 window.addEventListener('DOMContentLoaded', function() {
@@ -1085,7 +1103,6 @@ window.addEventListener('DOMContentLoaded', function() {
   const btnCancel = $('btn-cancel-work');
   if (btnCancel) btnCancel.onclick = cancelWork;
 
-  // 작성 글 정보 창 전용 이벤트 리스너 바인딩
   const btnMetaApply = $('btn-meta-apply');
   if (btnMetaApply) btnMetaApply.onclick = applyMetaChanges;
 
@@ -1133,7 +1150,6 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 메타 인풋 필드 변경 감지 및 히스토리 스택/실시간 경과 연동
   ['essayTitleInput', 'postSummary'].forEach(function(id) {
     const el = $(id);
     if (el) el.oninput = pushMetaHistory;
@@ -1158,12 +1174,12 @@ window.addEventListener('DOMContentLoaded', function() {
   const postStatusSelect = $('postStatusSelect');
   if (postStatusSelect) {
     postStatusSelect.onchange = function() {
+      syncEndDateFieldState();
       updateElapsedDays();
       pushMetaHistory();
     };
   }
 
-  // 분류1 변경 시: 분류2 옵션 동적 재구성 및 히스토리 갱신
   const postCat1 = $('postCategory1Select');
   if (postCat1) {
     postCat1.onchange = function() {
@@ -1216,7 +1232,6 @@ window.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
-  // 최상위 캡처링 단계 이벤트 등록: 화면 어디를 클릭하든 BOM 팝오버 및 API 드롭다운 닫힘 보장
   const closeGlobalPopovers = function(e) {
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
