@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.7): 캡처링 단계 글로벌 윈도우 클릭 리스너 적용으로 전체 화면 어디서나 BOM 팝오버 즉시 닫힘 보장 및 BOM 세트 최신화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.7) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.8): 모바일 터치(touchstart) 캡처링 이벤트 추가로 드래그 핸들(⠿) 터치 시에도 BOM 팝오버 닫힘 완벽 보장
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.8) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.7";
+window._V_APP = "v3.8";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -1217,7 +1217,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
   // 최상위 캡처링 단계 이벤트 등록: 화면 어디를 클릭하든 BOM 팝오버 및 API 드롭다운 닫힘 보장
-  window.addEventListener('click', function(e) {
+  const closeGlobalPopovers = function(e) {
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
         el.classList.remove('show');
@@ -1230,5 +1230,8 @@ window.addEventListener('DOMContentLoaded', function() {
         pop.classList.remove('show');
       }
     }
-  }, true);
+  };
+
+  window.addEventListener('click', closeGlobalPopovers, true);
+  window.addEventListener('touchstart', closeGlobalPopovers, true);
 });
