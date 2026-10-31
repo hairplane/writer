@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.6): 줄바꿈 drop 실행 시 슬롯 재배치 및 postListCache 전역 순서 갱신 보장, BOM 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.6) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.7): 드롭 영역 이벤트 버블링 차단 및 배열 자르기 전 인덱스 역전 방어 로직 완벽 적용
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.7) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.6";
+window._V_SHEET = "v3.7";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -447,7 +447,8 @@ function renderPostList() {
       }
       clearDynamicRowDisplacements();
       dragHandle.setAttribute('draggable', 'false');
-      // drop 처리가 끝난 뒤 초기화되도록 약간의 딜레이 보장
+      
+      // drop 처리 보호를 위한 지연 초기화
       setTimeout(function() {
         draggedPostId = null;
         touchActiveRow = null;
@@ -455,8 +456,16 @@ function renderPostList() {
       }, 50);
     });
 
+    // === 자식 요소의 이벤트 버블링 방어 ===
+    row.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
     row.addEventListener('dragover', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
       const rect = row.getBoundingClientRect();
       const insertBefore = e.clientY < (rect.top + rect.height / 2);
@@ -530,7 +539,7 @@ function renderPostList() {
       }
     }, { passive: false });
 
-    dragHandle.addEventListener('touchend', function() {
+    dragHandle.addEventListener('touchend', function(e) {
       document.removeEventListener('touchmove', preventGlobalScroll);
 
       const listContainer = $('list_postRows');
@@ -583,32 +592,41 @@ function renderPostList() {
   });
 }
 
-// 4-1. 슬롯 맞교환 순서 재배치 로직 (전체 캐시 기반 직접 재배열 및 동기화)
+// 4-1. 슬롯 맞교환 순서 재배치 로직 (배열 자르기 전 인덱스 확정 공식 적용)
 function handlePostReorder(sourceId, targetId, insertBefore) {
   const srcIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
   const tgtIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
 
   if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
-  // 1) 항목을 잘라내어 새로운 타깃 위치로 삽입
-  const itemToMove = postListCache.splice(srcIdx, 1)[0];
-  let destIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
-  if (!insertBefore) {
-    destIdx += 1;
+  // 1) 삽입될 목표 인덱스를 자르기 전의 원본 배열 상태를 기준으로 안전하게 사전 확정
+  let destIdx = tgtIdx;
+  
+  if (srcIdx < tgtIdx) {
+    // 소스가 타깃보다 위에 있었다면, 잘라낼 때 뒷자리 인덱스가 1칸씩 앞으로 당겨지므로 이를 반영
+    destIdx = insertBefore ? tgtIdx - 1 : tgtIdx;
+  } else {
+    // 소스가 타깃보다 아래에 있었다면, 잘라내도 타깃의 인덱스 변화가 없음
+    destIdx = insertBefore ? tgtIdx : tgtIdx + 1;
   }
+
+  if (destIdx === srcIdx) return; // 최종 위치가 자신의 원래 위치와 동일하면 무시
+
+  // 2) 항목을 잘라내어 100% 검증된 타깃 위치로 꽂아 넣음
+  const itemToMove = postListCache.splice(srcIdx, 1)[0];
   postListCache.splice(destIdx, 0, itemToMove);
 
-  // 2) 전체 글 순서 번호 1부터 순차 재부여
+  // 3) 전체 글 순서 번호 1부터 순차 재부여
   postListCache.forEach(function(post, idx) {
     post.순서 = idx + 1;
   });
 
-  // 3) 로컬 캐시 저장 및 화면 재렌더링
+  // 4) 로컬 캐시 저장 및 화면 재렌더링
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   pushPostListHistory();
   renderPostList();
 
-  // 4) 구글 시트 백엔드에 갱신된 순서 전송
+  // 5) 구글 시트 백엔드에 갱신된 순서 전송
   postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
