@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.6): 메타 창 분류1 변경 시 분류2 동적 종속 필터링 연동 및 최신 BOM 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- app.js (v3.7): 캡처링 단계 글로벌 윈도우 클릭 리스너 적용으로 전체 화면 어디서나 BOM 팝오버 즉시 닫힘 보장 및 BOM 세트 최신화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.7) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.6";
+window._V_APP = "v3.7";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -441,7 +441,6 @@ function updateElapsedDays() {
     targetDate = new Date();
   }
 
-  // 자정 기준 날짜 차이 계산
   const dStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate());
   const dTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
@@ -1217,6 +1216,7 @@ window.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = $('apiKeyInput');
   if (apiKeyInput) apiKeyInput.oninput = checkKeyInputState;
 
+  // 최상위 캡처링 단계 이벤트 등록: 화면 어디를 클릭하든 BOM 팝오버 및 API 드롭다운 닫힘 보장
   window.addEventListener('click', function(e) {
     if (!e.target.closest('.api-save-btn') && !e.target.closest('.dropdown-content')) {
       document.querySelectorAll(".dropdown-content.show").forEach(function(el) {
@@ -1230,5 +1230,5 @@ window.addEventListener('DOMContentLoaded', function() {
         pop.classList.remove('show');
       }
     }
-  });
+  }, true);
 });
