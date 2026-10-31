@@ -1,5 +1,5 @@
-<!-- - index.html (v5.3): colgroup th 라벨 폭 36px 및 데이터 셀 calc((100% - 108px) / 3) 균등 분할 반영 -->
-<!-- [BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.5) -->
+<!-- - index.html (v5.4): 작성 글 정보 표의 분류1/분류2를 직접 입력 가능한 콤보박스(input list + datalist)로 개편 및 최신 BOM 동기화 -->
+<!-- [BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.9) / core.css(v1.2) / style.css(v3.7) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.3</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.4</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -60,6 +60,7 @@
           <span class="section-title" id="title_postList" title="클릭 시 단독 집중 모드">작성 글 목록</span>
         </div>
       </div>
+
       <!-- 본문 영역: 1줄 콤팩트 필터 바 + 리스트 목록 + 하단 취소/복원 툴바 -->
       <div class="post-list-content-wrap" id="body_postList">
         <div class="post-filter-bar-compact">
@@ -102,10 +103,12 @@
           <button type="button" id="btn-meta-apply" class="btn-meta-apply" title="수정 내용을 목록 및 구글 시트에 즉시 반영">적용</button>
           <span class="badge-new-mode" id="badgeNewMode">새 글 작성 중</span>
         </div>
+
         <!-- 중앙: 새 글 작성 버튼 -->
         <div class="section-header-center">
           <button type="button" id="btn-new-post" class="btn-new-post" title="신규 글 작성 모드로 전환">✚ 새 글 작성</button>
         </div>
+
         <!-- 우측 끝: 삭제 버튼 -->
         <div class="section-header-right">
           <button type="button" id="btn-meta-delete" class="btn-meta-delete" title="현재 글을 목록 및 DB에서 영구 삭제">🗑️ 삭제</button>
@@ -137,7 +140,8 @@
                 </div>
               </td>
             </tr>
-            <!-- 2행: 상황, 분류1, 분류2 드롭다운 3분할 -->
+
+            <!-- 2행: 상황(드롭다운), 분류1(콤보박스), 분류2(콤보박스) 3분할 -->
             <tr class="meta-row-trio">
               <th>상황</th>
               <td>
@@ -150,17 +154,16 @@
               </td>
               <th>분류1</th>
               <td>
-                <select id="postCategory1Select" class="select-filter-compact meta-select">
-                  <option value="미분류">미분류</option>
-                </select>
+                <input type="text" id="postCategory1Select" list="category1Datalist" class="select-filter-compact meta-select" placeholder="분류1 입력/선택" autocomplete="off">
+                <datalist id="category1Datalist"></datalist>
               </td>
               <th>분류2</th>
               <td>
-                <select id="postCategory2Select" class="select-filter-compact meta-select">
-                  <option value="미분류">미분류</option>
-                </select>
+                <input type="text" id="postCategory2Select" list="category2Datalist" class="select-filter-compact meta-select" placeholder="분류2 입력/선택" autocomplete="off">
+                <datalist id="category2Datalist"></datalist>
               </td>
             </tr>
+
             <!-- 3행: 시작, 완료, 경과 3분할 -->
             <tr class="meta-row-trio">
               <th>시작</th>
@@ -170,6 +173,7 @@
               <th>경과</th>
               <td><input type="text" id="postElapsedDays" placeholder="-" readonly style="color: #64748b; font-weight: 600; text-align: center;"></td>
             </tr>
+
             <!-- 4행: 요약 -->
             <tr>
               <th>요약</th>
