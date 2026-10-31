@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.5): 줄바꿈 splice 인덱스 중복 계산 오류 교정, 검증된 드롭 상태 변수 바인딩 및 BOM 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.5) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.6): 줄바꿈 drop 실행 시 슬롯 재배치 및 postListCache 전역 순서 갱신 보장, BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.6) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.5";
+window._V_SHEET = "v3.6";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -447,9 +447,12 @@ function renderPostList() {
       }
       clearDynamicRowDisplacements();
       dragHandle.setAttribute('draggable', 'false');
-      draggedPostId = null;
-      touchActiveRow = null;
-      validDropTargetId = null;
+      // drop 처리가 끝난 뒤 초기화되도록 약간의 딜레이 보장
+      setTimeout(function() {
+        draggedPostId = null;
+        touchActiveRow = null;
+        validDropTargetId = null;
+      }, 50);
     });
 
     row.addEventListener('dragover', function(e) {
@@ -462,18 +465,20 @@ function renderPostList() {
 
     row.addEventListener('drop', function(e) {
       e.preventDefault();
+      e.stopPropagation();
+
+      const sourceId = draggedPostId;
+      const targetId = validDropTargetId || row.getAttribute('data-id');
+      const insertBefore = validDropTargetId ? validDropInsertBefore : (e.clientY < (row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2));
+
       if (touchActiveRow) {
         touchActiveRow.classList.remove('is-dragging', 'can-drop');
         touchActiveRow.style.transform = '';
       }
       clearDynamicRowDisplacements();
 
-      // 초록색 켜진 시점에 검증된 타깃 정보 우선 사용
-      const finalTargetId = validDropTargetId || row.getAttribute('data-id');
-      const finalInsertBefore = validDropTargetId ? validDropInsertBefore : (e.clientY < (row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2));
-
-      if (draggedPostId && finalTargetId && draggedPostId !== finalTargetId) {
-        handlePostReorder(draggedPostId, finalTargetId, finalInsertBefore, filtered);
+      if (sourceId && targetId && sourceId !== targetId) {
+        handlePostReorder(sourceId, targetId, insertBefore);
       }
 
       draggedPostId = null;
@@ -531,17 +536,18 @@ function renderPostList() {
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'auto';
 
+      const sourceId = draggedPostId;
+      const targetId = validDropTargetId || (touchCurrentTargetRow ? touchCurrentTargetRow.getAttribute('data-id') : null);
+      const insertBefore = validDropTargetId ? validDropInsertBefore : touchInsertBefore;
+
       if (touchActiveRow) {
         touchActiveRow.classList.remove('is-dragging', 'can-drop');
         touchActiveRow.style.transform = '';
       }
       clearDynamicRowDisplacements();
 
-      const finalTargetId = validDropTargetId || (touchCurrentTargetRow ? touchCurrentTargetRow.getAttribute('data-id') : null);
-      const finalInsertBefore = validDropTargetId ? validDropInsertBefore : touchInsertBefore;
-
-      if (draggedPostId && finalTargetId && finalTargetId !== draggedPostId) {
-        handlePostReorder(draggedPostId, finalTargetId, finalInsertBefore, filtered);
+      if (sourceId && targetId && sourceId !== targetId) {
+        handlePostReorder(sourceId, targetId, insertBefore);
       }
 
       draggedPostId = null;
@@ -577,45 +583,33 @@ function renderPostList() {
   });
 }
 
-// 4-1. 슬롯 맞교환 순서 재배치 로직 (안정적인 인덱스 정밀 재계산)
-function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList) {
-  const visibleList = currentFilteredList.slice();
-  const srcIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
-  const tgtIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === targetId; });
+// 4-1. 슬롯 맞교환 순서 재배치 로직 (전체 캐시 기반 직접 재배열 및 동기화)
+function handlePostReorder(sourceId, targetId, insertBefore) {
+  const srcIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
+  const tgtIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
 
   if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
-  // 필터된 목록 내 고유 슬롯 번호(순서) 보존
-  const slotNumbers = visibleList.map(function(p, i) {
-    return p.순서 !== undefined && p.순서 !== "" ? Number(p.순서) : (i + 1);
-  }).sort(function(a, b) { return a - b; });
-
-  // 1) 삽입될 목표 인덱스 사전 계산
-  let destIdx = tgtIdx;
-  if (!insertBefore && srcIdx > tgtIdx) {
-    destIdx = tgtIdx + 1;
-  } else if (insertBefore && srcIdx < tgtIdx) {
-    destIdx = tgtIdx - 1;
+  // 1) 항목을 잘라내어 새로운 타깃 위치로 삽입
+  const itemToMove = postListCache.splice(srcIdx, 1)[0];
+  let destIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
+  if (!insertBefore) {
+    destIdx += 1;
   }
+  postListCache.splice(destIdx, 0, itemToMove);
 
-  // 인덱스가 기존과 동일하면 순서 변경 없음
-  if (destIdx === srcIdx) return;
-
-  // 2) 항목 추출 후 계산된 위치로 정확히 재배치
-  const itemToMove = visibleList.splice(srcIdx, 1)[0];
-  visibleList.splice(destIdx, 0, itemToMove);
-
-  // 3) 슬롯 순서 번호 재부여
-  visibleList.forEach(function(post, idx) {
-    post.순서 = slotNumbers[idx];
+  // 2) 전체 글 순서 번호 1부터 순차 재부여
+  postListCache.forEach(function(post, idx) {
+    post.순서 = idx + 1;
   });
 
-  sortPostsByOrder();
+  // 3) 로컬 캐시 저장 및 화면 재렌더링
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   pushPostListHistory();
   renderPostList();
 
-  visibleList.forEach(function(post) {
+  // 4) 구글 시트 백엔드에 갱신된 순서 전송
+  postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
 }
