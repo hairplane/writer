@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.7): 드롭 영역 이벤트 버블링 차단 및 배열 자르기 전 인덱스 역전 방어 로직 완벽 적용
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.7) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.8): 드래그 타깃 행의 녹색 테두리 하이라이트 제거 (선택 행만 녹색 유지) 및 최신 BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.8) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.7";
+window._V_SHEET = "v3.8";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -265,10 +265,8 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
   validDropTargetId = targetRow ? targetRow.getAttribute('data-id') : null;
   validDropInsertBefore = insertBefore;
 
-  // 타깃 행에 가이드 테두리 적용
+  // 3) 타깃 행 방향 지시자 클래스만 추가 (녹색 테두리는 부여하지 않음)
   if (targetRow && targetRow !== touchActiveRow) {
-    targetRow.style.borderColor = '#16a34a';
-    targetRow.style.boxShadow = 'inset 0 0 0 1px #16a34a';
     if (insertBefore) {
       targetRow.classList.add('drag-over-top');
     } else {
@@ -276,7 +274,7 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
     }
   }
 
-  // 3) 주변 행 위치 이동 애니메이션
+  // 4) 주변 행 위치 이동 애니메이션
   if (activeIdx < destIdx) {
     for (let i = activeIdx + 1; i <= destIdx; i++) {
       if (rows[i] && rows[i] !== touchActiveRow) rows[i].classList.add('shift-up');
