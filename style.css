@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.6): 메타 테이블 th 폭 36px 확장 및 td calc((100% - 108px) / 3) 3등분 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.5) / core.css(v1.2) / style.css(v3.6)
+- style.css (v3.7): 작성 글 목록 행의 별 아이콘 크기를 필터 바 규격(0.75rem / 16px)으로 축소 및 최신 BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.6";
+  --v-style-css: "v3.7";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -484,8 +484,8 @@ header.mac-window-header {
   border: none;
   cursor: pointer;
   padding: 0;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   line-height: 1;
   flex-shrink: 0;
   display: inline-flex;
@@ -495,13 +495,13 @@ header.mac-window-header {
 }
 
 .btn-star-toggle.star-yellow {
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   color: #f59e0b;
 }
 
 .btn-star-toggle.star-empty {
-  font-size: 1.15rem;
-  font-weight: 900;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: #94a3b8;
   transform: translateY(-0.5px);
 }
