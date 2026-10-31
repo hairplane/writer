@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.3): 분류1·분류2 동적 드롭다운 갱신 연동 및 BOM 세트 최신화
-[BOM] index(v5.1) / core.js(v1.2) / sheet.js(v3.3) / api.js(v1.1) / app.js(v3.3) / core.css(v1.2) / style.css(v3.2)
+- sheet.js (v3.4): 드래그 줄바꿈 유효 경계 판정 엄격화(실제 인덱스 변경 시에만 초록색 전환) 및 BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.4) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.3";
+window._V_SHEET = "v3.4";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -233,12 +233,25 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
     }
   });
 
-  if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) {
+  if (activeIdx === -1 || targetIdx === -1) {
     if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
     return;
   }
 
-  // 2) 줄바꿈 가능 타깃에 진입 시: 잡고 있는 줄을 녹색으로 전환
+  // 실제 드롭 시 계산되는 최종 목적지 인덱스 계산
+  let destIdx = targetIdx;
+  if (!insertBefore && destIdx < activeIdx) destIdx += 1;
+  if (insertBefore && destIdx > activeIdx) destIdx -= 1;
+
+  // 실질적인 자리 이동(인덱스 변경)이 발생하는지 검증
+  const isEffectiveMove = (destIdx !== activeIdx);
+
+  if (!isEffectiveMove) {
+    if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
+    return;
+  }
+
+  // 2) 실제 순서 변경이 일어나는 유효 영역 진입 시에만 녹색(can-drop)으로 전환
   if (touchActiveRow) {
     touchActiveRow.classList.add('can-drop');
   }
@@ -255,10 +268,6 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
   }
 
   // 3) 주변 행 위치 이동 애니메이션
-  let destIdx = targetIdx;
-  if (!insertBefore && destIdx < activeIdx) destIdx += 1;
-  if (insertBefore && destIdx > activeIdx) destIdx -= 1;
-
   if (activeIdx < destIdx) {
     for (let i = activeIdx + 1; i <= destIdx; i++) {
       if (rows[i] && rows[i] !== touchActiveRow) rows[i].classList.add('shift-up');
