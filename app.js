@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.9): '완료' 상태가 아닐 때 완료일 칸 비움 및 읽기 전용 처리, 상태 전환 시 오늘 날짜 자동 입력 연동 및 최신 BOM 세트 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.9) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.10): 작성 글 정보 창의 분류1/분류2 직접 입력 콤보박스(input list + datalist) 연동 및 최신 BOM 세트 동기화
+[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.10) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.9";
+window._V_APP = "v3.10";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -172,7 +172,7 @@ function buildEditorSections() {
     sec.id = 'sec_' + cfg.key;
     sec.className = 'editor-section';
 
-    const hdr = document.createElement('hdr_' + cfg.key) || document.createElement('div');
+    const hdr = document.createElement('div');
     hdr.id = 'hdr_' + cfg.key;
     hdr.className = 'section-header-line';
 
@@ -443,7 +443,6 @@ function syncEndDateFieldState() {
       endDateInput.value = getTodayString();
     }
   } else {
-    // 완료가 아닌 경우 (구상중 / 대기중 / 작성중) 값을 비우고 입력 금지
     endDateInput.value = '';
     endDateInput.readOnly = true;
     endDateInput.style.backgroundColor = '#f1f5f9';
@@ -483,21 +482,22 @@ function updateElapsedDays() {
   elapsedEl.value = diffDays + '일';
 }
 
-// 2-2. '작성 글 정보' 창의 분류1 및 분류2 드롭다운 옵션 동적 구성 (분류1 종속 필터링 연동)
+// 2-2. '작성 글 정보' 창의 분류1 및 분류2 콤보박스 datalist 옵션 동적 구성 (분류1 종속 필터링 연동)
 function updateMetaCategory2Options(preferredVal) {
-  const c1Select = $('postCategory1Select');
-  const c2Select = $('postCategory2Select');
-  if (!c2Select) return;
+  const c1Input = $('postCategory1Select');
+  const c2Input = $('postCategory2Select');
+  const c2Datalist = $('category2Datalist');
+  if (!c2Datalist) return;
 
-  const selectedC1 = c1Select ? c1Select.value : '미분류';
-  const targetVal = preferredVal || c2Select.value || '미분류';
+  const selectedC1 = c1Input ? c1Input.value.trim() : '';
+  const targetVal = preferredVal !== undefined ? preferredVal : (c2Input ? c2Input.value.trim() : '');
   const c2Set = new Set();
 
   if (Array.isArray(postListCache)) {
     postListCache.forEach(function(item) {
       const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
       const c2 = (item.분류2 || item.category2 || '').trim();
-      if (!c2 || c2 === '미분류') return;
+      if (!c2) return;
 
       if (!selectedC1 || selectedC1 === '미분류' || c1 === selectedC1) {
         c2Set.add(c2);
@@ -505,54 +505,44 @@ function updateMetaCategory2Options(preferredVal) {
     });
   }
 
-  c2Select.innerHTML = '<option value="미분류">미분류</option>';
+  c2Datalist.innerHTML = '';
   Array.from(c2Set).sort().forEach(function(val) {
     const opt = document.createElement('option');
     opt.value = val;
-    opt.innerText = val;
-    c2Select.appendChild(opt);
+    c2Datalist.appendChild(opt);
   });
 
-  if (targetVal && targetVal !== '미분류' && !c2Set.has(targetVal)) {
-    const opt = document.createElement('option');
-    opt.value = targetVal;
-    opt.innerText = targetVal;
-    c2Select.appendChild(opt);
+  if (c2Input && preferredVal !== undefined) {
+    c2Input.value = targetVal;
   }
-
-  c2Select.value = targetVal;
 }
 
 function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
-  const c1Select = $('postCategory1Select');
-  if (!c1Select) return;
+  const c1Input = $('postCategory1Select');
+  const c1Datalist = $('category1Datalist');
+  if (!c1Datalist) return;
 
-  const curC1 = selectedCat1 || c1Select.value || '미분류';
-  const curC2 = selectedCat2 || ($('postCategory2Select') ? $('postCategory2Select').value : '미분류');
+  const curC1 = selectedCat1 !== undefined ? selectedCat1 : (c1Input ? c1Input.value.trim() : '');
+  const curC2 = selectedCat2 !== undefined ? selectedCat2 : ($('postCategory2Select') ? $('postCategory2Select').value.trim() : '');
 
   const c1Set = new Set();
   if (Array.isArray(postListCache)) {
     postListCache.forEach(function(item) {
       const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
-      if (c1 && c1 !== '미분류') c1Set.add(c1);
+      if (c1) c1Set.add(c1);
     });
   }
 
-  c1Select.innerHTML = '<option value="미분류">미분류</option>';
+  c1Datalist.innerHTML = '';
   Array.from(c1Set).sort().forEach(function(val) {
     const opt = document.createElement('option');
     opt.value = val;
-    opt.innerText = val;
-    c1Select.appendChild(opt);
+    c1Datalist.appendChild(opt);
   });
 
-  if (curC1 && curC1 !== '미분류' && !c1Set.has(curC1)) {
-    const opt = document.createElement('option');
-    opt.value = curC1;
-    opt.innerText = curC1;
-    c1Select.appendChild(opt);
+  if (c1Input && selectedCat1 !== undefined) {
+    c1Input.value = curC1;
   }
-  c1Select.value = curC1;
 
   updateMetaCategory2Options(curC2);
 }
@@ -562,8 +552,8 @@ function getMetaSnapshot() {
   return JSON.stringify({
     title: $('essayTitleInput') ? $('essayTitleInput').value : '',
     status: $('postStatusSelect') ? $('postStatusSelect').value : '구상중',
-    cat1: $('postCategory1Select') ? $('postCategory1Select').value : '미분류',
-    cat2: $('postCategory2Select') ? $('postCategory2Select').value : '미분류',
+    cat1: $('postCategory1Select') ? $('postCategory1Select').value : '',
+    cat2: $('postCategory2Select') ? $('postCategory2Select').value : '',
     startDate: $('postStartDate') ? $('postStartDate').value : '',
     endDate: $('postEndDate') ? $('postEndDate').value : '',
     summary: $('postSummary') ? $('postSummary').value : '',
@@ -688,13 +678,12 @@ function applyMetaChanges() {
   if (!titleVal) return showMacAlert('확인 필요', '글 제목을 입력해주세요.');
 
   const statusVal = $('postStatusSelect').value;
-  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value : '미분류';
-  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value : '미분류';
+  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value.trim() : '';
+  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value.trim() : '';
   const sDate = $('postStartDate').value.trim();
   const eDate = $('postEndDate').value.trim();
   const summaryVal = $('postSummary').value.trim();
 
-  // 신규 글 작성 모드일 경우: ID 생성 및 목록 맨 상단 슬롯에 삽입
   if (isNewPostMode || !currentPostId) {
     currentPostId = "ID_" + new Date().getTime();
     currentPostOrder = 1;
@@ -739,7 +728,6 @@ function applyMetaChanges() {
     postListCache.unshift(newPostObj);
     exitNewPostMode();
   } else {
-    // 기존 글 업데이트
     const targetPost = postListCache.find(function(p) {
       return (p.ID || p.id) === currentPostId;
     });
@@ -858,7 +846,7 @@ function startNewPostSetup() {
 
   if ($('essayTitleInput')) $('essayTitleInput').value = '';
   if ($('postStatusSelect')) $('postStatusSelect').value = '구상중';
-  populateMetaCategoryDropdowns('미분류', '미분류');
+  populateMetaCategoryDropdowns('', '');
   if ($('postStartDate')) $('postStartDate').value = getTodayString();
   if ($('postEndDate')) $('postEndDate').value = '';
   if ($('postSummary')) $('postSummary').value = '';
@@ -902,15 +890,14 @@ function selectPost(post) {
   if ($('essayTitleInput')) $('essayTitleInput').value = post.제목 || post.title || '';
   if ($('postStatusSelect')) $('postStatusSelect').value = currentPostStatus;
 
-  const c1Val = post.분류1 || post.category1 || post.분류 || post.category || '미분류';
-  const c2Val = post.분류2 || post.category2 || '미분류';
+  const c1Val = post.분류1 || post.category1 || post.분류 || post.category || '';
+  const c2Val = post.분류2 || post.category2 || '';
   populateMetaCategoryDropdowns(c1Val, c2Val);
 
   let sDate = post.작성시작일 !== undefined ? post.작성시작일 : (post['작성 시작일'] || post['작성\n시작일'] || post.startDate || '');
   let eDate = post.작성완료일 !== undefined ? post.작성완료일 : (post['작성 완료일'] || post['작성\n완료일'] || post.endDate || '');
   let sumText = post.요약 !== undefined ? post.요약 : (post.summary || '');
 
-  // 완료 상태가 아닌 경우 완료일을 무조건 빈칸으로 초기화
   if (currentPostStatus !== '완료') {
     eDate = '';
   }
@@ -953,8 +940,8 @@ function saveWork(mode) {
     exitNewPostMode();
   }
 
-  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value : '미분류';
-  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value : '미분류';
+  const c1Val = $('postCategory1Select') ? $('postCategory1Select').value.trim() : '';
+  const c2Val = $('postCategory2Select') ? $('postCategory2Select').value.trim() : '';
   const statusVal = $('postStatusSelect') ? $('postStatusSelect').value : '구상중';
 
   const payload = {
@@ -1024,7 +1011,7 @@ function loadSavedData() {
     if ($('postEndDate')) $('postEndDate').value = eDate;
     if ($('postSummary')) $('postSummary').value = sumText;
 
-    populateMetaCategoryDropdowns(data.category1 || data.category || '미분류', data.category2 || '미분류');
+    populateMetaCategoryDropdowns(data.category1 || data.category || '', data.category2 || '');
 
     if (data.important) currentPostImportant = String(data.important).toUpperCase() === 'Y' ? 'Y' : 'N';
     if (data.hidden) currentPostHidden = String(data.hidden).toUpperCase() === 'Y' ? 'Y' : 'N';
@@ -1180,16 +1167,20 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
+  // 분류1 콤보박스 입력/선택 시: 종속 분류2 datalist 갱신 및 히스토리 스택 기록
   const postCat1 = $('postCategory1Select');
   if (postCat1) {
-    postCat1.onchange = function() {
-      updateMetaCategory2Options('미분류');
+    postCat1.oninput = function() {
+      updateMetaCategory2Options();
       pushMetaHistory();
     };
   }
 
+  // 분류2 콤보박스 입력/선택 시: 히스토리 스택 기록
   const postCat2 = $('postCategory2Select');
-  if (postCat2) postCat2.onchange = pushMetaHistory;
+  if (postCat2) {
+    postCat2.oninput = pushMetaHistory;
+  }
 
   ALL_SECTION_KEYS.forEach(function(k) {
     const dot = $('dot_' + k);
