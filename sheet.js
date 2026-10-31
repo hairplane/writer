@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.8): 드래그 타깃 행의 녹색 테두리 하이라이트 제거 (선택 행만 녹색 유지) 및 최신 BOM 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.8) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.9): 논리적 절대 좌표계 도입으로 좌표 유실 해결 및 1:1 슬롯 교환 방식(절반 판정 폐지)으로 드롭 범위 2배 확장
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.8";
+window._V_SHEET = "v3.9";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -18,16 +18,11 @@ let postListSavedSnapshot = null;
 
 // 드래그 앤 드롭 상태 관리 변수
 let draggedPostId = null;
-
-// 터치/마우스 공용 드래그 상태 추적 변수
 let touchActiveRow = null;
 let touchStartY = 0;
-let touchCurrentTargetRow = null;
-let touchInsertBefore = false;
 
-// 유효 검증된 드롭 타깃 정보 (초록색 켜진 상태의 타깃 및 방향 보존)
+// 유효 검증된 드롭 타깃 정보 (초록색 켜진 상태의 목표 ID 보존)
 let validDropTargetId = null;
-let validDropInsertBefore = false;
 
 // 모바일 드래그 중 화면 전체 스크롤 원천 차단용 전역 핸들러
 function preventGlobalScroll(e) {
@@ -222,59 +217,51 @@ function updateCategory2Options(targetValue) {
   cat2Select.value = cat2Set.has(preferredVal) ? preferredVal : '전체';
 }
 
-// 4. 드래그 중인 항목 주변 행들의 변위(translateY) 및 타깃 테두리/색상 갱신 헬퍼
-function updateDynamicRowDisplacements(targetRow, insertBefore) {
+// 4. 절대 레이아웃 기준의 무오류 행 찾기 (애니메이션 Gap 및 흔들림 완벽 차단)
+function getTargetRowByLogicalY(clientY) {
+  const grid = $('list_postRows');
+  if (!grid) return null;
+  const gridRect = grid.getBoundingClientRect();
+  const relativeY = clientY - gridRect.top + grid.scrollTop;
+
+  const rows = Array.from(grid.querySelectorAll('.post-row-item'));
+  for (let r of rows) {
+    if (r === touchActiveRow) continue;
+    // 시각적 transform 이동과 무관하게 DOM이 고정된 offsetTop 절대 좌표 활용
+    if (relativeY >= r.offsetTop && relativeY <= r.offsetTop + r.offsetHeight) {
+      return r;
+    }
+  }
+  return null;
+}
+
+// 4-1. 드래그 중인 항목 주변 행들의 변위(translateY) 및 선택 행 녹색 테두리 갱신
+function updateDynamicRowDisplacements(targetRow) {
   const rows = Array.from(document.querySelectorAll('.post-row-item'));
   const activeIdx = rows.findIndex(function(r) { return r === touchActiveRow; });
   const targetIdx = rows.findIndex(function(r) { return r === targetRow; });
 
-  // 1) 기존 변위 및 테두리 초기화
   rows.forEach(function(r) {
     if (r !== touchActiveRow) {
-      r.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
-      r.style.borderColor = '';
-      r.style.boxShadow = '';
+      r.classList.remove('shift-up', 'shift-down');
     }
   });
 
-  if (activeIdx === -1 || targetIdx === -1) {
+  if (activeIdx === -1 || targetIdx === -1 || activeIdx === targetIdx) {
     if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
     validDropTargetId = null;
     return;
   }
 
-  // 실제 이동할 목표 인덱스 산출
-  let destIdx = targetIdx;
-  if (!insertBefore && destIdx < activeIdx) destIdx += 1;
-  if (insertBefore && destIdx > activeIdx) destIdx -= 1;
+  // 1:1 슬롯 교환: 위든 아래든 타깃의 인덱스 번호가 최종 목적지가 됨 (관대한 100% 범위)
+  const destIdx = targetIdx;
 
-  // 실질적인 자리 이동(인덱스 변경)이 발생하는지 검증
-  const isEffectiveMove = (destIdx !== activeIdx);
-
-  if (!isEffectiveMove) {
-    if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
-    validDropTargetId = null;
-    return;
-  }
-
-  // 2) 유효 자리바꿈 영역 진입 시 초록색 전환 및 타깃 정보 확정 보존
   if (touchActiveRow) {
-    touchActiveRow.classList.add('can-drop');
+    touchActiveRow.classList.add('can-drop'); // 잡은 제목줄만 녹색으로 변경
   }
 
   validDropTargetId = targetRow ? targetRow.getAttribute('data-id') : null;
-  validDropInsertBefore = insertBefore;
 
-  // 3) 타깃 행 방향 지시자 클래스만 추가 (녹색 테두리는 부여하지 않음)
-  if (targetRow && targetRow !== touchActiveRow) {
-    if (insertBefore) {
-      targetRow.classList.add('drag-over-top');
-    } else {
-      targetRow.classList.add('drag-over-bottom');
-    }
-  }
-
-  // 4) 주변 행 위치 이동 애니메이션
   if (activeIdx < destIdx) {
     for (let i = activeIdx + 1; i <= destIdx; i++) {
       if (rows[i] && rows[i] !== touchActiveRow) rows[i].classList.add('shift-up');
@@ -288,9 +275,7 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
 
 function clearDynamicRowDisplacements() {
   document.querySelectorAll('.post-row-item').forEach(function(el) {
-    el.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom', 'can-drop');
-    el.style.borderColor = '';
-    el.style.boxShadow = '';
+    el.classList.remove('shift-up', 'shift-down', 'can-drop');
     if (el !== touchActiveRow) {
       el.style.transform = '';
     }
@@ -454,45 +439,6 @@ function renderPostList() {
       }, 50);
     });
 
-    // === 자식 요소의 이벤트 버블링 방어 ===
-    row.addEventListener('dragenter', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
-    });
-
-    row.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
-      const rect = row.getBoundingClientRect();
-      const insertBefore = e.clientY < (rect.top + rect.height / 2);
-      updateDynamicRowDisplacements(row, insertBefore);
-    });
-
-    row.addEventListener('drop', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const sourceId = draggedPostId;
-      const targetId = validDropTargetId || row.getAttribute('data-id');
-      const insertBefore = validDropTargetId ? validDropInsertBefore : (e.clientY < (row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2));
-
-      if (touchActiveRow) {
-        touchActiveRow.classList.remove('is-dragging', 'can-drop');
-        touchActiveRow.style.transform = '';
-      }
-      clearDynamicRowDisplacements();
-
-      if (sourceId && targetId && sourceId !== targetId) {
-        handlePostReorder(sourceId, targetId, insertBefore);
-      }
-
-      draggedPostId = null;
-      touchActiveRow = null;
-      validDropTargetId = null;
-    });
-
     // 모바일 터치 이벤트 핸들러
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
@@ -519,22 +465,8 @@ function renderPostList() {
       const deltaY = touch.clientY - touchStartY;
       touchActiveRow.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
 
-      touchActiveRow.style.pointerEvents = 'none';
-      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-      touchActiveRow.style.pointerEvents = '';
-
-      const targetRow = targetEl ? targetEl.closest('.post-row-item') : null;
-
-      if (targetRow && targetRow !== touchActiveRow) {
-        const rect = targetRow.getBoundingClientRect();
-        touchInsertBefore = touch.clientY < (rect.top + rect.height / 2);
-        touchCurrentTargetRow = targetRow;
-        updateDynamicRowDisplacements(targetRow, touchInsertBefore);
-      } else {
-        touchCurrentTargetRow = null;
-        validDropTargetId = null;
-        if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
-      }
+      const targetRow = getTargetRowByLogicalY(touch.clientY);
+      updateDynamicRowDisplacements(targetRow);
     }, { passive: false });
 
     dragHandle.addEventListener('touchend', function(e) {
@@ -544,8 +476,7 @@ function renderPostList() {
       if (listContainer) listContainer.style.overflowY = 'auto';
 
       const sourceId = draggedPostId;
-      const targetId = validDropTargetId || (touchCurrentTargetRow ? touchCurrentTargetRow.getAttribute('data-id') : null);
-      const insertBefore = validDropTargetId ? validDropInsertBefore : touchInsertBefore;
+      const targetId = validDropTargetId;
 
       if (touchActiveRow) {
         touchActiveRow.classList.remove('is-dragging', 'can-drop');
@@ -554,12 +485,11 @@ function renderPostList() {
       clearDynamicRowDisplacements();
 
       if (sourceId && targetId && sourceId !== targetId) {
-        handlePostReorder(sourceId, targetId, insertBefore);
+        handlePostReorder(sourceId, targetId);
       }
 
       draggedPostId = null;
       touchActiveRow = null;
-      touchCurrentTargetRow = null;
       validDropTargetId = null;
     });
 
@@ -576,7 +506,6 @@ function renderPostList() {
       clearDynamicRowDisplacements();
       draggedPostId = null;
       touchActiveRow = null;
-      touchCurrentTargetRow = null;
       validDropTargetId = null;
     });
 
@@ -588,49 +517,71 @@ function renderPostList() {
 
     grid.appendChild(row);
   });
+
+  // 데스크톱 드롭 존 이벤트 단일화 (자식 요소 방해 완벽 차단)
+  grid.ondragenter = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  grid.ondragover = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const targetRow = getTargetRowByLogicalY(e.clientY);
+    updateDynamicRowDisplacements(targetRow);
+  };
+  grid.ondrop = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const sourceId = draggedPostId;
+    const targetId = validDropTargetId;
+
+    if (touchActiveRow) {
+      touchActiveRow.classList.remove('is-dragging', 'can-drop');
+      touchActiveRow.style.transform = '';
+    }
+    clearDynamicRowDisplacements();
+
+    if (sourceId && targetId && sourceId !== targetId) {
+      handlePostReorder(sourceId, targetId);
+    }
+
+    draggedPostId = null;
+    touchActiveRow = null;
+    validDropTargetId = null;
+  };
 }
 
-// 4-1. 슬롯 맞교환 순서 재배치 로직 (배열 자르기 전 인덱스 확정 공식 적용)
-function handlePostReorder(sourceId, targetId, insertBefore) {
+// 5-1. 슬롯 맞교환 순서 재배치 로직 (배열 자르기 전 인덱스 확정 1:1 직접 매핑)
+function handlePostReorder(sourceId, targetId) {
   const srcIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
   const tgtIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
 
   if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
-  // 1) 삽입될 목표 인덱스를 자르기 전의 원본 배열 상태를 기준으로 안전하게 사전 확정
-  let destIdx = tgtIdx;
-  
-  if (srcIdx < tgtIdx) {
-    // 소스가 타깃보다 위에 있었다면, 잘라낼 때 뒷자리 인덱스가 1칸씩 앞으로 당겨지므로 이를 반영
-    destIdx = insertBefore ? tgtIdx - 1 : tgtIdx;
-  } else {
-    // 소스가 타깃보다 아래에 있었다면, 잘라내도 타깃의 인덱스 변화가 없음
-    destIdx = insertBefore ? tgtIdx : tgtIdx + 1;
-  }
+  const destIdx = tgtIdx; // 1:1 슬롯 다이렉트 매핑
 
-  if (destIdx === srcIdx) return; // 최종 위치가 자신의 원래 위치와 동일하면 무시
-
-  // 2) 항목을 잘라내어 100% 검증된 타깃 위치로 꽂아 넣음
+  // 1) 항목을 잘라내어 100% 검증된 타깃 위치로 꽂아 넣음
   const itemToMove = postListCache.splice(srcIdx, 1)[0];
   postListCache.splice(destIdx, 0, itemToMove);
 
-  // 3) 전체 글 순서 번호 1부터 순차 재부여
+  // 2) 전체 글 순서 번호 1부터 순차 재부여
   postListCache.forEach(function(post, idx) {
     post.순서 = idx + 1;
   });
 
-  // 4) 로컬 캐시 저장 및 화면 재렌더링
+  // 3) 로컬 캐시 저장 및 화면 재렌더링
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   pushPostListHistory();
   renderPostList();
 
-  // 5) 구글 시트 백엔드에 갱신된 순서 전송
+  // 4) 구글 시트 백엔드에 갱신된 순서 전송
   postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
 }
 
-// 5. 상황 토글
+// 6. 상황 토글
 function togglePostStatus(post) {
   const current = (post.상황 || post.status || '작성중').trim();
   let nextStatus = '구상중';
@@ -658,7 +609,7 @@ function togglePostStatus(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-1. 중요 토글 (⭐ <-> ☆)
+// 6-1. 중요 토글 (⭐ <-> ☆)
 function togglePostImportant(post) {
   const current = String(post.중요 || post.important || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
@@ -679,7 +630,7 @@ function togglePostImportant(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-2. 숨김 토글 (🕶️ <-> 👓)
+// 6-2. 숨김 토글 (🕶️ <-> 👓)
 function togglePostHidden(post) {
   const current = String(post.숨김 || post.hidden || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
@@ -700,7 +651,7 @@ function togglePostHidden(post) {
   sendPostMetaUpdate(post);
 }
 
-// 5-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
+// 6-3. 메타/순서 업데이트 전용 구글 시트 백그라운드 전송
 function sendPostMetaUpdate(post) {
   fetch(GAS_ENDPOINT, {
     method: "POST",
@@ -732,7 +683,7 @@ function sendPostMetaUpdate(post) {
   });
 }
 
-// 5-4. 구글 시트 글 영구 삭제 백엔드 전송
+// 6-4. 구글 시트 글 영구 삭제 백엔드 전송
 function deletePostFromSheet(postId) {
   if (!postId) return;
   fetch(GAS_ENDPOINT, {
@@ -751,7 +702,7 @@ function deletePostFromSheet(postId) {
   });
 }
 
-// 6. 구글 시트로 현재 작업 전체 전송
+// 7. 구글 시트로 현재 작업 전체 전송
 function syncPostToSheet(payload) {
   try {
     fetch(GAS_ENDPOINT, {
