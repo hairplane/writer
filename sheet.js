@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.4): 드래그 줄바꿈 유효 경계 판정 엄격화(실제 인덱스 변경 시에만 초록색 전환) 및 BOM 동기화
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.4) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.5): 줄바꿈 splice 인덱스 중복 계산 오류 교정, 검증된 드롭 상태 변수 바인딩 및 BOM 동기화
+[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.5) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
 ========================================================================== */
 
-window._V_SHEET = "v3.4";
+window._V_SHEET = "v3.5";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -19,11 +19,15 @@ let postListSavedSnapshot = null;
 // 드래그 앤 드롭 상태 관리 변수
 let draggedPostId = null;
 
-// 터치 드래그용 상태 추적 변수
+// 터치/마우스 공용 드래그 상태 추적 변수
 let touchActiveRow = null;
 let touchStartY = 0;
 let touchCurrentTargetRow = null;
 let touchInsertBefore = false;
+
+// 유효 검증된 드롭 타깃 정보 (초록색 켜진 상태의 타깃 및 방향 보존)
+let validDropTargetId = null;
+let validDropInsertBefore = false;
 
 // 모바일 드래그 중 화면 전체 스크롤 원천 차단용 전역 핸들러
 function preventGlobalScroll(e) {
@@ -224,7 +228,7 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
   const activeIdx = rows.findIndex(function(r) { return r === touchActiveRow; });
   const targetIdx = rows.findIndex(function(r) { return r === targetRow; });
 
-  // 1) 기존 상태 초기화
+  // 1) 기존 변위 및 테두리 초기화
   rows.forEach(function(r) {
     if (r !== touchActiveRow) {
       r.classList.remove('shift-up', 'shift-down', 'drag-over-top', 'drag-over-bottom');
@@ -235,10 +239,11 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
 
   if (activeIdx === -1 || targetIdx === -1) {
     if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
+    validDropTargetId = null;
     return;
   }
 
-  // 실제 드롭 시 계산되는 최종 목적지 인덱스 계산
+  // 실제 이동할 목표 인덱스 산출
   let destIdx = targetIdx;
   if (!insertBefore && destIdx < activeIdx) destIdx += 1;
   if (insertBefore && destIdx > activeIdx) destIdx -= 1;
@@ -248,13 +253,17 @@ function updateDynamicRowDisplacements(targetRow, insertBefore) {
 
   if (!isEffectiveMove) {
     if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
+    validDropTargetId = null;
     return;
   }
 
-  // 2) 실제 순서 변경이 일어나는 유효 영역 진입 시에만 녹색(can-drop)으로 전환
+  // 2) 유효 자리바꿈 영역 진입 시 초록색 전환 및 타깃 정보 확정 보존
   if (touchActiveRow) {
     touchActiveRow.classList.add('can-drop');
   }
+
+  validDropTargetId = targetRow ? targetRow.getAttribute('data-id') : null;
+  validDropInsertBefore = insertBefore;
 
   // 타깃 행에 가이드 테두리 적용
   if (targetRow && targetRow !== touchActiveRow) {
@@ -418,6 +427,7 @@ function renderPostList() {
       draggedPostId = postId;
       touchActiveRow = row;
       touchStartY = e.clientY;
+      validDropTargetId = null;
       row.classList.add('is-dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', postId);
@@ -439,6 +449,7 @@ function renderPostList() {
       dragHandle.setAttribute('draggable', 'false');
       draggedPostId = null;
       touchActiveRow = null;
+      validDropTargetId = null;
     });
 
     row.addEventListener('dragover', function(e) {
@@ -456,12 +467,18 @@ function renderPostList() {
         touchActiveRow.style.transform = '';
       }
       clearDynamicRowDisplacements();
-      const targetId = row.getAttribute('data-id');
-      if (!draggedPostId || draggedPostId === targetId) return;
 
-      const rect = row.getBoundingClientRect();
-      const insertBefore = e.clientY < (rect.top + rect.height / 2);
-      handlePostReorder(draggedPostId, targetId, insertBefore, filtered);
+      // 초록색 켜진 시점에 검증된 타깃 정보 우선 사용
+      const finalTargetId = validDropTargetId || row.getAttribute('data-id');
+      const finalInsertBefore = validDropTargetId ? validDropInsertBefore : (e.clientY < (row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2));
+
+      if (draggedPostId && finalTargetId && draggedPostId !== finalTargetId) {
+        handlePostReorder(draggedPostId, finalTargetId, finalInsertBefore, filtered);
+      }
+
+      draggedPostId = null;
+      touchActiveRow = null;
+      validDropTargetId = null;
     });
 
     // 모바일 터치 이벤트 핸들러
@@ -478,6 +495,7 @@ function renderPostList() {
       draggedPostId = postId;
       touchActiveRow = row;
       touchStartY = touch.clientY;
+      validDropTargetId = null;
       row.classList.add('is-dragging');
     }, { passive: false });
 
@@ -502,6 +520,7 @@ function renderPostList() {
         updateDynamicRowDisplacements(targetRow, touchInsertBefore);
       } else {
         touchCurrentTargetRow = null;
+        validDropTargetId = null;
         if (touchActiveRow) touchActiveRow.classList.remove('can-drop');
       }
     }, { passive: false });
@@ -518,16 +537,17 @@ function renderPostList() {
       }
       clearDynamicRowDisplacements();
 
-      if (draggedPostId && touchCurrentTargetRow) {
-        const targetId = touchCurrentTargetRow.getAttribute('data-id');
-        if (targetId && targetId !== draggedPostId) {
-          handlePostReorder(draggedPostId, targetId, touchInsertBefore, filtered);
-        }
+      const finalTargetId = validDropTargetId || (touchCurrentTargetRow ? touchCurrentTargetRow.getAttribute('data-id') : null);
+      const finalInsertBefore = validDropTargetId ? validDropInsertBefore : touchInsertBefore;
+
+      if (draggedPostId && finalTargetId && finalTargetId !== draggedPostId) {
+        handlePostReorder(draggedPostId, finalTargetId, finalInsertBefore, filtered);
       }
 
       draggedPostId = null;
       touchActiveRow = null;
       touchCurrentTargetRow = null;
+      validDropTargetId = null;
     });
 
     dragHandle.addEventListener('touchcancel', function() {
@@ -544,6 +564,7 @@ function renderPostList() {
       draggedPostId = null;
       touchActiveRow = null;
       touchCurrentTargetRow = null;
+      validDropTargetId = null;
     });
 
     row.appendChild(starBtn);
@@ -556,23 +577,35 @@ function renderPostList() {
   });
 }
 
-// 4-1. 슬롯 맞교환 순서 재배치 로직
+// 4-1. 슬롯 맞교환 순서 재배치 로직 (안정적인 인덱스 정밀 재계산)
 function handlePostReorder(sourceId, targetId, insertBefore, currentFilteredList) {
   const visibleList = currentFilteredList.slice();
   const srcIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
   const tgtIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === targetId; });
 
-  if (srcIdx === -1 || tgtIdx === -1) return;
+  if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
+  // 필터된 목록 내 고유 슬롯 번호(순서) 보존
   const slotNumbers = visibleList.map(function(p, i) {
     return p.순서 !== undefined && p.순서 !== "" ? Number(p.순서) : (i + 1);
   }).sort(function(a, b) { return a - b; });
 
+  // 1) 삽입될 목표 인덱스 사전 계산
+  let destIdx = tgtIdx;
+  if (!insertBefore && srcIdx > tgtIdx) {
+    destIdx = tgtIdx + 1;
+  } else if (insertBefore && srcIdx < tgtIdx) {
+    destIdx = tgtIdx - 1;
+  }
+
+  // 인덱스가 기존과 동일하면 순서 변경 없음
+  if (destIdx === srcIdx) return;
+
+  // 2) 항목 추출 후 계산된 위치로 정확히 재배치
   const itemToMove = visibleList.splice(srcIdx, 1)[0];
-  let destIdx = visibleList.findIndex(function(p) { return (p.ID || p.id) === targetId; });
-  if (!insertBefore) destIdx += 1;
   visibleList.splice(destIdx, 0, itemToMove);
 
+  // 3) 슬롯 순서 번호 재부여
   visibleList.forEach(function(post, idx) {
     post.순서 = slotNumbers[idx];
   });
