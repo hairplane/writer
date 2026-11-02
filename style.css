@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.11): 저장 확인 모달창 액션 영역 중앙 정렬(justify-content: center) 및 고정 간격(gap: 8px) 적용으로 좌우 대칭 여백과 2개 버튼 간격 완벽 동일화, 최신 BOM 동기화
-[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.11)
+- style.css (v3.12): 저장 확인 모달창 액션 영역 왼쪽 정렬(justify-content: flex-start) 및 좌측 패딩(14px)을 본문 텍스트 시작선과 세로 일치, 버튼 간격(gap: 8px) 유지 및 최신 BOM 동기화
+[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.20) / core.css(v1.2) / style.css(v3.12)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.11";
+  --v-style-css: "v3.12";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -1072,9 +1072,9 @@ textarea.flat-textarea:focus {
 .modal-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
   box-sizing: border-box;
