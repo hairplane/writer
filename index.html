@@ -1,5 +1,5 @@
-<!-- - index.html (v5.6): 분류1/분류2를 직접 입력 텍스트 인풋과 전체 목록 드롭다운 버튼으로 분리 결합한 표준 콤보박스 구조로 개편 및 최신 BOM 동기화 -->
-<!-- [BOM] index(v5.6) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.15) / core.css(v1.2) / style.css(v3.7) -->
+<!-- - index.html (v5.7): '선택' 별도 드롭다운 상자 제거 및 기존 일체형 단일 입력 필드로 디자인 원상복구, style.css 캐시 무효화 쿼리스트링 적용 및 최신 BOM 동기화 -->
+<!-- [BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.16) / core.css(v1.2) / style.css(v3.8) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -10,8 +10,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✍️</text></svg>">
   <!-- 1. 불변 시스템 레이아웃 엔진 라이브러리 -->
   <link rel="stylesheet" href="core.css">
-  <!-- 2. 커스텀 테마, 색상, 디자인 스타일시트 -->
-  <link rel="stylesheet" href="style.css">
+  <!-- 2. 커스텀 테마, 색상, 디자인 스타일시트 (캐시 방지 쿼리스트링 적용) -->
+  <link rel="stylesheet" href="style.css?v=3.8">
 </head>
 <body>
   <div class="container">
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.6</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.7</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -154,17 +154,13 @@
               </td>
               <th>분류1</th>
               <td>
-                <div class="meta-combo-wrap">
-                  <input type="text" id="postCategory1Select" class="select-filter-compact meta-select meta-combo-input" value="미분류" placeholder="미분류" autocomplete="off">
-                  <select id="category1ComboSelect" class="meta-combo-arrow" title="분류1 목록 선택"></select>
-                </div>
+                <input type="text" id="postCategory1Select" list="category1Datalist" class="select-filter-compact meta-select" value="미분류" placeholder="미분류" autocomplete="off">
+                <datalist id="category1Datalist"></datalist>
               </td>
               <th>분류2</th>
               <td>
-                <div class="meta-combo-wrap">
-                  <input type="text" id="postCategory2Select" class="select-filter-compact meta-select meta-combo-input" value="미분류" placeholder="미분류" autocomplete="off">
-                  <select id="category2ComboSelect" class="meta-combo-arrow" title="분류2 목록 선택"></select>
-                </div>
+                <input type="text" id="postCategory2Select" list="category2Datalist" class="select-filter-compact meta-select" value="미분류" placeholder="미분류" autocomplete="off">
+                <datalist id="category2Datalist"></datalist>
               </td>
             </tr>
 
