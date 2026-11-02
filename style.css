@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.9): 확인 모달 창의 첫 번째 버튼 왼쪽 정렬(margin-right: auto) 및 나머지 버튼 간격 균일화(gap: 6px) 적용 및 최신 BOM 동기화
-[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.9)
+- style.css (v3.10): 저장 확인 모달창 좌우 여백 대칭 일치, 3개 버튼 사이 간격 2개 균일화(gap: 8px) 및 단정하고 차분한 단일 기본 버튼 스타일 통일, 최신 BOM 동기화
+[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.10)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.9";
+  --v-style-css: "v3.10";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -1073,20 +1073,31 @@ textarea.flat-textarea:focus {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 10px 12px;
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
+  box-sizing: border-box;
 }
 
-/* 첫 번째 버튼을 왼쪽 끝으로 정렬하고 나머지 버튼 간격은 gap(6px)으로 균일 유지 */
-.modal-actions > :first-child {
-  margin-right: auto;
-}
-
+/* 모달 내부 3개 버튼 모두 단정하고 차분한 단일 기본 버튼 스타일로 통일 */
 .modal-actions .btn {
-  padding: 3px 8px;
+  padding: 4px 8px;
   font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.modal-actions .btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
 
 @keyframes modalFadeIn {
@@ -1100,6 +1111,6 @@ textarea.flat-textarea:focus {
     padding: 6px 6px 20px;
   }
   .mac-modal-card {
-    max-width: 280px;
+    max-width: 290px;
   }
 }
