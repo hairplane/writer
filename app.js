@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.12): 분류1 초기화 및 로드 시 기본값을 '미분류'로 보장하고 최신 BOM 세트 동기화
-[BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.12) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.13): 작성 글 정보 창의 분류1 전체 목록 노출 및 분류2 종속 필터링 연동, 최신 BOM 동기화
+[BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.13) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.12";
+window._V_APP = "v3.13";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -499,6 +499,7 @@ function updateMetaCategory2Options(preferredVal) {
       const c2 = (item.분류2 || item.category2 || '').trim();
       if (!c2) return;
 
+      // '작성 글 목록' 필터링과 동일하게 분류1이 '미분류'이거나 전체일 땐 전부 노출, 특정 분류1일 땐 하위 분류2만 노출
       if (!selectedC1 || selectedC1 === '미분류' || c1 === selectedC1) {
         c2Set.add(c2);
       }
@@ -1167,17 +1168,32 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
+  // 분류1 콤보박스: 입력 시 분류2 옵션 갱신 및 히스토리 기록
   const postCat1 = $('postCategory1Select');
   if (postCat1) {
     postCat1.oninput = function() {
       updateMetaCategory2Options();
       pushMetaHistory();
     };
+    // 클릭 및 포커스 시 텍스트 전체 선택 -> 브라우저 datalist 필터링 초기화로 전체 목록 온전하게 노출
+    postCat1.addEventListener('focus', function() {
+      this.select();
+    });
+    postCat1.addEventListener('click', function() {
+      this.select();
+    });
   }
 
+  // 분류2 콤보박스: 입력 시 히스토리 기록 및 클릭/포커스 시 전체 선택 연동
   const postCat2 = $('postCategory2Select');
   if (postCat2) {
     postCat2.oninput = pushMetaHistory;
+    postCat2.addEventListener('focus', function() {
+      this.select();
+    });
+    postCat2.addEventListener('click', function() {
+      this.select();
+    });
   }
 
   ALL_SECTION_KEYS.forEach(function(k) {
