@@ -1,5 +1,5 @@
-<!-- - index.html (v5.5): 작성 글 정보 표의 분류1/분류2 초기 기본값을 '미분류'로 명시 설정 및 최신 BOM 동기화 -->
-<!-- [BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.11) / core.css(v1.2) / style.css(v3.7) -->
+<!-- - index.html (v5.6): 분류1/분류2를 직접 입력 텍스트 인풋과 전체 목록 드롭다운 버튼으로 분리 결합한 표준 콤보박스 구조로 개편 및 최신 BOM 동기화 -->
+<!-- [BOM] index(v5.6) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.15) / core.css(v1.2) / style.css(v3.7) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.5</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.6</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -154,13 +154,17 @@
               </td>
               <th>분류1</th>
               <td>
-                <input type="text" id="postCategory1Select" list="category1Datalist" class="select-filter-compact meta-select" value="미분류" placeholder="미분류" autocomplete="off">
-                <datalist id="category1Datalist"></datalist>
+                <div class="meta-combo-wrap">
+                  <input type="text" id="postCategory1Select" class="select-filter-compact meta-select meta-combo-input" value="미분류" placeholder="미분류" autocomplete="off">
+                  <select id="category1ComboSelect" class="meta-combo-arrow" title="분류1 목록 선택"></select>
+                </div>
               </td>
               <th>분류2</th>
               <td>
-                <input type="text" id="postCategory2Select" list="category2Datalist" class="select-filter-compact meta-select" value="미분류" placeholder="미분류" autocomplete="off">
-                <datalist id="category2Datalist"></datalist>
+                <div class="meta-combo-wrap">
+                  <input type="text" id="postCategory2Select" class="select-filter-compact meta-select meta-combo-input" value="미분류" placeholder="미분류" autocomplete="off">
+                  <select id="category2ComboSelect" class="meta-combo-arrow" title="분류2 목록 선택"></select>
+                </div>
               </td>
             </tr>
 
