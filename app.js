@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.19): 미저장 확인 모달의 버튼 라벨을 '편집 계속(저장X)', '나가기(저장X)', '저장'으로 명확화 및 최신 BOM 동기화
-[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.8)
+- app.js (v3.20): 미저장 확인 모달 안내 문구 줄바꿈('어떻게 처리할까요?' 앞 \n) 적용 및 최신 BOM 동기화
+[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.20) / core.css(v1.2) / style.css(v3.11)
 ========================================================================== */
 
-window._V_APP = "v3.19";
+window._V_APP = "v3.20";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -135,7 +135,7 @@ function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
   if (!modal) return;
 
   $('modalTitle').innerText = "⚠️ 저장 확인";
-  $('modalDesc').innerText = "저장되지 않은 변경사항이 있습니다. 어떻게 처리할까요?";
+  $('modalDesc').innerText = "저장되지 않은 변경사항이 있습니다.\n어떻게 처리할까요?";
 
   const actions = $('modalActions');
   actions.innerHTML = '<button type="button" id="modal-btn-cancel" class="btn btn-default">편집 계속(저장X)</button>' +
