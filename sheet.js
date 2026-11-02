@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.9): 논리적 절대 좌표계 도입으로 좌표 유실 해결 및 1:1 슬롯 교환 방식(절반 판정 폐지)으로 드롭 범위 2배 확장
-[BOM] index(v5.3) / core.js(v1.2) / sheet.js(v3.9) / api.js(v1.1) / app.js(v3.6) / core.css(v1.2) / style.css(v3.6)
+- sheet.js (v3.10): 목록 조작(줄바꿈/중요/숨김/상황) 시 isDirty 오염 원천 차단 및 백그라운드 자동 동기화로 글 전환 모달 제거
+[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.10) / api.js(v1.1) / app.js(v3.10) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_SHEET = "v3.9";
+window._V_SHEET = "v3.10";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -227,7 +227,6 @@ function getTargetRowByLogicalY(clientY) {
   const rows = Array.from(grid.querySelectorAll('.post-row-item'));
   for (let r of rows) {
     if (r === touchActiveRow) continue;
-    // 시각적 transform 이동과 무관하게 DOM이 고정된 offsetTop 절대 좌표 활용
     if (relativeY >= r.offsetTop && relativeY <= r.offsetTop + r.offsetHeight) {
       return r;
     }
@@ -253,11 +252,10 @@ function updateDynamicRowDisplacements(targetRow) {
     return;
   }
 
-  // 1:1 슬롯 교환: 위든 아래든 타깃의 인덱스 번호가 최종 목적지가 됨 (관대한 100% 범위)
   const destIdx = targetIdx;
 
   if (touchActiveRow) {
-    touchActiveRow.classList.add('can-drop'); // 잡은 제목줄만 녹색으로 변경
+    touchActiveRow.classList.add('can-drop');
   }
 
   validDropTargetId = targetRow ? targetRow.getAttribute('data-id') : null;
@@ -401,7 +399,6 @@ function renderPostList() {
     dragHandle.title = '끌어서 순서 이동';
     dragHandle.setAttribute('draggable', 'false');
 
-    // 데스크톱 마우스 드래그 fallback
     dragHandle.addEventListener('mousedown', function() {
       dragHandle.setAttribute('draggable', 'true');
     });
@@ -431,7 +428,6 @@ function renderPostList() {
       clearDynamicRowDisplacements();
       dragHandle.setAttribute('draggable', 'false');
       
-      // drop 처리 보호를 위한 지연 초기화
       setTimeout(function() {
         draggedPostId = null;
         touchActiveRow = null;
@@ -439,7 +435,6 @@ function renderPostList() {
       }, 50);
     });
 
-    // 모바일 터치 이벤트 핸들러
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
       if (e.cancelable) e.preventDefault();
@@ -518,7 +513,6 @@ function renderPostList() {
     grid.appendChild(row);
   });
 
-  // 데스크톱 드롭 존 이벤트 단일화 (자식 요소 방해 완벽 차단)
   grid.ondragenter = function(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -552,36 +546,33 @@ function renderPostList() {
   };
 }
 
-// 5-1. 슬롯 맞교환 순서 재배치 로직 (배열 자르기 전 인덱스 확정 1:1 직접 매핑)
+// 5-1. 슬롯 맞교환 순서 재배치 로직 (1:1 직접 매핑 및 즉시 백그라운드 동기화)
 function handlePostReorder(sourceId, targetId) {
   const srcIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === sourceId; });
   const tgtIdx = postListCache.findIndex(function(p) { return (p.ID || p.id) === targetId; });
 
   if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
-  const destIdx = tgtIdx; // 1:1 슬롯 다이렉트 매핑
+  const destIdx = tgtIdx;
 
-  // 1) 항목을 잘라내어 100% 검증된 타깃 위치로 꽂아 넣음
   const itemToMove = postListCache.splice(srcIdx, 1)[0];
   postListCache.splice(destIdx, 0, itemToMove);
 
-  // 2) 전체 글 순서 번호 1부터 순차 재부여
   postListCache.forEach(function(post, idx) {
     post.순서 = idx + 1;
   });
 
-  // 3) 로컬 캐시 저장 및 화면 재렌더링
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   pushPostListHistory();
   renderPostList();
 
-  // 4) 구글 시트 백엔드에 갱신된 순서 전송
+  // 구글 시트 백그라운드 전송 (isDirty 변경 없음)
   postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
 }
 
-// 6. 상황 토글
+// 6. 상황 토글 (현재 글 UI 갱신하되 isDirty 오염 방지)
 function togglePostStatus(post) {
   const current = (post.상황 || post.status || '작성중').trim();
   let nextStatus = '구상중';
@@ -600,7 +591,9 @@ function togglePostStatus(post) {
       const statusSelect = $('postStatusSelect');
       if (statusSelect) statusSelect.value = nextStatus;
     }
-    if (typeof pushMetaHistory === 'function') pushMetaHistory();
+    if (typeof syncEndDateFieldState === 'function') syncEndDateFieldState();
+    if (typeof updateElapsedDays === 'function') updateElapsedDays();
+    if (typeof initMetaHistory === 'function') initMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -609,7 +602,7 @@ function togglePostStatus(post) {
   sendPostMetaUpdate(post);
 }
 
-// 6-1. 중요 토글 (⭐ <-> ☆)
+// 6-1. 중요 토글 (⭐ <-> ☆) (isDirty 오염 방지)
 function togglePostImportant(post) {
   const current = String(post.중요 || post.important || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
@@ -621,7 +614,7 @@ function togglePostImportant(post) {
   if (activePostId === (post.ID || post.id)) {
     if (typeof currentPostImportant !== 'undefined') currentPostImportant = next;
     if (typeof updateMetaIcons === 'function') updateMetaIcons();
-    if (typeof pushMetaHistory === 'function') pushMetaHistory();
+    if (typeof initMetaHistory === 'function') initMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
@@ -630,7 +623,7 @@ function togglePostImportant(post) {
   sendPostMetaUpdate(post);
 }
 
-// 6-2. 숨김 토글 (🕶️ <-> 👓)
+// 6-2. 숨김 토글 (🕶️ <-> 👓) (isDirty 오염 방지)
 function togglePostHidden(post) {
   const current = String(post.숨김 || post.hidden || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
@@ -642,7 +635,7 @@ function togglePostHidden(post) {
   if (activePostId === (post.ID || post.id)) {
     if (typeof currentPostHidden !== 'undefined') currentPostHidden = next;
     if (typeof updateMetaIcons === 'function') updateMetaIcons();
-    if (typeof pushMetaHistory === 'function') pushMetaHistory();
+    if (typeof initMetaHistory === 'function') initMetaHistory();
   }
 
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
