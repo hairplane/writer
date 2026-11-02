@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.11): 작성 글 정보 창의 분류1 및 분류2 기본값을 '미분류'로 지정 및 최신 BOM 세트 동기화
-[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.11) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.12): 분류1 초기화 및 로드 시 기본값을 '미분류'로 보장하고 최신 BOM 세트 동기화
+[BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.12) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.11";
+window._V_APP = "v3.12";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -540,7 +540,7 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
     c1Datalist.appendChild(opt);
   });
 
-  if (c1Input && selectedCat1 !== undefined) {
+  if (c1Input) {
     c1Input.value = curC1;
   }
 
