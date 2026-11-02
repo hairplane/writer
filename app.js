@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.17): '선택' 별도 드롭다운 상자 제거 및 기존 단일 datalist 연동 구조로 원상복구, 클릭 시 기존 값 보존 및 최신 BOM 동기화
-[BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.17) / core.css(v1.2) / style.css(v3.8)
+- app.js (v3.18): 단일 datalist 구조에서 브라우저 자동 필터링을 우회하여 전체 목록을 노출시키는 '잔상 클리어 기법' 도입 (수정 이벤트 오작동 완벽 차단) 및 최신 BOM 동기화
+[BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.18) / core.css(v1.2) / style.css(v3.8)
 ========================================================================== */
 
-window._V_APP = "v3.17";
+window._V_APP = "v3.18";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -1167,71 +1167,88 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 분류1: 텍스트 입력창 관리 (기존 값 보존 및 실제 변경 시에만 이벤트 발동)
+  // 💡 분류1: 잔상 클리어 기법 적용 (브라우저 datalist 전체 노출 강제화 및 무결성 복원)
   const postCat1 = $('postCategory1Select');
   if (postCat1) {
     postCat1.addEventListener('focus', function() {
-      this.setAttribute('data-origin-val', this.value.trim());
-      this.select();
+      const current = this.value.trim();
+      this.setAttribute('data-real-val', current); // 실제 값 백업
+      this.placeholder = current || '미분류'; // 기존 텍스트를 잔상(플레이스홀더)으로 남김
+      this.value = ''; // 값을 비워야 브라우저가 전체 datalist 목록을 필터링 없이 100% 띄워줌
+    });
+
+    postCat1.addEventListener('click', function() {
+      if (this.value !== '') {
+        const current = this.value.trim();
+        this.setAttribute('data-real-val', current);
+        this.placeholder = current || '미분류';
+        this.value = '';
+      }
     });
 
     postCat1.addEventListener('blur', function() {
-      const originVal = this.getAttribute('data-origin-val') || '';
-      const currentVal = this.value.trim();
+      const realVal = this.getAttribute('data-real-val') || '미분류';
+      
+      // 사용자가 아무것도 선택 안 하고 빈칸인 채로 포커스를 잃었다면 100% 원래 값으로 복원
+      if (!this.value.trim()) {
+        this.value = realVal;
+      }
+      this.placeholder = '미분류'; // 플레이스홀더 원상복구
 
-      if (currentVal !== originVal) {
-        if (!currentVal) {
-          this.value = '미분류';
-        }
+      // 오직 값이 "실제로 달라졌을 때만" 옵션 갱신 및 히스토리(isDirty) 유발
+      if (this.value.trim() !== realVal) {
+        this.setAttribute('data-real-val', this.value.trim());
         updateMetaCategory2Options();
         pushMetaHistory();
       }
     });
 
     postCat1.addEventListener('change', function() {
-      const originVal = this.getAttribute('data-origin-val') || '';
-      const currentVal = this.value.trim();
-
-      if (currentVal !== originVal) {
-        if (!currentVal) {
-          this.value = '미분류';
-        }
-        this.setAttribute('data-origin-val', this.value);
+      const realVal = this.getAttribute('data-real-val') || '미분류';
+      if (this.value.trim() && this.value.trim() !== realVal) {
+        this.setAttribute('data-real-val', this.value.trim());
         updateMetaCategory2Options();
         pushMetaHistory();
       }
     });
   }
 
-  // 분류2: 텍스트 입력창 관리 (기존 값 보존 및 실제 변경 시에만 이벤트 발동)
+  // 💡 분류2: 잔상 클리어 기법 적용 (브라우저 datalist 하위 목록 전체 노출 강제화)
   const postCat2 = $('postCategory2Select');
   if (postCat2) {
     postCat2.addEventListener('focus', function() {
-      this.setAttribute('data-origin-val', this.value.trim());
-      this.select();
+      const current = this.value.trim();
+      this.setAttribute('data-real-val', current);
+      this.placeholder = current || '미분류';
+      this.value = '';
+    });
+
+    postCat2.addEventListener('click', function() {
+      if (this.value !== '') {
+        const current = this.value.trim();
+        this.setAttribute('data-real-val', current);
+        this.placeholder = current || '미분류';
+        this.value = '';
+      }
     });
 
     postCat2.addEventListener('blur', function() {
-      const originVal = this.getAttribute('data-origin-val') || '';
-      const currentVal = this.value.trim();
+      const realVal = this.getAttribute('data-real-val') || '미분류';
+      if (!this.value.trim()) {
+        this.value = realVal;
+      }
+      this.placeholder = '미분류';
 
-      if (currentVal !== originVal) {
-        if (!currentVal) {
-          this.value = '미분류';
-        }
+      if (this.value.trim() !== realVal) {
+        this.setAttribute('data-real-val', this.value.trim());
         pushMetaHistory();
       }
     });
 
     postCat2.addEventListener('change', function() {
-      const originVal = this.getAttribute('data-origin-val') || '';
-      const currentVal = this.value.trim();
-
-      if (currentVal !== originVal) {
-        if (!currentVal) {
-          this.value = '미분류';
-        }
-        this.setAttribute('data-origin-val', this.value);
+      const realVal = this.getAttribute('data-real-val') || '미분류';
+      if (this.value.trim() && this.value.trim() !== realVal) {
+        this.setAttribute('data-real-val', this.value.trim());
         pushMetaHistory();
       }
     });
