@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.16): 콤보박스 개편(입력창+드롭다운 분리)에 맞춘 분류1 전체 목록 노출 및 분류2 종속 필터링 연동, 클릭 시 값 보존 및 최신 BOM 동기화
-[BOM] index(v5.6) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.16) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.17): '선택' 별도 드롭다운 상자 제거 및 기존 단일 datalist 연동 구조로 원상복구, 클릭 시 기존 값 보존 및 최신 BOM 동기화
+[BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.17) / core.css(v1.2) / style.css(v3.8)
 ========================================================================== */
 
-window._V_APP = "v3.16";
+window._V_APP = "v3.17";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -482,12 +482,12 @@ function updateElapsedDays() {
   elapsedEl.value = diffDays + '일';
 }
 
-// 2-2. '작성 글 정보' 창의 분류1 및 분류2 콤보박스 연동 (전체 목록 노출 및 분류2 종속 필터링)
+// 2-2. '작성 글 정보' 창의 분류1 및 분류2 datalist 연동 (분류2 종속 필터링)
 function updateMetaCategory2Options(preferredVal) {
   const c1Input = $('postCategory1Select');
   const c2Input = $('postCategory2Select');
-  const c2Combo = $('category2ComboSelect');
-  if (!c2Combo) return;
+  const c2Datalist = $('category2Datalist');
+  if (!c2Datalist) return;
 
   const selectedC1 = c1Input ? (c1Input.value.trim() || '미분류') : '미분류';
   const targetVal = (preferredVal !== undefined && preferredVal !== '') ? preferredVal : (c2Input && c2Input.value.trim() ? c2Input.value.trim() : '미분류');
@@ -505,12 +505,11 @@ function updateMetaCategory2Options(preferredVal) {
     });
   }
 
-  c2Combo.innerHTML = '<option value="" disabled selected>선택</option>';
+  c2Datalist.innerHTML = '';
   Array.from(c2Set).sort().forEach(function(val) {
     const opt = document.createElement('option');
     opt.value = val;
-    opt.innerText = val;
-    c2Combo.appendChild(opt);
+    c2Datalist.appendChild(opt);
   });
 
   if (c2Input && preferredVal !== undefined) {
@@ -520,8 +519,8 @@ function updateMetaCategory2Options(preferredVal) {
 
 function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
   const c1Input = $('postCategory1Select');
-  const c1Combo = $('category1ComboSelect');
-  if (!c1Combo) return;
+  const c1Datalist = $('category1Datalist');
+  if (!c1Datalist) return;
 
   const curC1 = (selectedCat1 !== undefined && selectedCat1 !== '') ? selectedCat1 : (c1Input && c1Input.value.trim() ? c1Input.value.trim() : '미분류');
   const curC2 = (selectedCat2 !== undefined && selectedCat2 !== '') ? selectedCat2 : ($('postCategory2Select') && $('postCategory2Select').value.trim() ? $('postCategory2Select').value.trim() : '미분류');
@@ -534,12 +533,11 @@ function populateMetaCategoryDropdowns(selectedCat1, selectedCat2) {
     });
   }
 
-  c1Combo.innerHTML = '<option value="" disabled selected>선택</option>';
+  c1Datalist.innerHTML = '';
   Array.from(c1Set).sort().forEach(function(val) {
     const opt = document.createElement('option');
     opt.value = val;
-    opt.innerText = val;
-    c1Combo.appendChild(opt);
+    c1Datalist.appendChild(opt);
   });
 
   if (c1Input) {
@@ -1169,9 +1167,8 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 분류1: 텍스트 직접 입력 및 드롭다운 선택 연동
+  // 분류1: 텍스트 입력창 관리 (기존 값 보존 및 실제 변경 시에만 이벤트 발동)
   const postCat1 = $('postCategory1Select');
-  const cat1Combo = $('category1ComboSelect');
   if (postCat1) {
     postCat1.addEventListener('focus', function() {
       this.setAttribute('data-origin-val', this.value.trim());
@@ -1206,20 +1203,8 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  if (cat1Combo && postCat1) {
-    cat1Combo.addEventListener('change', function() {
-      if (this.value) {
-        postCat1.value = this.value;
-        this.value = ''; // 다음 클릭을 위해 리셋
-        updateMetaCategory2Options();
-        pushMetaHistory();
-      }
-    });
-  }
-
-  // 분류2: 텍스트 직접 입력 및 드롭다운 선택 연동
+  // 분류2: 텍스트 입력창 관리 (기존 값 보존 및 실제 변경 시에만 이벤트 발동)
   const postCat2 = $('postCategory2Select');
-  const cat2Combo = $('category2ComboSelect');
   if (postCat2) {
     postCat2.addEventListener('focus', function() {
       this.setAttribute('data-origin-val', this.value.trim());
@@ -1247,16 +1232,6 @@ window.addEventListener('DOMContentLoaded', function() {
           this.value = '미분류';
         }
         this.setAttribute('data-origin-val', this.value);
-        pushMetaHistory();
-      }
-    });
-  }
-
-  if (cat2Combo && postCat2) {
-    cat2Combo.addEventListener('change', function() {
-      if (this.value) {
-        postCat2.value = this.value;
-        this.value = '';
         pushMetaHistory();
       }
     });
