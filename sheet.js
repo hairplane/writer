@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v3.11): 필터 바 썬글라스 버튼 활성화 시 숨김 글만 단독 필터링하도록 판정 로직 수정 및 최신 BOM 동기화
-[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.10) / core.css(v1.2) / style.css(v3.7)
+- sheet.js (v6.00): 새 글 작성 기능 전면 디버깅을 위한 버전 개편 및 전체 모듈 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.00) / core.css(v1.2) / style.css(v6.00)
 ========================================================================== */
 
-window._V_SHEET = "v3.11";
+window._V_SHEET = "v6.00";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
