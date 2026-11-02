@@ -1,16 +1,16 @@
 /* ==========================================================================
-- sheet.js (v3.10): 목록 조작(줄바꿈/중요/숨김/상황) 시 isDirty 오염 원천 차단 및 백그라운드 자동 동기화로 글 전환 모달 제거
-[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.10) / api.js(v1.1) / app.js(v3.10) / core.css(v1.2) / style.css(v3.7)
+- sheet.js (v3.11): 필터 바 썬글라스 버튼 활성화 시 숨김 글만 단독 필터링하도록 판정 로직 수정 및 최신 BOM 동기화
+[BOM] index(v5.4) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.10) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_SHEET = "v3.10";
+window._V_SHEET = "v3.11";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
 
 let postListCache = [];
 let filterOnlyImportant = false;
-let filterOnlyHidden = false; // 선글라스 버튼: 꺼짐(공개글만), 켜짐(숨김글도 포함하여 전체 표시)
+let filterOnlyHidden = false; // 선글라스 버튼: 꺼짐(공개글만), 켜짐(숨김글만 단독 표시)
 
 // 작성 글 목록 취소/복원 히스토리 스택
 let postListHistory = [];
@@ -307,7 +307,13 @@ function renderPostList() {
     if (cat1Filter !== '전체' && itemCat1 !== cat1Filter) return false;
     if (cat2Filter !== '전체' && itemCat2 !== cat2Filter) return false;
     if (filterOnlyImportant && !itemImportant) return false;
-    if (!filterOnlyHidden && itemHidden) return false;
+
+    // 썬글라스 필터 판정: 켜짐(숨김글만 단독 표시) / 꺼짐(공개글만 표시)
+    if (filterOnlyHidden) {
+      if (!itemHidden) return false;
+    } else {
+      if (itemHidden) return false;
+    }
 
     return true;
   });
