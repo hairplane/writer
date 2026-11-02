@@ -1,5 +1,5 @@
-<!-- - index.html (v5.7): '선택' 별도 드롭다운 상자 제거 및 기존 일체형 단일 입력 필드로 디자인 원상복구, style.css 캐시 무효화 쿼리스트링 적용 및 최신 BOM 동기화 -->
-<!-- [BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.16) / core.css(v1.2) / style.css(v3.8) -->
+<!-- - index.html (v5.8): 모달 액션 영역의 정적 뼈대 버튼 라벨을 오해 없는 '버튼1, 버튼2, 버튼3' 플레이스홀더로 정돈 및 최신 BOM 동기화 -->
+<!-- [BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.18) / core.css(v1.2) / style.css(v3.8) -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,7 +21,7 @@
         <div class="header-title-wrap">
           <h1>✍️ 글쓰기 스튜디오</h1>
           <!-- 버전 뱃지 (마우스 호버 시 툴팁 노출, 클릭 시 팝오버 토글) -->
-          <span class="version-tag" title="모듈 로드 중...">v5.7</span>
+          <span class="version-tag" title="모듈 로드 중...">v5.8</span>
           <!-- 클릭 시 펼쳐지는 실시간 7개 모듈 버전 명세서 카드 -->
           <div id="versionPopover" class="version-popover"></div>
         </div>
@@ -241,9 +241,9 @@
       </div>
       <p class="modal-desc" id="modalDesc">내용을 확인해주세요.</p>
       <div class="modal-actions" id="modalActions">
-        <button type="button" id="modal-btn-cancel" class="btn btn-default">취소</button>
-        <button type="button" id="modal-btn-discard" class="btn btn-danger">저장 안 함</button>
-        <button type="button" id="modal-btn-save" class="btn btn-primary">확인</button>
+        <button type="button" id="modal-btn-cancel" class="btn btn-default">버튼1</button>
+        <button type="button" id="modal-btn-discard" class="btn btn-danger">버튼2</button>
+        <button type="button" id="modal-btn-save" class="btn btn-primary">버튼3</button>
       </div>
     </div>
   </div>
