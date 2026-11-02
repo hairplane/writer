@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.14): 분류1/분류2 클릭 및 포커스 시 브라우저 자동 필터링을 우회하여 전체 등록 목록을 100% 노출하도록 임시 값 비움/복원 엔진 적용 및 최신 BOM 동기화
-[BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.14) / core.css(v1.2) / style.css(v3.7)
+- app.js (v3.15): 분류1/분류2 클릭 시 기존 값 강제 삭제 금지 및 실제 값 변경 시에만 수정 히스토리/더티 상태 발생하도록 안전 분기 적용, 최신 BOM 동기화
+[BOM] index(v5.5) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.15) / core.css(v1.2) / style.css(v3.7)
 ========================================================================== */
 
-window._V_APP = "v3.14";
+window._V_APP = "v3.15";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -1168,64 +1168,74 @@ window.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // 분류1 콤보박스: 클릭/포커스 시 임시 값 비움으로 전체 목록 100% 노출 보장
+  // 분류1 콤보박스: 기존 값 보존 및 실제 값 변경 시에만 이벤트 발동
   const postCat1 = $('postCategory1Select');
   if (postCat1) {
-    let prevCat1Val = '';
-
     postCat1.addEventListener('focus', function() {
-      prevCat1Val = this.value;
-      this.value = ''; // 브라우저 자동 필터링 해제 -> 전체 목록 온전하게 노출
-    });
-
-    postCat1.addEventListener('click', function() {
-      if (this.value !== '') {
-        prevCat1Val = this.value;
-        this.value = '';
-      }
+      this.setAttribute('data-origin-val', this.value.trim());
+      this.select(); // 기존 텍스트 전체 선택만 수행 (값 삭제 없음)
     });
 
     postCat1.addEventListener('blur', function() {
-      // 아무것도 선택/입력하지 않고 벗어나면 원래 값으로 안전 복원
-      if (!this.value.trim()) {
-        this.value = prevCat1Val || '미분류';
+      const originVal = this.getAttribute('data-origin-val') || '';
+      const currentVal = this.value.trim();
+
+      // 실제 값이 변경된 경우에만 히스토리 기록 및 하위 datalist 갱신
+      if (currentVal !== originVal) {
+        if (!currentVal) {
+          this.value = '미분류';
+        }
+        updateMetaCategory2Options();
+        pushMetaHistory();
       }
-      updateMetaCategory2Options();
-      pushMetaHistory();
     });
 
-    postCat1.addEventListener('input', function() {
-      updateMetaCategory2Options();
-      pushMetaHistory();
+    postCat1.addEventListener('change', function() {
+      const originVal = this.getAttribute('data-origin-val') || '';
+      const currentVal = this.value.trim();
+
+      if (currentVal !== originVal) {
+        if (!currentVal) {
+          this.value = '미분류';
+        }
+        this.setAttribute('data-origin-val', this.value);
+        updateMetaCategory2Options();
+        pushMetaHistory();
+      }
     });
   }
 
-  // 분류2 콤보박스: 클릭/포커스 시 임시 값 비움으로 해당 하위 분류2 전체 목록 100% 노출 보장
+  // 분류2 콤보박스: 기존 값 보존 및 실제 값 변경 시에만 이벤트 발동
   const postCat2 = $('postCategory2Select');
   if (postCat2) {
-    let prevCat2Val = '';
-
     postCat2.addEventListener('focus', function() {
-      prevCat2Val = this.value;
-      this.value = '';
-    });
-
-    postCat2.addEventListener('click', function() {
-      if (this.value !== '') {
-        prevCat2Val = this.value;
-        this.value = '';
-      }
+      this.setAttribute('data-origin-val', this.value.trim());
+      this.select();
     });
 
     postCat2.addEventListener('blur', function() {
-      if (!this.value.trim()) {
-        this.value = prevCat2Val || '미분류';
+      const originVal = this.getAttribute('data-origin-val') || '';
+      const currentVal = this.value.trim();
+
+      if (currentVal !== originVal) {
+        if (!currentVal) {
+          this.value = '미분류';
+        }
+        pushMetaHistory();
       }
-      pushMetaHistory();
     });
 
-    postCat2.addEventListener('input', function() {
-      pushMetaHistory();
+    postCat2.addEventListener('change', function() {
+      const originVal = this.getAttribute('data-origin-val') || '';
+      const currentVal = this.value.trim();
+
+      if (currentVal !== originVal) {
+        if (!currentVal) {
+          this.value = '미분류';
+        }
+        this.setAttribute('data-origin-val', this.value);
+        pushMetaHistory();
+      }
     });
   }
 
