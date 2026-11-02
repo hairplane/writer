@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.20): 미저장 확인 모달 안내 문구 줄바꿈('어떻게 처리할까요?' 앞 \n) 적용 및 최신 BOM 동기화
-[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.20) / core.css(v1.2) / style.css(v3.11)
+- app.js (v6.00): 새 글 작성 기능 전면 디버깅을 위한 버전 개편 및 전체 모듈 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.00) / core.css(v1.2) / style.css(v6.00)
 ========================================================================== */
 
-window._V_APP = "v3.20";
+window._V_APP = "v6.00";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
