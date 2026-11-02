@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v3.8): 콤보박스(입력창 + 드롭다운 선택 화살표) 결합 레이아웃 스타일 추가 및 최신 BOM 동기화
-[BOM] index(v5.6) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.16) / core.css(v1.2) / style.css(v3.8)
+- style.css (v3.9): 확인 모달 창의 첫 번째 버튼 왼쪽 정렬(margin-right: auto) 및 나머지 버튼 간격 균일화(gap: 6px) 적용 및 최신 BOM 동기화
+[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.9)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v3.8";
+  --v-style-css: "v3.9";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -1071,11 +1071,17 @@ textarea.flat-textarea:focus {
 
 .modal-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 6px;
   padding: 8px 12px;
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
+}
+
+/* 첫 번째 버튼을 왼쪽 끝으로 정렬하고 나머지 버튼 간격은 gap(6px)으로 균일 유지 */
+.modal-actions > :first-child {
+  margin-right: auto;
 }
 
 .modal-actions .btn {
