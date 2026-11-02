@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v3.18): 단일 datalist 구조에서 브라우저 자동 필터링을 우회하여 전체 목록을 노출시키는 '잔상 클리어 기법' 도입 (수정 이벤트 오작동 완벽 차단) 및 최신 BOM 동기화
-[BOM] index(v5.7) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.18) / core.css(v1.2) / style.css(v3.8)
+- app.js (v3.19): 미저장 확인 모달의 버튼 라벨을 '편집 계속(저장X)', '나가기(저장X)', '저장'으로 명확화 및 최신 BOM 동기화
+[BOM] index(v5.8) / core.js(v1.2) / sheet.js(v3.11) / api.js(v1.1) / app.js(v3.19) / core.css(v1.2) / style.css(v3.8)
 ========================================================================== */
 
-window._V_APP = "v3.18";
+window._V_APP = "v3.19";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -138,9 +138,9 @@ function showUnsavedModal(onSaveAndExit, onDiscardAndExit) {
   $('modalDesc').innerText = "저장되지 않은 변경사항이 있습니다. 어떻게 처리할까요?";
 
   const actions = $('modalActions');
-  actions.innerHTML = '<button type="button" id="modal-btn-cancel" class="btn btn-default">계속 편집</button>' +
-                      '<button type="button" id="modal-btn-discard" class="btn btn-danger">저장 안 함</button>' +
-                      '<button type="button" id="modal-btn-save" class="btn btn-primary">저장하고 진행</button>';
+  actions.innerHTML = '<button type="button" id="modal-btn-cancel" class="btn btn-default">편집 계속(저장X)</button>' +
+                      '<button type="button" id="modal-btn-discard" class="btn btn-danger">나가기(저장X)</button>' +
+                      '<button type="button" id="modal-btn-save" class="btn btn-primary">저장</button>';
 
   modal.classList.remove('hidden');
 
@@ -1172,9 +1172,9 @@ window.addEventListener('DOMContentLoaded', function() {
   if (postCat1) {
     postCat1.addEventListener('focus', function() {
       const current = this.value.trim();
-      this.setAttribute('data-real-val', current); // 실제 값 백업
-      this.placeholder = current || '미분류'; // 기존 텍스트를 잔상(플레이스홀더)으로 남김
-      this.value = ''; // 값을 비워야 브라우저가 전체 datalist 목록을 필터링 없이 100% 띄워줌
+      this.setAttribute('data-real-val', current);
+      this.placeholder = current || '미분류';
+      this.value = '';
     });
 
     postCat1.addEventListener('click', function() {
@@ -1189,13 +1189,11 @@ window.addEventListener('DOMContentLoaded', function() {
     postCat1.addEventListener('blur', function() {
       const realVal = this.getAttribute('data-real-val') || '미분류';
       
-      // 사용자가 아무것도 선택 안 하고 빈칸인 채로 포커스를 잃었다면 100% 원래 값으로 복원
       if (!this.value.trim()) {
         this.value = realVal;
       }
-      this.placeholder = '미분류'; // 플레이스홀더 원상복구
+      this.placeholder = '미분류';
 
-      // 오직 값이 "실제로 달라졌을 때만" 옵션 갱신 및 히스토리(isDirty) 유발
       if (this.value.trim() !== realVal) {
         this.setAttribute('data-real-val', this.value.trim());
         updateMetaCategory2Options();
