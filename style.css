@@ -1,10 +1,10 @@
 /* ==========================================================================
-- style.css (v6.00): 새 글 작성 기능 전면 디버깅을 위한 버전 개편 및 전체 모듈 BOM 동기화
-[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.00) / core.css(v1.2) / style.css(v6.00)
+- style.css (v6.01): 단독 버튼 모달창(Alert) 액션 영역 중앙 정렬(:only-child) 및 본문 안내 텍스트 센터링(text-align: center) 적용, 헤더 Mac 도트 좌측 정렬 유지, 최신 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.01) / api.js(v1.1) / app.js(v6.02) / core.css(v1.2) / style.css(v6.01)
 ========================================================================== */
 
 :root {
-  --v-style-css: "v6.00";
+  --v-style-css: "v6.01";
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-color: #f8fafc;
@@ -1061,12 +1061,15 @@ textarea.flat-textarea:focus {
   margin: 0;
 }
 
+/* 본문 안내 문구 센터링으로 시각적 균형감 확보 */
 .modal-desc {
   padding: 14px 14px 10px 14px;
   font-size: 0.78rem;
   color: #475569;
   line-height: 1.4;
   margin: 0;
+  text-align: center;
+  word-break: keep-all;
 }
 
 .modal-actions {
@@ -1080,7 +1083,12 @@ textarea.flat-textarea:focus {
   box-sizing: border-box;
 }
 
-/* 모달 내부 3개 버튼 모두 단정하고 차분한 단일 기본 버튼 스타일로 통일 */
+/* 단독 확인 버튼 모달일 경우 중앙 정렬 */
+.modal-actions > :only-child {
+  margin: 0 auto;
+}
+
+/* 모달 내부 버튼 공통 단정 스타일 */
 .modal-actions .btn {
   padding: 4px 8px;
   font-size: 0.74rem;
@@ -1100,8 +1108,8 @@ textarea.flat-textarea:focus {
   color: #0f172a;
 }
 
-/* 세 번째 '저장' 버튼을 오른쪽으로 조금 더 분리 배치 */
-.modal-actions > :last-child {
+/* 세 번째 '저장' 버튼 오른쪽 추가 분리 여백 (3개 버튼 모달 전용) */
+.modal-actions > :last-child:not(:only-child) {
   margin-left: 10px;
 }
 
