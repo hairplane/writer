@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v6.00): 새 글 작성 기능 전면 디버깅을 위한 버전 개편 및 전체 모듈 BOM 동기화
-[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.00) / core.css(v1.2) / style.css(v6.00)
+- app.js (v6.01): 작성 글 정보 창의 '적용' 버튼 클릭 시 팝업 모달을 제거하고 버튼 라벨이 일시적으로 '✓ 반영됨'으로 전환되는 인라인 시각 피드백(방안 2) 적용 및 최신 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.01) / core.css(v1.2) / style.css(v6.00)
 ========================================================================== */
 
-window._V_APP = "v6.00";
+window._V_APP = "v6.01";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -672,7 +672,7 @@ function toggleMetaHidden() {
   pushMetaHistory();
 }
 
-// 3. '적용' 버튼: 작성 글 정보 내용을 목록 및 구글 시트에 즉시 반영
+// 3. '적용' 버튼: 작성 글 정보 내용을 목록 및 구글 시트에 즉시 반영 (방안 2: 버튼 텍스트 '✓ 반영됨' 인라인 피드백)
 function applyMetaChanges() {
   const titleVal = $('essayTitleInput').value.trim();
   if (!titleVal) return showMacAlert('확인 필요', '글 제목을 입력해주세요.');
@@ -769,7 +769,22 @@ function applyMetaChanges() {
   metaSavedSnapshot = getMetaSnapshot();
   updateMetaToolbarButtons();
   updateElapsedDays();
-  showMacAlert('반영 완료', '작성 글 정보가 목록 및 구글 시트에 성공적으로 적용되었습니다.');
+
+  // 💡 방안 2: 모달을 띄우지 않고 적용 버튼 라벨을 1.2초간 '✓ 반영됨'으로 전환
+  const btnApply = $('btn-meta-apply');
+  if (btnApply) {
+    const origText = '적용';
+    const origBg = btnApply.style.backgroundColor;
+    btnApply.innerText = '✓ 반영됨';
+    btnApply.style.backgroundColor = '#16a34a';
+    btnApply.disabled = true;
+
+    setTimeout(function() {
+      btnApply.innerText = origText;
+      btnApply.style.backgroundColor = origBg;
+      btnApply.disabled = false;
+    }, 1200);
+  }
 }
 
 // 3-1. '삭제' 버튼: 현재 글 영구 삭제 처리
