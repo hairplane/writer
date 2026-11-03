@@ -1,9 +1,9 @@
 /* ==========================================================================
-- sheet.js (v6.00): 새 글 작성 기능 전면 디버깅을 위한 버전 개편 및 전체 모듈 BOM 동기화
-[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.00) / core.css(v1.2) / style.css(v6.00)
+- sheet.js (v6.01): 앱 최초 로딩(캐시 및 구글 시트 수신) 완료 시 항상 1순위 글을 자동 선택(selectPost)하여 작성 글 정보 및 하위 7개 집필 창에 일괄 적용하도록 연동, 최신 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.01) / api.js(v1.1) / app.js(v6.01) / core.css(v1.2) / style.css(v6.00)
 ========================================================================== */
 
-window._V_SHEET = "v6.00";
+window._V_SHEET = "v6.01";
 
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzFdIdTROi1QhNrIj6bpoiT6vLdkhD2jWoCiDyUSg5Zyj8uGGHVZqjUlbbqz-tmH37rjg/exec";
 const POSTS_CACHE_KEY = "WRITER_POSTS_CACHE_V03";
@@ -29,7 +29,7 @@ function preventGlobalScroll(e) {
   e.preventDefault();
 }
 
-// 1. 로컬 캐시 불러오기
+// 1. 로컬 캐시 불러오기 (앱 진입 시 1순위 글 자동 활성화)
 function loadCachedPosts() {
   const cached = localStorage.getItem(POSTS_CACHE_KEY);
   if (cached) {
@@ -42,13 +42,18 @@ function loadCachedPosts() {
         populateMetaCategoryDropdowns();
       }
       renderPostList();
+
+      // 💡 1순위 글을 작성 글 정보 및 7개 집필 창 전체에 자동 적용
+      if (postListCache.length > 0 && typeof selectPost === 'function') {
+        selectPost(postListCache[0]);
+      }
     } catch (e) {
       console.error("[sheet.js] 캐시 파싱 에러:", e);
     }
   }
 }
 
-// 2. 구글 시트 JSONP 데이터 요청
+// 2. 구글 시트 JSONP 데이터 요청 (서버 데이터 수신 시 1순위 글 자동 활성화)
 function fetchSheetPosts() {
   const oldScript = document.getElementById('gas_jsonp_script');
   if (oldScript) oldScript.remove();
@@ -64,6 +69,11 @@ function fetchSheetPosts() {
         populateMetaCategoryDropdowns();
       }
       renderPostList();
+
+      // 💡 구글 시트 동기화 완료 후에도 1순위 글 최신 데이터로 화면 갱신
+      if (postListCache.length > 0 && typeof selectPost === 'function') {
+        selectPost(postListCache[0]);
+      }
     }
   };
 
@@ -123,7 +133,6 @@ function undoPostList() {
     localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
     renderPostList();
     updatePostListToolbarButtons();
-
     postListCache.forEach(function(post) {
       sendPostMetaUpdate(post);
     });
@@ -153,7 +162,6 @@ function restoreSavedPostList() {
   localStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(postListCache));
   renderPostList();
   updatePostListToolbarButtons();
-
   postListCache.forEach(function(post) {
     sendPostMetaUpdate(post);
   });
@@ -182,8 +190,8 @@ function populateCategoryFilters() {
     opt.innerText = c1;
     cat1Select.appendChild(opt);
   });
-  cat1Select.value = cat1Set.has(currentCat1) ? currentCat1 : '전체';
 
+  cat1Select.value = cat1Set.has(currentCat1) ? currentCat1 : '전체';
   updateCategory2Options(currentCat2);
 }
 
@@ -200,6 +208,7 @@ function updateCategory2Options(targetValue) {
     const c1 = (item.분류1 || item.category1 || item.분류 || item.category || '').trim();
     const c2 = (item.분류2 || item.category2 || '').trim();
     if (!c2) return;
+
     if (selectedCat1 === '전체' || c1 === selectedCat1) {
       cat2Set.add(c2);
     }
@@ -221,6 +230,7 @@ function updateCategory2Options(targetValue) {
 function getTargetRowByLogicalY(clientY) {
   const grid = $('list_postRows');
   if (!grid) return null;
+
   const gridRect = grid.getBoundingClientRect();
   const relativeY = clientY - gridRect.top + grid.scrollTop;
 
@@ -253,11 +263,9 @@ function updateDynamicRowDisplacements(targetRow) {
   }
 
   const destIdx = targetIdx;
-
   if (touchActiveRow) {
     touchActiveRow.classList.add('can-drop');
   }
-
   validDropTargetId = targetRow ? targetRow.getAttribute('data-id') : null;
 
   if (activeIdx < destIdx) {
@@ -367,7 +375,6 @@ function renderPostList() {
     const titleArea = document.createElement('div');
     titleArea.className = 'post-row-title-area';
     titleArea.innerHTML = '<span class="post-row-title" title="' + postTitle + '">' + postTitle + '</span>';
-
     titleArea.onclick = function() {
       const hasUnsaved = (typeof isDirty !== 'undefined') && isDirty;
       if (hasUnsaved && typeof showUnsavedModal === 'function') {
@@ -433,7 +440,6 @@ function renderPostList() {
       }
       clearDynamicRowDisplacements();
       dragHandle.setAttribute('draggable', 'false');
-      
       setTimeout(function() {
         draggedPostId = null;
         touchActiveRow = null;
@@ -444,9 +450,7 @@ function renderPostList() {
     dragHandle.addEventListener('touchstart', function(e) {
       e.stopPropagation();
       if (e.cancelable) e.preventDefault();
-
       document.addEventListener('touchmove', preventGlobalScroll, { passive: false });
-
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'hidden';
 
@@ -461,7 +465,6 @@ function renderPostList() {
     dragHandle.addEventListener('touchmove', function(e) {
       if (!draggedPostId || !touchActiveRow) return;
       if (e.cancelable) e.preventDefault();
-
       const touch = e.touches[0];
       const deltaY = touch.clientY - touchStartY;
       touchActiveRow.style.transform = 'translateY(' + deltaY + 'px) scale(1.02)';
@@ -472,7 +475,6 @@ function renderPostList() {
 
     dragHandle.addEventListener('touchend', function(e) {
       document.removeEventListener('touchmove', preventGlobalScroll);
-
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'auto';
 
@@ -496,7 +498,6 @@ function renderPostList() {
 
     dragHandle.addEventListener('touchcancel', function() {
       document.removeEventListener('touchmove', preventGlobalScroll);
-
       const listContainer = $('list_postRows');
       if (listContainer) listContainer.style.overflowY = 'auto';
 
@@ -515,7 +516,6 @@ function renderPostList() {
     row.appendChild(titleArea);
     row.appendChild(hiddenBtn);
     row.appendChild(dragHandle);
-
     grid.appendChild(row);
   });
 
@@ -523,12 +523,14 @@ function renderPostList() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
+
   grid.ondragover = function(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const targetRow = getTargetRowByLogicalY(e.clientY);
     updateDynamicRowDisplacements(targetRow);
   };
+
   grid.ondrop = function(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -560,7 +562,6 @@ function handlePostReorder(sourceId, targetId) {
   if (srcIdx === -1 || tgtIdx === -1 || srcIdx === tgtIdx) return;
 
   const destIdx = tgtIdx;
-
   const itemToMove = postListCache.splice(srcIdx, 1)[0];
   postListCache.splice(destIdx, 0, itemToMove);
 
@@ -612,7 +613,6 @@ function togglePostStatus(post) {
 function togglePostImportant(post) {
   const current = String(post.중요 || post.important || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
-
   post.중요 = next;
   post.important = next;
 
@@ -633,7 +633,6 @@ function togglePostImportant(post) {
 function togglePostHidden(post) {
   const current = String(post.숨김 || post.hidden || 'N').trim().toUpperCase();
   const next = current === 'Y' ? 'N' : 'Y';
-
   post.숨김 = next;
   post.hidden = next;
 
@@ -711,8 +710,22 @@ function syncPostToSheet(payload) {
       body: JSON.stringify(payload)
     }).then(function() {
       fetchSheetPosts();
+    }).catch(function(err) {
+      console.warn("[sheet.js] 구글 시트 백그라운드 전송 실패:", err);
     });
-  } catch (err) {
-    console.error("[sheet.js] 구글 시트 저장 통신 오류:", err);
+  } catch (e) {
+    console.error("[sheet.js] 전송 에러:", e);
   }
 }
+
+// 8. 전역 네임스페이스 등록
+window.loadCachedPosts = loadCachedPosts;
+window.fetchSheetPosts = fetchSheetPosts;
+window.renderPostList = renderPostList;
+window.syncPostToSheet = syncPostToSheet;
+window.sendPostMetaUpdate = sendPostMetaUpdate;
+window.deletePostFromSheet = deletePostFromSheet;
+window.undoPostList = undoPostList;
+window.restoreSavedPostList = restoreSavedPostList;
+window.updateCategory2Options = updateCategory2Options;
+window.populateCategoryFilters = populateCategoryFilters;
