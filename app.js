@@ -1,9 +1,9 @@
 /* ==========================================================================
-- app.js (v6.01): 작성 글 정보 창의 '적용' 버튼 클릭 시 팝업 모달을 제거하고 버튼 라벨이 일시적으로 '✓ 반영됨'으로 전환되는 인라인 시각 피드백(방안 2) 적용 및 최신 BOM 동기화
-[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.00) / api.js(v1.1) / app.js(v6.01) / core.css(v1.2) / style.css(v6.00)
+- app.js (v6.02): 앱 초기 진입 시 로컬스토리지의 과거 작업본을 임의 복원하던 loadSavedData()의 단독 덮어쓰기를 방지하고 1순위 글 자동 로드와 상호 충돌하지 않도록 정돈 및 최신 BOM 동기화
+[BOM] index(v6.00) / core.js(v1.2) / sheet.js(v6.01) / api.js(v1.1) / app.js(v6.02) / core.css(v1.2) / style.css(v6.00)
 ========================================================================== */
 
-window._V_APP = "v6.01";
+window._V_APP = "v6.02";
 
 const STORAGE_KEY = "WRITER_STUDIO_DATA_V10";
 let isDirty = false;
@@ -1083,11 +1083,16 @@ window.addEventListener('DOMContentLoaded', function() {
   buildEditorSections();
   initFieldStates();
   initMetaHistory();
-  loadSavedData();
   checkApiKeyStatus();
   updateAllStats();
+  
+  // 💡 캐시 및 구글 시트 목록이 비어 있을 때만 로컬 백업본을 방어적으로 복원
   loadCachedPosts();
   fetchSheetPosts();
+  if (!postListCache || postListCache.length === 0) {
+    loadSavedData();
+  }
+
   initBOMVersionDisplay();
 
   const btnToggleAll = $('btn-toggle-all');
